@@ -360,3 +360,15 @@ func fetchVulnerabilities(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Write(jsonBytes)
 }
+
+func gitInfoRefsHandler(w http.ResponseWriter, r *http.Request) {
+	gitServer.ServeHTTP(w, r)
+}
+
+func gitReceivePackHandler(w http.ResponseWriter, r *http.Request) {
+	gitServer.ServeHTTP(w, r)
+}
+
+func gitUploadPackHandler(w http.ResponseWriter, r *http.Request) {
+	gitServer.ServeHTTP(w, r)
+}

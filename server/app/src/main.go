@@ -67,6 +67,11 @@ func main() {
 	scansRouter.HandleFunc("/scans", storeScanHandler).Methods(http.MethodPost, http.MethodOptions)
 	http.Handle("/scans", scansRouter)
 
+	gitRouter := mux.NewRouter()
+	gitRouter.HandleFunc("/{project}/{user}/info/refs", gitInfoRefsHandler).Methods(http.MethodGet)
+	gitRouter.HandleFunc("/{project}/{user}/git-receive-pack", gitReceivePackHandler).Methods(http.MethodPost)
+	gitRouter.HandleFunc("/{project}/{user}/git-upload-pack", gitUploadPackHandler).Methods(http.MethodPost)
+	http.Handle("/", gitRouter)
+
 	http.ListenAndServe("0.0.0.0:8080", nil)
-	// http.ListenAndServeTLS("0.0.0.0:443", filepath.Join("..", "crt", "server.crt"), filepath.Join("..", "crt", "server.key"), nil)
 }
