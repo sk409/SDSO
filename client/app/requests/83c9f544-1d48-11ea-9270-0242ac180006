@@ -1,0 +1,17 @@
+{
+  "method": "GET",
+  "url": "http://192.168.10.105:4800/sql_injection/mysql/3/get.php?password=\u0026name=\u0026",
+  "path": "/sql_injection/mysql/3/get.php",
+  "header": {
+    "Accept-Encoding": [
+      "gzip"
+    ],
+    "Content-Type": [
+      "application/x-www-form-urlencoded"
+    ],
+    "User-Agent": [
+      "Go-http-client/1.1"
+    ]
+  },
+  "body": ""
+}

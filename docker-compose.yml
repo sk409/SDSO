@@ -1,0 +1,31 @@
+version: "3.3"
+services:
+    client:
+        build: ./client
+        tty: true
+        volumes:
+            - ./client/app:/go/src/github.com/sk409/sdso
+        ports:
+            - 4080:4080
+    database:
+        build: ./database
+    server:
+        build: ./server
+        tty: true
+        ports:
+            - 8080:8080
+        volumes:
+            - ./server/app:/go/src/github.com/sk409/sdso
+        depends_on:
+            - database
+    vulner_mysql:
+        build: ./vulner/mysql
+    vulner_nginx:
+        build: ./vulner/nginx
+        ports:
+            - 4800:80
+    vulner_php:
+        build: ./vulner/php
+        volumes:
+            - ./vulner/php/src:/var/www/html
+        
