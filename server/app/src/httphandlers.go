@@ -496,6 +496,10 @@ func gitReceivePackHandler(w http.ResponseWriter, r *http.Request) {
 	pathParams := mux.Vars(r)
 	userName := pathParams["user"]
 	projectName := pathParams["project"]
+	directoryPath := filepath.Join(gitClones.RootPath, filepath.Join(userName, projectName))
+	if existDirectory(directoryPath) {
+		os.RemoveAll(directoryPath)
+	}
 	gitClones.Clone(
 		serverScheme+"://"+path.Join(serverHostAndPort, userName, projectName),
 		filepath.Join(userName, projectName),
