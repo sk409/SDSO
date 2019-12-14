@@ -9,7 +9,7 @@ import (
 )
 
 func loadUser() (*user, error) {
-	jsonFilePath := filepath.Join("auth", "user")
+	jsonFilePath := makeFilePath(filepath.Join("auth", "user"))
 	jsonBytes, err := ioutil.ReadFile(jsonFilePath)
 	if err != nil {
 		return nil, err

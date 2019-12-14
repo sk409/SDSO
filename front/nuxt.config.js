@@ -1,7 +1,5 @@
 require("dotenv").config();
-const {
-  APP_SERVER_ORIGIN
-} = process.env;
+const { APP_SERVER_ORIGIN } = process.env;
 
 export default {
   mode: "universal",
@@ -10,7 +8,8 @@ export default {
    */
   head: {
     title: process.env.npm_package_name || "",
-    meta: [{
+    meta: [
+      {
         charset: "utf-8"
       },
       {
@@ -23,14 +22,16 @@ export default {
         content: process.env.npm_package_description || ""
       }
     ],
-    link: [{
+    link: [
+      {
         rel: "icon",
         type: "image/x-icon",
         href: "/favicon.ico"
       },
       {
         rel: "stylesheet",
-        href: "https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
+        href:
+          "https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
       }
     ]
   },
@@ -47,7 +48,13 @@ export default {
   /*
    ** Plugins to load before mounting the App
    */
-  plugins: ["@/plugins/axios.js", "@/plugins/element-ui", "@/plugins/routes.js", "@/plugins/store_mutations.js", "@/plugins/urls.js"],
+  plugins: [
+    "@/plugins/ajax.js",
+    "@/plugins/element-ui",
+    "@/plugins/routes.js",
+    "@/plugins/store_mutations.js",
+    "@/plugins/urls.js"
+  ],
   /*
    ** Nuxt.js dev-modules
    */

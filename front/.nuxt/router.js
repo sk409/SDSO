@@ -6,8 +6,11 @@ import scrollBehavior from './router.scrollBehavior.js'
 const _2c8bcc34 = () => interopDefault(import('../pages/Login.vue' /* webpackChunkName: "pages/Login" */))
 const _63c62594 = () => interopDefault(import('../pages/Register.vue' /* webpackChunkName: "pages/Register" */))
 const _b56d1530 = () => interopDefault(import('../pages/dashboard/Projects.vue' /* webpackChunkName: "pages/dashboard/Projects" */))
-const _529decae = () => interopDefault(import('../pages/projects/Create.vue' /* webpackChunkName: "pages/projects/Create" */))
-const _255386a2 = () => interopDefault(import('../pages/projects/Show.vue' /* webpackChunkName: "pages/projects/Show" */))
+const _1c452f85 = () => interopDefault(import('../pages/project/Create.vue' /* webpackChunkName: "pages/project/Create" */))
+const _96636d74 = () => interopDefault(import('../pages/project/Show.vue' /* webpackChunkName: "pages/project/Show" */))
+const _764c95c4 = () => interopDefault(import('../pages/project/code/Files.vue' /* webpackChunkName: "pages/project/code/Files" */))
+const _7f527cf2 = () => interopDefault(import('../pages/project/code/FileText.vue' /* webpackChunkName: "pages/project/code/FileText" */))
+const _3094959e = () => interopDefault(import('../pages/project/code/_projectName/_.vue' /* webpackChunkName: "pages/project/code/_projectName/_" */))
 const _aebf5222 = () => interopDefault(import('../pages/index.vue' /* webpackChunkName: "pages/index" */))
 
 Vue.use(Router)
@@ -32,13 +35,25 @@ export const routerOptions = {
     component: _b56d1530,
     name: "dashboard-Projects"
   }, {
-    path: "/projects/Create",
-    component: _529decae,
-    name: "projects-Create"
+    path: "/project/Create",
+    component: _1c452f85,
+    name: "project-Create"
   }, {
-    path: "/projects/Show",
-    component: _255386a2,
-    name: "projects-Show"
+    path: "/project/Show",
+    component: _96636d74,
+    name: "project-Show"
+  }, {
+    path: "/project/code/Files",
+    component: _764c95c4,
+    name: "project-code-Files"
+  }, {
+    path: "/project/code/FileText",
+    component: _7f527cf2,
+    name: "project-code-FileText"
+  }, {
+    path: "/project/code/:projectName?/*",
+    component: _3094959e,
+    name: "project-code-projectName-all"
   }, {
     path: "/",
     component: _aebf5222,

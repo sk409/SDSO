@@ -4,7 +4,7 @@
     <div id="app-body" class="d-flex">
       <div class="sidebar">SIDEBAR</div>
       <div class="main">
-        <nuxt></nuxt>
+        <nuxt />
       </div>
     </div>
   </div>

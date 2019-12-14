@@ -29,9 +29,7 @@ import (
 )
 
 func entrypointLogin() {
-	if f, err := os.Stat("auth"); os.IsNotExist(err) || !f.IsDir() {
-		os.Mkdir("auth", 0755)
-	}
+	mkDirIfNotExist(makeFilePath("auth"))
 	fs := flag.NewFlagSet(os.Args[0], flag.ExitOnError)
 	name := fs.String("name", "", "user name")
 	password := fs.String("password", "", "password")
@@ -67,7 +65,7 @@ func entrypointLogin() {
 	if err != nil {
 		return
 	}
-	userJSONFilePath := filepath.Join("auth", "user")
+	userJSONFilePath := makeFilePath(filepath.Join("auth", "user"))
 	userJSONFile, err := os.Create(userJSONFilePath)
 	if err != nil {
 		return
@@ -77,13 +75,11 @@ func entrypointLogin() {
 }
 
 func entrypointRecord() {
-	if f, err := os.Stat("requests"); os.IsNotExist(err) || !f.IsDir() {
-		os.Mkdir("requests", 0755)
-	}
+	mkDirIfNotExist(makeFilePath("requests"))
 	fs := flag.NewFlagSet(os.Args[0], flag.ExitOnError)
 	host := fs.String("host", "abc", "Vulnerability scan target host")
-	crtFile := fs.String("crt", filepath.Join("ca", "server.crt"), "Root CA certificae")
-	keyFile := fs.String("key", filepath.Join("ca", "server.key"), "Root CA private key")
+	// crtFile := fs.String("crt", makeFilePath(filepath.Join("ca", "server.crt")), "Root CA certificae")
+	// keyFile := fs.String("key", makeFilePath(filepath.Join("ca", "server.key")), "Root CA private key")
 	fs.Parse(os.Args[2:])
 	targetHost = *host
 	if len(targetHost) == 0 {
@@ -96,7 +92,7 @@ func entrypointRecord() {
 			if file.IsDir() {
 				continue
 			}
-			jsonFile, err := os.Open(filepath.Join("requests", file.Name()))
+			jsonFile, err := os.Open(makeFilePath(filepath.Join("requests", file.Name())))
 			if err != nil {
 				continue
 			}
@@ -116,8 +112,9 @@ func entrypointRecord() {
 			storeRequestSignature(newRequestSignature(httpRequest))
 		}
 	}
-
-	p, err := goproxy.NewHTTPProxy(*crtFile, *keyFile, true)
+	crtFilePath := makeFilePath(filepath.Join("ca", "server.crt"))
+	keyFilePath := makeFilePath(filepath.Join("ca", "server.key"))
+	p, err := goproxy.NewHTTPProxy(crtFilePath, keyFilePath, true)
 	if err != nil {
 		panic(err)
 	}
@@ -155,6 +152,11 @@ func entrypointRequestSend() {
 		// log.Print(file)
 		command := exec.Command(filepath.Join(cwd, file))
 		command.Dir = requestDirectory
+		// command.Env = append(
+		// 	os.Environ(),
+		// 	"SDSO_CRT="+makeFilePath(filepath.Join("ca", "server.crt")),
+		// 	"SDSO_KEY="+makeFilePath(filepath.Join("ca", "server.key")),
+		// )
 		err = command.Run()
 		if err != nil {
 			log.Println(err.Error())
@@ -163,9 +165,7 @@ func entrypointRequestSend() {
 }
 
 func entrypointScan() {
-	if f, err := os.Stat("vulnerabilities"); os.IsNotExist(err) || !f.IsDir() {
-		os.Mkdir("vulnerabilities", 0755)
-	}
+	mkDirIfNotExist(makeFilePath("vulnerabilities"))
 	fs := flag.NewFlagSet("scan", flag.ExitOnError)
 	projectName := fs.String("project", "", "project name")
 	verbose := fs.Bool("verbose", false, "verbose")
@@ -222,13 +222,13 @@ func entrypointScan() {
 	if !exist {
 		return
 	}
-	scanIDUInt := uint(scanID.(float64))
+	scanIDUint := uint(scanID.(float64))
 	signatures := []signature{
 		newXSSSignatureAngleBrackets(),
 		newOSCommandInjectionSleep(),
 		newSQLInjectionSleep(),
 	}
-	requestFiles, err := ioutil.ReadDir("requests")
+	requestFiles, err := ioutil.ReadDir(makeFilePath("requests"))
 	if err != nil {
 		return
 	}
@@ -237,7 +237,7 @@ func entrypointScan() {
 		if file.IsDir() {
 			continue
 		}
-		jsonFile, err := os.Open(filepath.Join("requests", file.Name()))
+		jsonFile, err := os.Open(makeFilePath(filepath.Join("requests", file.Name())))
 		if err != nil {
 			continue
 		}
@@ -262,7 +262,7 @@ func entrypointScan() {
 				Method:      request.Method,
 				Request:     requestString,
 				Response:    responseString,
-				ScanID:      scanIDUInt,
+				ScanID:      scanIDUint,
 			}
 			if *verbose {
 				fmt.Println("-------------------------------------")
@@ -287,7 +287,7 @@ func entrypointScan() {
 			if err != nil {
 				continue
 			}
-			file, err := os.Create(filepath.Join("vulnerabilities", id.String()))
+			file, err := os.Create(makeFilePath(filepath.Join("vulnerabilities", id.String())))
 			if err != nil {
 				continue
 			}
@@ -327,7 +327,7 @@ func entrypointUpload() {
 		fmt.Println("プロジェクトが存在していません")
 		return
 	}
-	fileInfos, err := ioutil.ReadDir("vulnerabilities")
+	fileInfos, err := ioutil.ReadDir(makeFilePath("vulnerabilities"))
 	if err != nil {
 		return
 	}
@@ -335,7 +335,7 @@ func entrypointUpload() {
 		if fileInfo.IsDir() {
 			continue
 		}
-		filePath := filepath.Join("vulnerabilities", fileInfo.Name())
+		filePath := makeFilePath(filepath.Join("vulnerabilities", fileInfo.Name()))
 		jsonBytes, err := ioutil.ReadFile(filePath)
 		if err != nil {
 			continue
@@ -396,10 +396,8 @@ func entrypointX509() {
 	if err != nil {
 		return
 	}
-	if !existDirectory("ca") {
-		os.Mkdir("ca", 0755)
-	}
-	crtFile, err := os.Create(filepath.Join("ca", "server.crt"))
+	mkDirIfNotExist(makeFilePath("ca"))
+	crtFile, err := os.Create(makeFilePath(filepath.Join("ca", "server.crt")))
 	if err != nil {
 		return
 	}
@@ -408,7 +406,7 @@ func entrypointX509() {
 	if err != nil {
 		return
 	}
-	keyFile, err := os.Create(filepath.Join("ca", "server.key"))
+	keyFile, err := os.Create(makeFilePath(filepath.Join("ca", "server.key")))
 	if err != nil {
 		return
 	}

@@ -4,10 +4,16 @@ import (
 	"crypto/sha512"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net/http"
+	"os"
+	"path"
+	"path/filepath"
 	"strconv"
 	"strings"
+
+	"github.com/gorilla/mux"
 
 	"github.com/sk409/goconst"
 )
@@ -41,6 +47,7 @@ func existHandler(w http.ResponseWriter, r *http.Request, tableName string) {
 }
 
 func authCheckHandler(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("authCheckHandler")
 	allowedHeaders := strings.Join([]string{goconst.HTTP_HEADER_CONTENT_TYPE, goconst.HTTP_HEADER_X_XSRF_TOKEN}, ",")
 	w.Header().Set(goconst.HTTP_HEADER_ACCESS_CONTROL_ALLOW_HEADERS, allowedHeaders)
 	w.Header().Set(goconst.HTTP_HEADER_ACCESS_CONTROL_ALLOW_METHODS, http.MethodGet)
@@ -55,10 +62,6 @@ func authCheckHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	session, err := sessionManager.Provider.Get(sessionCookie.Value)
 	if session == nil || err != nil {
-		// log.Println(session)
-		// if err != nil {
-		// 	log.Println(err.Error())
-		// }
 		w.Write(notAuthenticated)
 		http.SetCookie(w, &http.Cookie{
 			Name:   cookieNameSessionID,
@@ -70,6 +73,7 @@ func authCheckHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func loginHandler(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("loginHandler")
 	allowedHeaders := strings.Join([]string{goconst.HTTP_HEADER_CONTENT_TYPE, goconst.HTTP_HEADER_X_XSRF_TOKEN}, ",")
 	w.Header().Set(goconst.HTTP_HEADER_ACCESS_CONTROL_ALLOW_HEADERS, allowedHeaders)
 	w.Header().Set(goconst.HTTP_HEADER_ACCESS_CONTROL_ALLOW_METHODS, http.MethodPost)
@@ -103,6 +107,7 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func registerHandler(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("registerHandler")
 	allowedHeaders := strings.Join([]string{goconst.HTTP_HEADER_CONTENT_TYPE, goconst.HTTP_HEADER_X_XSRF_TOKEN}, ",")
 	w.Header().Set(goconst.HTTP_HEADER_ACCESS_CONTROL_ALLOW_HEADERS, allowedHeaders)
 	w.Header().Set(goconst.HTTP_HEADER_ACCESS_CONTROL_ALLOW_METHODS, http.MethodPost)
@@ -140,6 +145,7 @@ func registerHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func fetchUserHandler(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("fetchUserHandler")
 	allowedHeaders := strings.Join([]string{goconst.HTTP_HEADER_CONTENT_TYPE, goconst.HTTP_HEADER_X_XSRF_TOKEN}, ",")
 	w.Header().Set(goconst.HTTP_HEADER_ACCESS_CONTROL_ALLOW_HEADERS, allowedHeaders)
 	w.Header().Set(goconst.HTTP_HEADER_ACCESS_CONTROL_ALLOW_METHODS, http.MethodGet)
@@ -172,6 +178,7 @@ func fetchUserHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func fetchUsersHandler(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("fetchUsersHandler")
 	query, values := makeQueryAndValues(r)
 	users := []user{}
 	db.Where(query, values...).Find(&users)
@@ -185,12 +192,14 @@ func fetchUsersHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func existUserHandler(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("existUserHandler")
 	existHandler(w, r, tableNameUsers)
 }
 
 func storeProjectHandler(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("storeProjectHandler")
 	r.ParseForm()
-	log.Println(r.PostForm)
+	// log.Println(r.PostForm)
 	name := r.PostFormValue("name")
 	userIDString := r.PostFormValue("userID")
 	if len(name) == 0 || len(userIDString) == 0 {
@@ -210,6 +219,7 @@ func storeProjectHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func fetchProjectsHandler(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("fetchProjectsHandler")
 	query, values := makeQueryAndValues(r)
 	projects := []project{}
 	db.Model(project{}).Where(query, values...).Find(&projects)
@@ -223,10 +233,12 @@ func fetchProjectsHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func existProjectHandler(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("existProjectHandler")
 	existHandler(w, r, tableNameProjects)
 }
 
 func storeScanHandler(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("storeScanHandler")
 	if r.Method == http.MethodOptions {
 		return
 	}
@@ -265,6 +277,7 @@ func storeScanHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func fetchScansHandler(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("fetchScansHandler")
 	query, values := makeQueryAndValues(r)
 	scans := []scan{}
 	db.Where(query, values...).Find(&scans)
@@ -282,6 +295,7 @@ func fetchScansHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func storeVulnerability(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("storeVulnerability")
 	w.Header().Set(goconst.HTTP_HEADER_ACCESS_CONTROL_ALLOW_METHODS, http.MethodPost)
 	w.Header().Set(goconst.HTTP_HEADER_ACCESS_CONTROL_ALLOW_HEADERS, goconst.HTTP_HEADER_CONTENT_TYPE)
 	if r.Method == http.MethodOptions {
@@ -345,6 +359,7 @@ func storeVulnerability(w http.ResponseWriter, r *http.Request) {
 }
 
 func fetchVulnerabilities(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("fetchVulnerabilities")
 	query, values := makeQueryAndValues(r)
 	vulnerabilities := []vulnerability{}
 	db.Where(query, values...).Find(&vulnerabilities)
@@ -361,14 +376,133 @@ func fetchVulnerabilities(w http.ResponseWriter, r *http.Request) {
 	w.Write(jsonBytes)
 }
 
+func initRepositoryHandler(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("initRepositoryHandler")
+	userName := r.PostFormValue("userName")
+	projectName := r.PostFormValue("projectName")
+	if len(userName) == 0 || len(projectName) == 0 {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	repositoryPath := filepath.Join(userName, projectName)
+	exist := existDirectory(filepath.Join(gitRepositories.RootPath, repositoryPath))
+	// if err != nil {
+	// 	log.Println(err.Error())
+	// 	w.WriteHeader(http.StatusInternalServerError)
+	// 	return
+	// }
+	if exist {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	//mkDirIfNotExist(filepath.Join(gitRepositories.RootPath, repositoryPath))
+	err := os.MkdirAll(filepath.Join(gitRepositories.RootPath, repositoryPath), 0755)
+	if err != nil {
+		log.Println(err.Error())
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	err = gitRepositories.InitBare(repositoryPath)
+	if err != nil {
+		log.Println(err.Error())
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+}
+
+func fetchFileTextHandler(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("fetchFileTextHandler")
+	userName := r.URL.Query().Get("userName")
+	projectName := r.URL.Query().Get("projectName")
+	path := r.URL.Query().Get("path")
+	if len(userName) == 0 || len(projectName) == 0 || len(path) == 0 {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	file, err := os.Open(filepath.Join(gitClones.RootPath, userName, projectName, path))
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	fileTextBytes, err := ioutil.ReadAll(file)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	defer file.Close()
+	w.Header().Set(goconst.HTTP_HEADER_CONTENT_TYPE, goconst.HTTP_HEADER_CONTENT_TYPE_PLAIN_TEXT)
+	w.Write(fileTextBytes)
+}
+
+func fetchFilesHandler(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("fetchFilesHandler")
+	userName := r.URL.Query().Get("userName")
+	projectName := r.URL.Query().Get("projectName")
+	path := r.URL.Query().Get("path")
+	output, err := gitClones.LsFiles(filepath.Join(userName, projectName))
+	if err != nil {
+		// log.Println(err.Error())
+		// w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	outputLines := strings.Split(string(output), "\n")
+	files := make(map[string]map[string]interface{})
+	for _, outputLine := range outputLines {
+		var fileName string
+		if len(path) == 0 {
+			// TODO: OSごとにデリミタを変える?
+			fileName = strings.Split(outputLine, "/")[0]
+		} else if strings.HasPrefix(outputLine, path) {
+			// TODO: 範囲外アクセスにならない?
+			fileName = strings.Split(strings.TrimPrefix(outputLine, path), "/")[1]
+		}
+		if len(fileName) == 0 {
+			continue
+		}
+		_, exist := files[fileName]
+		if exist {
+			continue
+		}
+		directory, err := isDirectory(filepath.Join(gitClones.RootPath, userName, projectName, path, fileName))
+		if err != nil {
+			log.Println(err.Error())
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		file := map[string]interface{}{}
+		file["path"] = filepath.Join(path, fileName)
+		file["name"] = fileName
+		file["isDirectory"] = directory
+		files[fileName] = file
+	}
+	jsonBytes, err := json.Marshal(&files)
+	if err != nil {
+		log.Println(err.Error())
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set(goconst.HTTP_HEADER_CONTENT_TYPE, goconst.HTTP_HEADER_CONTENT_TYPE_JSON)
+	w.Write(jsonBytes)
+}
+
 func gitInfoRefsHandler(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("gitInfoRefsHandler")
 	gitServer.ServeHTTP(w, r)
 }
 
 func gitReceivePackHandler(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("gitReceivePackHandler")
 	gitServer.ServeHTTP(w, r)
+	pathParams := mux.Vars(r)
+	userName := pathParams["user"]
+	projectName := pathParams["project"]
+	gitClones.Clone(
+		serverScheme+"://"+path.Join(serverHostAndPort, userName, projectName),
+		filepath.Join(userName, projectName),
+	)
 }
 
 func gitUploadPackHandler(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("gitUploadPackHandler")
 	gitServer.ServeHTTP(w, r)
 }

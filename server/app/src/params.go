@@ -8,13 +8,17 @@ import (
 )
 
 var (
-	gitServer *gogit.HTTPServer
+	gitClones       *gogit.Git
+	gitRepositories *gogit.Git
+	gitServer       *gogit.HTTPServer
 )
 
 const (
 	databaseHost      = "database"
-	tableNameUsers    = "users"
+	serverHostAndPort = "0.0.0.0:8080"
+	serverScheme      = "http"
 	tableNameProjects = "projects"
+	tableNameUsers    = "users"
 )
 
 func init() {
@@ -22,5 +26,9 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
-	gitServer = gogit.NewHTTPServer(filepath.Join(cwd, "..", "repositories"), "/usr/bin/git")
+	rootRepositoryPath := filepath.Join(cwd, "..", "repositories")
+	gitBinPath := "/usr/bin/git"
+	gitClones = gogit.NewGit(filepath.Join(cwd, "..", "clones"), gitBinPath)
+	gitRepositories = gogit.NewGit(rootRepositoryPath, gitBinPath)
+	gitServer = gogit.NewHTTPServer(rootRepositoryPath, gitBinPath)
 }

@@ -1,14 +1,18 @@
 package main
 
 import (
-	"log"
 	"net/http"
 
 	"github.com/gorilla/mux"
 )
 
 func f(w http.ResponseWriter, r *http.Request) {
-	log.Println("f")
+	// log.Println("OK")
+	// log.Println(r.Method)
+	// // w.Header().Set("Access-Control-Allow-Origin", "*")
+	// log.Println(r.RemoteAddr)
+	// w.Header().Set("Access-Control-Allow-Origin", "http://localhost:3000")
+	// w.Header().Set("Access-Control-Allow-Credentials", "true")
 }
 
 func main() {
@@ -67,11 +71,27 @@ func main() {
 	scansRouter.HandleFunc("/scans", storeScanHandler).Methods(http.MethodPost, http.MethodOptions)
 	http.Handle("/scans", scansRouter)
 
+	repositoriesRouter := mux.NewRouter()
+	repositoriesRouter.Use(corsMiddleware)
+	repositoriesRouter.HandleFunc("/repositories/init", initRepositoryHandler).Methods(http.MethodPost, http.MethodOptions)
+	http.Handle("/repositories/", repositoriesRouter)
+
+	filesRouter := mux.NewRouter()
+	filesRouter.Use(corsMiddleware)
+	filesRouter.HandleFunc("/file", fetchFilesHandler).Methods(http.MethodGet)
+	// filesRouter.HandleFunc("/files/text", fetchFileTextHandler).Methods(http.MethodGet)
+	http.Handle("/file", filesRouter)
+
+	filesTextRouter := mux.NewRouter()
+	filesTextRouter.Use(corsMiddleware)
+	filesTextRouter.HandleFunc("/files/text", fetchFileTextHandler).Methods(http.MethodGet)
+	http.Handle("/files/text", filesTextRouter)
+
 	gitRouter := mux.NewRouter()
-	gitRouter.HandleFunc("/{project}/{user}/info/refs", gitInfoRefsHandler).Methods(http.MethodGet)
-	gitRouter.HandleFunc("/{project}/{user}/git-receive-pack", gitReceivePackHandler).Methods(http.MethodPost)
-	gitRouter.HandleFunc("/{project}/{user}/git-upload-pack", gitUploadPackHandler).Methods(http.MethodPost)
+	gitRouter.HandleFunc("/{user}/{project}/info/refs", gitInfoRefsHandler).Methods(http.MethodGet)
+	gitRouter.HandleFunc("/{user}/{project}/git-receive-pack", gitReceivePackHandler).Methods(http.MethodPost)
+	gitRouter.HandleFunc("/{user}/{project}/git-upload-pack", gitUploadPackHandler).Methods(http.MethodPost)
 	http.Handle("/", gitRouter)
 
-	http.ListenAndServe("0.0.0.0:8080", nil)
+	http.ListenAndServe(serverHostAndPort, nil)
 }

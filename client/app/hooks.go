@@ -51,7 +51,7 @@ func hookRequest(r *http.Request) {
 	if err != nil {
 		return
 	}
-	file, err := os.Create(filepath.Join("requests", id.String()))
+	file, err := os.Create(makeFilePath(filepath.Join("requests", id.String())))
 	if err != nil {
 		return
 	}

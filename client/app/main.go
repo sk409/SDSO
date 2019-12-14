@@ -4,6 +4,10 @@ import (
 	"os"
 )
 
+func init() {
+	mkDirIfNotExist(makeFilePath(""))
+}
+
 func main() {
 	if len(os.Args) == 1 {
 		return

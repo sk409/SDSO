@@ -4,3 +4,4 @@ node_modules
 *.key
 *.csr
 server/app/repositories
+server/app/clones
