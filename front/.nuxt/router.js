@@ -7,9 +7,7 @@ const _2c8bcc34 = () => interopDefault(import('../pages/Login.vue' /* webpackChu
 const _63c62594 = () => interopDefault(import('../pages/Register.vue' /* webpackChunkName: "pages/Register" */))
 const _b56d1530 = () => interopDefault(import('../pages/dashboard/Projects.vue' /* webpackChunkName: "pages/dashboard/Projects" */))
 const _1c452f85 = () => interopDefault(import('../pages/project/Create.vue' /* webpackChunkName: "pages/project/Create" */))
-const _96636d74 = () => interopDefault(import('../pages/project/Show.vue' /* webpackChunkName: "pages/project/Show" */))
-const _764c95c4 = () => interopDefault(import('../pages/project/code/Files.vue' /* webpackChunkName: "pages/project/code/Files" */))
-const _7f527cf2 = () => interopDefault(import('../pages/project/code/FileText.vue' /* webpackChunkName: "pages/project/code/FileText" */))
+const _f0d4fb74 = () => interopDefault(import('../pages/project/vulnerabilities/_projectName/index.vue' /* webpackChunkName: "pages/project/vulnerabilities/_projectName/index" */))
 const _3094959e = () => interopDefault(import('../pages/project/code/_projectName/_.vue' /* webpackChunkName: "pages/project/code/_projectName/_" */))
 const _aebf5222 = () => interopDefault(import('../pages/index.vue' /* webpackChunkName: "pages/index" */))
 
@@ -39,17 +37,9 @@ export const routerOptions = {
     component: _1c452f85,
     name: "project-Create"
   }, {
-    path: "/project/Show",
-    component: _96636d74,
-    name: "project-Show"
-  }, {
-    path: "/project/code/Files",
-    component: _764c95c4,
-    name: "project-code-Files"
-  }, {
-    path: "/project/code/FileText",
-    component: _7f527cf2,
-    name: "project-code-FileText"
+    path: "/project/vulnerabilities/:projectName?",
+    component: _f0d4fb74,
+    name: "project-vulnerabilities-projectName"
   }, {
     path: "/project/code/:projectName?/*",
     component: _3094959e,
