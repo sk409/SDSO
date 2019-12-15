@@ -6,5 +6,8 @@ RUN go get github.com/gorilla/mux
 RUN go get github.com/sk409/goconst
 RUN go get github.com/sk409/gosession
 RUN go get github.com/sk409/gogit
+RUN go get github.com/go-yaml/yaml
+RUN go get github.com/sk409/gofile
+RUN go get github.com/google/uuid
 
 WORKDIR /go/src/github.com/sk409/sdso

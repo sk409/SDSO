@@ -13,6 +13,11 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/go-yaml/yaml"
+
+	"github.com/google/uuid"
+	"github.com/sk409/gofile"
+
 	"github.com/gorilla/mux"
 
 	"github.com/sk409/goconst"
@@ -492,18 +497,59 @@ func gitInfoRefsHandler(w http.ResponseWriter, r *http.Request) {
 
 func gitReceivePackHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("gitReceivePackHandler")
-	gitServer.ServeHTTP(w, r)
 	pathParams := mux.Vars(r)
 	userName := pathParams["user"]
 	projectName := pathParams["project"]
-	directoryPath := filepath.Join(gitClones.RootPath, filepath.Join(userName, projectName))
-	if existDirectory(directoryPath) {
-		os.RemoveAll(directoryPath)
+	repositoryPath := serverScheme + "://" + path.Join(serverHostAndPort, userName, projectName)
+	gitServer.ServeHTTP(w, r)
+	clonePath := filepath.Join(gitClones.RootPath, filepath.Join(userName, projectName))
+	if existDirectory(clonePath) {
+		os.RemoveAll(clonePath)
 	}
 	gitClones.Clone(
-		serverScheme+"://"+path.Join(serverHostAndPort, userName, projectName),
+		repositoryPath,
 		filepath.Join(userName, projectName),
 	)
+	uuid, err := uuid.NewUUID()
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	testPath := filepath.Join(cwd, "..", "testing", uuid.String())
+	testAppPath := filepath.Join(testPath, "app")
+	os.MkdirAll(testAppPath, 0755)
+	// defer os.RemoveAll(testPath)
+	err = gofile.Copy(clonePath, testAppPath)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	configFilePath := filepath.Join(testAppPath, ".sdso", "config.yml")
+	if !gofile.IsExist(configFilePath) {
+		log.Println("not exist")
+		return
+	}
+	configFile, err := os.Open(configFilePath)
+	if err != nil {
+		log.Println(err.Error())
+		// w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	defer configFile.Close()
+	configFileBytes, err := ioutil.ReadAll(configFile)
+	if err != nil {
+		log.Println(err.Error())
+		// w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	config := map[string]interface{}{}
+	err = yaml.Unmarshal(configFileBytes, &config)
+	if err != nil {
+		log.Println(err.Error())
+		// w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	fmt.Println(config)
 }
 
 func gitUploadPackHandler(w http.ResponseWriter, r *http.Request) {

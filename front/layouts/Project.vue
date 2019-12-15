@@ -1,16 +1,22 @@
 <template>
   <div>
     <AppHeader></AppHeader>
-    <div class="p-3">
-      <h2 class="project-name">{{ projectName }}</h2>
-      <div class="border-bottom my-3">
-        <n-link :to="$routes.projectCode(projectName)">Code</n-link>
-        <n-link :to="$routes.projectCode(projectName)">Test</n-link>
-        <n-link :to="$routes.projectVulnerabilities(projectName)"
-          >Vulnerabilities</n-link
-        >
+    <div>
+      <div class="header px-3 pt-3">
+        <h2 class="project-name">{{ projectName }}</h2>
+        <div class="tabs">
+          <n-link :to="$routes.projectCode(projectName)">
+            Code
+          </n-link>
+          <n-link :to="$routes.projectCode(projectName)">Test</n-link>
+          <n-link :to="$routes.projectVulnerabilities(projectName)"
+            >Vulnerabilities</n-link
+          >
+        </div>
       </div>
-      <nuxt />
+      <div class="p-3">
+        <nuxt />
+      </div>
     </div>
   </div>
 </template>
@@ -28,6 +34,16 @@ export default {
         ? this.$route.params.projectName
         : this.$route.params.pathMatch;
     }
-  }
+  },
+  methods: {}
 };
 </script>
+
+<style scoped>
+/* border-bottom my-3 */
+/* .header {
+  background: rgb(240, 240, 240);
+}
+.tabs {
+} */
+</style>

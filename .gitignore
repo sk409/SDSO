@@ -5,4 +5,5 @@ node_modules
 *.csr
 server/app/repositories
 server/app/clones
+server/app/testing
 .git
