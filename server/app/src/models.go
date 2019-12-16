@@ -2,6 +2,24 @@ package main
 
 import "github.com/jinzhu/gorm"
 
+type build struct {
+	Docker []docker
+	Steps  []interface{}
+}
+
+type config struct {
+	Version int
+	Jobs    jobs
+}
+
+type docker struct {
+	Image string
+}
+
+type jobs struct {
+	Build build
+}
+
 type project struct {
 	gorm.Model
 	Name   string `gorm:"type:varchar(128);not null"`
@@ -18,9 +36,28 @@ type scan struct {
 	ProjectID uint `gorm:"not null"`
 }
 
+type test struct {
+	gorm.Model
+	ProjectID uint `gorm:"not null"`
+}
+
+type testStatus struct {
+	gorm.Model
+	Text string `gorm:"type:varchar(7);unique"`
+}
+
+type testResult struct {
+	gorm.Model
+	Command      string `gorm:"type:text;not null"`
+	Output       string `gorm:"type:text;"`
+	Completed    bool   `gorm:"default:false;not null"`
+	TestID       uint   `gorm:"not null"`
+	TestStatusID uint   `gorm:"not null"`
+}
+
 type user struct {
 	gorm.Model
-	Name     string `gorm:"type:varchar(32);not null"`
+	Name     string `gorm:"type:varchar(32);not null;unique"`
 	Password string `gorm:"type:varchar(512);not null"`
 }
 

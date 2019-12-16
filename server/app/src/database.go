@@ -16,10 +16,28 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
-	db.AutoMigrate(&request{})
-	db.AutoMigrate(&user{}).AddUniqueIndex("idx_name_password", "name", "password")
+	db.AutoMigrate(&request{}, &testStatus{})
 	db.AutoMigrate(&project{}).AddForeignKey("user_id", "users(id)", "CASCADE", "CASCADE")
 	db.AutoMigrate(&scan{}).AddForeignKey("user_id", "users(id)", "CASCADE", "CASCADE").AddForeignKey("project_id", "projects(id)", "CASCADE", "CASCADE")
+	db.AutoMigrate(&test{}).AddForeignKey("project_id", "projects(id)", "CASCADE", "CASCADe")
+	db.AutoMigrate(&testResult{}).AddForeignKey("test_id", "tests(id)", "CASCADE", "CASCADE").AddForeignKey("test_status_id", "test_statuses(id)", "CASCADE", "CASCADe")
+	db.AutoMigrate(&user{}).AddUniqueIndex("idx_name_password", "name", "password")
 	db.AutoMigrate(&vulnerability{}).AddForeignKey("project_id", "projects(id)", "CASCADE", "CASCADE").AddForeignKey("scan_id", "scans(id)", "CASCADE", "CASCADE")
-	return
+	seeding()
+}
+
+func seeding() {
+	insertIfNotExist := func(text string) {
+		count := 0
+		db.Model(testStatus{}).Where("text = ?", text).Count(&count)
+		if count == 0 {
+			testStatus := testStatus{
+				Text: text,
+			}
+			db.Save(&testStatus)
+		}
+	}
+	insertIfNotExist("running")
+	insertIfNotExist("success")
+	insertIfNotExist("failed")
 }

@@ -9,5 +9,15 @@ RUN go get github.com/sk409/gogit
 RUN go get github.com/go-yaml/yaml
 RUN go get github.com/sk409/gofile
 RUN go get github.com/google/uuid
+RUN go get github.com/sk409/gotype
+
+RUN apt-get update && apt-get install -y \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+ENV DOCKER_VERSION 18.09.1
+RUN curl -fL -o docker.tgz "https://download.docker.com/linux/static/test/x86_64/docker-$DOCKER_VERSION.tgz" && \
+    tar --strip-component=1 -xvaf docker.tgz -C /usr/bin
+RUN curl -L https://github.com/docker/compose/releases/download/1.24.1/docker-compose-`uname -s`-`uname -m` > /usr/local/bin/docker-compose && chmod +x /usr/local/bin/docker-compose
 
 WORKDIR /go/src/github.com/sk409/sdso

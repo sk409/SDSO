@@ -8,7 +8,6 @@ const _63c62594 = () => interopDefault(import('../pages/Register.vue' /* webpack
 const _b56d1530 = () => interopDefault(import('../pages/dashboard/Projects.vue' /* webpackChunkName: "pages/dashboard/Projects" */))
 const _1c452f85 = () => interopDefault(import('../pages/project/Create.vue' /* webpackChunkName: "pages/project/Create" */))
 const _f0d4fb74 = () => interopDefault(import('../pages/project/vulnerabilities/_projectName/index.vue' /* webpackChunkName: "pages/project/vulnerabilities/_projectName/index" */))
-const _03e908ec = () => interopDefault(import('../pages/project/testing/_userName/_projectName/index.vue' /* webpackChunkName: "pages/project/testing/_userName/_projectName/index" */))
 const _3094959e = () => interopDefault(import('../pages/project/code/_projectName/_.vue' /* webpackChunkName: "pages/project/code/_projectName/_" */))
 const _aebf5222 = () => interopDefault(import('../pages/index.vue' /* webpackChunkName: "pages/index" */))
 
@@ -41,10 +40,6 @@ export const routerOptions = {
     path: "/project/vulnerabilities/:projectName?",
     component: _f0d4fb74,
     name: "project-vulnerabilities-projectName"
-  }, {
-    path: "/project/testing/:userName?/:projectName?",
-    component: _03e908ec,
-    name: "project-testing-userName-projectName"
   }, {
     path: "/project/code/:projectName?/*",
     component: _3094959e,

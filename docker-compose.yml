@@ -14,8 +14,11 @@ services:
       - 8080:8080
     volumes:
       - ./server/app:/go/src/github.com/sk409/sdso
+      - /var/run/docker.sock:/var/run/docker.sock
     depends_on:
       - database
+    cap_add:
+      - NET_ADMIN
   vulner_mysql:
     build: ./vulner/mysql
   vulner_nginx:
