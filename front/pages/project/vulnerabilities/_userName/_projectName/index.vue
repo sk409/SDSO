@@ -1,6 +1,7 @@
 <template>
   <div>
     <div v-for="(scan, index) in scans" :key="scan.ID">
+      {{ scan.CreatedAt | formatDate }}
       <el-collapse v-model="vulnerabilityExpandedNames">
         <el-collapse-item
           v-for="vulnerability in vulnerabilities[index]"
