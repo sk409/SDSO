@@ -5,13 +5,9 @@
       <div class="header px-3 pt-3">
         <h2 class="project-name">{{ projectName }}</h2>
         <div class="tabs">
-          <n-link :to="$routes.projectCode(projectName)">
-            Code
-          </n-link>
-          <n-link :to="$routes.projectCode(projectName)">Test</n-link>
-          <n-link :to="$routes.projectVulnerabilities(projectName)"
-            >Vulnerabilities</n-link
-          >
+          <n-link :to="$routes.projectCode(userName, projectName)">Code</n-link>
+          <n-link :to="$routes.projectTest(userName, projectName)">Test</n-link>
+          <n-link :to="$routes.projectVulnerabilities(userName, projectName)">Vulnerabilities</n-link>
         </div>
       </div>
       <div class="p-3">
@@ -29,6 +25,9 @@ export default {
     AppHeader
   },
   computed: {
+    userName() {
+      return this.$route.params.userName;
+    },
     projectName() {
       return this.$route.params.projectName
         ? this.$route.params.projectName

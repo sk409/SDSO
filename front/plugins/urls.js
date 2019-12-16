@@ -9,6 +9,9 @@ Vue.prototype.$urls = {
   register: "register",
   repositoriesInit: "repositories/init",
   scans: "scans",
+  tests: "tests",
+  testResults: "test_results",
+  testStatuses: "test_statuses",
   user: "user",
   users: "users",
   vulnerabilities: "vulnerabilities"

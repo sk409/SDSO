@@ -4,15 +4,18 @@ Vue.prototype.$routes = {
   dashboardProjects: "/dashboard/projects",
   login: "/login",
   projectCreate: "/project/Create",
-  projectCode(projectName, filePath) {
-    let path = "/project/code/" + projectName;
+  projectCode(userName, projectName, filePath) {
+    let path = "/project/code/" + userName + "/" + projectName;
     if (filePath) {
       path += "/" + filePath;
     }
     return path;
   },
-  projectVulnerabilities(projectName) {
-    return "/project/vulnerabilities/" + projectName;
+  projectTest(useraName, projectName) {
+    return "/project/testing/" + useraName + "/" + projectName;
+  },
+  projectVulnerabilities(userName, projectName) {
+    return "/project/vulnerabilities/" + userName + "/" + projectName;
   },
   // projectCodeFileText: "/project/code/FileText",
   register: "/register"

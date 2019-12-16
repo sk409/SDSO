@@ -87,6 +87,21 @@ func main() {
 	filesTextRouter.HandleFunc("/files/text", fetchFileTextHandler).Methods(http.MethodGet)
 	http.Handle("/files/text", filesTextRouter)
 
+	testsRouter := mux.NewRouter()
+	testsRouter.Use(corsMiddleware)
+	testsRouter.HandleFunc("/tests", fetchTestsHandler).Methods(http.MethodGet)
+	http.Handle("/tests", testsRouter)
+
+	testResultsRouter := mux.NewRouter()
+	testResultsRouter.Use(corsMiddleware)
+	testResultsRouter.HandleFunc("/test_results", fetchTestResultsHandler).Methods(http.MethodGet)
+	http.Handle("/test_results", testResultsRouter)
+
+	testStatusesRouter := mux.NewRouter()
+	testStatusesRouter.Use(corsMiddleware)
+	testStatusesRouter.HandleFunc("/test_statuses", fetchTestStatuses).Methods(http.MethodGet)
+	http.Handle("/test_statuses", testStatusesRouter)
+
 	gitRouter := mux.NewRouter()
 	gitRouter.HandleFunc("/{user}/{project}/info/refs", gitInfoRefsHandler).Methods(http.MethodGet)
 	gitRouter.HandleFunc("/{user}/{project}/git-receive-pack", gitReceivePackHandler).Methods(http.MethodPost)

@@ -2,18 +2,18 @@
   <div class="w-75 mx-auto">
     <div class="d-flex align-items-center mt-4">
       <div class="title">プロジェクト一覧</div>
-      <el-button type="primary" class="ml-auto" @click="createProject()"
-        >新規作成</el-button
-      >
+      <el-button type="primary" class="ml-auto" @click="createProject()">新規作成</el-button>
     </div>
     <el-divider class="m-0 my-3"></el-divider>
     <div>
       <el-table height="550" :data="projects" stripe>
         <el-table-column label="プロジェクト名">
           <template slot-scope="scope">
-            <el-button type="success" @click="projectNameClicked(scope.row)">{{
+            <el-button type="success" @click="projectNameClicked(scope.row)">
+              {{
               scope.row.Name
-            }}</el-button>
+              }}
+            </el-button>
           </template>
         </el-table-column>
         <el-table-column label="作成者">
@@ -54,7 +54,7 @@ export default {
   },
   methods: {
     projectNameClicked(project) {
-      this.$router.push(this.$routes.projectCode(project.Name));
+      this.$router.push(this.$routes.projectCode(this.user.Name, project.Name));
     },
     createProject() {
       this.$router.push(this.$routes.projectCreate);

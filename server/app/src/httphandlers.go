@@ -485,6 +485,60 @@ func fetchFilesHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write(jsonBytes)
 }
 
+func fetchTestsHandler(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("fetchTestsHandler")
+	query, values := makeQueryAndValues(r)
+	tests := []test{}
+	db.Where(query, values...).Find(&tests)
+	if db.Error != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	jsonBytes, err := json.Marshal(tests)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set(goconst.HTTP_HEADER_CONTENT_TYPE, goconst.HTTP_HEADER_CONTENT_TYPE_JSON)
+	w.Write(jsonBytes)
+}
+
+func fetchTestResultsHandler(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("fetchTestResultsHandler")
+	query, values := makeQueryAndValues(r)
+	testResults := []testResult{}
+	db.Where(query, values...).Find(&testResults)
+	if db.Error != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	jsonBytes, err := json.Marshal(testResults)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set(goconst.HTTP_HEADER_CONTENT_TYPE, goconst.HTTP_HEADER_CONTENT_TYPE_JSON)
+	w.Write(jsonBytes)
+}
+
+func fetchTestStatuses(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("fetchTestStatuses")
+	query, values := makeQueryAndValues(r)
+	testStatuses := []testStatus{}
+	db.Where(query, values...).Find(&testStatuses)
+	if db.Error != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	jsonBytes, err := json.Marshal(testStatuses)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set(goconst.HTTP_HEADER_CONTENT_TYPE, goconst.HTTP_HEADER_CONTENT_TYPE_JSON)
+	w.Write(jsonBytes)
+}
+
 func gitInfoRefsHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("gitInfoRefsHandler")
 	gitServer.ServeHTTP(w, r)
