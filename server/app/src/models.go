@@ -1,6 +1,10 @@
 package main
 
-import "github.com/jinzhu/gorm"
+import (
+	"time"
+
+	"github.com/jinzhu/gorm"
+)
 
 type build struct {
 	Docker []docker
@@ -38,6 +42,7 @@ type scan struct {
 
 type test struct {
 	gorm.Model
+	Steps     int  `gorm:"not null"`
 	ProjectID uint `gorm:"not null"`
 }
 
@@ -50,9 +55,9 @@ type testResult struct {
 	gorm.Model
 	Command      string `gorm:"type:text;not null"`
 	Output       string `gorm:"type:text;"`
-	Completed    bool   `gorm:"default:false;not null"`
 	TestID       uint   `gorm:"not null"`
 	TestStatusID uint   `gorm:"not null"`
+	CompletedAt  *time.Time
 }
 
 type user struct {

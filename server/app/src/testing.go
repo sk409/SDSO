@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -10,7 +11,9 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"time"
 
+	"github.com/gorilla/websocket"
 	"github.com/sk409/gotype"
 
 	"github.com/go-yaml/yaml"
@@ -32,14 +35,6 @@ func runTest(userName, projectName string) {
 		log.Println(db.Error)
 		return
 	}
-	test := test{
-		ProjectID: project.ID,
-	}
-	db.Save(&test)
-	if db.Error != nil {
-		log.Print(db.Error)
-		return
-	}
 	clonePath := filepath.Join(gitClones.RootPath, filepath.Join(userName, projectName))
 	uuid, err := uuid.NewUUID()
 	if err != nil {
@@ -48,7 +43,7 @@ func runTest(userName, projectName string) {
 	testPath := filepath.Join(cwd, "..", "testing", uuid.String())
 	testAppPath := filepath.Join(testPath, "app")
 	os.MkdirAll(testAppPath, 0755)
-	// defer os.RemoveAll(testPath)
+	defer os.RemoveAll(testPath)
 	err = gofile.Copy(clonePath, testAppPath)
 	if err != nil {
 		log.Println(err.Error())
@@ -122,12 +117,33 @@ func runTest(userName, projectName string) {
 	}
 	defer dockercomposeFile.Close()
 	dockercomposeFile.Write([]byte(dockerComposeText))
-	composeCommand := exec.Command("docker-compose", "up", "-d", "--build")
-	composeCommand.Dir = testPath
-	err = composeCommand.Run()
+	upCommand := exec.Command("docker-compose", "up", "-d", "--build")
+	upCommand.Dir = testPath
+	err = upCommand.Run()
 	if err != nil {
 		log.Println(err.Error())
 		return
+	}
+	defer func() {
+		downCommand := exec.Command("docker-compose", "down")
+		downCommand.Dir = testPath
+		downCommand.Run()
+	}()
+	test := test{
+		Steps:     len(config.Jobs.Build.Steps),
+		ProjectID: project.ID,
+	}
+	db.Save(&test)
+	if db.Error != nil {
+		log.Print(db.Error)
+		return
+	}
+	socketTest, exist := websocketsTest[user.ID]
+	if exist {
+		jsonBytes, err := json.Marshal(test)
+		if err == nil {
+			socketTest.WriteMessage(websocket.TextMessage, jsonBytes)
+		}
 	}
 	for _, step := range config.Jobs.Build.Steps {
 		if gotype.IsMap(step) {
@@ -136,15 +152,49 @@ func runTest(userName, projectName string) {
 				keyString := key.(string)
 				valueString := value.(string)
 				if keyString == "run" {
+					sendToClient := func(testResult *testResult) {
+						socket, exist := websocketsTestResult[user.ID]
+						if !exist {
+							return
+						}
+						jsonBytes, err := json.Marshal(testResult)
+						if err != nil {
+							log.Println(err)
+							return
+						}
+						socket.WriteMessage(websocket.TextMessage, []byte(jsonBytes))
+					}
+					compltedTestResult := func(status, output string, testResult *testResult) {
+						var testStatus testStatus
+						db.Where("text = ?", status).First(&testStatus)
+						if db.Error != nil {
+							log.Println(db.Error)
+							return
+						}
+						now := time.Now()
+						testResult.Output = output
+						testResult.TestStatusID = testStatus.ID
+						testResult.CompletedAt = &now
+						db.Save(&testResult)
+						if db.Error != nil {
+							log.Println(db.Error)
+							return
+						}
+					}
 					var testStatusRunning testStatus
 					db.Where("text = 'running'").First(&testStatusRunning)
 					testResult := testResult{
 						Command:      valueString,
-						Completed:    false,
 						TestID:       test.ID,
 						TestStatusID: testStatusRunning.ID,
 					}
 					db.Save(&testResult)
+					if db.Error != nil {
+						log.Print(db.Error)
+						return
+					}
+					sendToClient(&testResult)
+					log.Println("ID = ", testResult.ID)
 					args := []string{"exec", "-T", serviceNames[0]}
 					args = append(args, strings.Split(valueString, " ")...)
 					execCommand := exec.Command("docker-compose", args...)
@@ -155,18 +205,12 @@ func runTest(userName, projectName string) {
 					err = execCommand.Run()
 					if err != nil {
 						log.Println(err.Error())
-						var testStatusFailed testStatus
-						db.Where("text = 'failed'").First(&testStatusFailed)
-						testResult.Output = output.String()
-						testResult.TestStatusID = testStatusFailed.ID
-						db.Save(&testResult)
+						compltedTestResult("failed", output.String(), &testResult)
+						sendToClient(&testResult)
 						return
 					}
-					var testStatusSuccess testStatus
-					db.Where("text = 'success'").First(&testStatusSuccess)
-					testResult.Output = output.String()
-					testResult.TestStatusID = testStatusSuccess.ID
-					db.Save(&testResult)
+					compltedTestResult("success", output.String(), &testResult)
+					sendToClient(&testResult)
 				}
 			}
 		}

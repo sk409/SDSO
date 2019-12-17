@@ -133,7 +133,7 @@ export async function setContext (app, context) {
       payload: context.payload,
       error: context.error,
       base: '/',
-      env: {"APP_SERVER_ORIGIN":"http://localhost:8080"}
+      env: {"APP_SERVER_ORIGIN":"http://localhost:8080","APP_SERVER_HOST":"localhost","APP_SERVER_PORT":"8080"}
     }
     // Only set once
     if (context.req) {

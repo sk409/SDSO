@@ -10,6 +10,7 @@ RUN go get github.com/go-yaml/yaml
 RUN go get github.com/sk409/gofile
 RUN go get github.com/google/uuid
 RUN go get github.com/sk409/gotype
+RUN go get github.com/gorilla/websocket
 
 RUN apt-get update && apt-get install -y \
     curl \

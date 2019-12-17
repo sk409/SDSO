@@ -92,6 +92,13 @@ func main() {
 	testsRouter.HandleFunc("/tests", fetchTestsHandler).Methods(http.MethodGet)
 	http.Handle("/tests", testsRouter)
 
+	// testingRouter := mux.NewRouter()
+	// testingRouter.Use(corsMiddleware)
+	// testingRouter.Schemes("ws")
+	//testingRouter.HandleFunc("/testing", testingHandler)
+	http.HandleFunc("/test_socket", testSocketHandler)
+	http.HandleFunc("/test_result_socket", testResultSocketHandler)
+
 	testResultsRouter := mux.NewRouter()
 	testResultsRouter.Use(corsMiddleware)
 	testResultsRouter.HandleFunc("/test_results", fetchTestResultsHandler).Methods(http.MethodGet)

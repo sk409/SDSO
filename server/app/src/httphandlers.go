@@ -13,6 +13,8 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/gorilla/websocket"
+
 	"github.com/gorilla/mux"
 
 	"github.com/sk409/goconst"
@@ -44,6 +46,35 @@ func existHandler(w http.ResponseWriter, r *http.Request, tableName string) {
 	w.Header().Set(goconst.HTTP_HEADER_CONTENT_TYPE, goconst.HTTP_HEADER_CONTENT_TYPE_JSON)
 	jsonString := fmt.Sprintf("{\"exist\":%t}", count != 0)
 	w.Write([]byte(jsonString))
+}
+
+func socketHandler(w http.ResponseWriter, r *http.Request, websockets *map[uint]*websocket.Conn) {
+	sessionCookie, err := r.Cookie(cookieNameSessionID)
+	if err != nil {
+		log.Println(err.Error())
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	sessionID := sessionCookie.Value
+	session, err := sessionManager.Provider.Get(sessionID)
+	if err != nil {
+		log.Println(err.Error())
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	userID, err := session.Uint(sessionStoreNameUserID)
+	if err != nil {
+		log.Println(err.Error())
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	socket, err := websocketUpgrader.Upgrade(w, r, nil)
+	if err != nil {
+		log.Println(err.Error())
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	(*websockets)[userID] = socket
 }
 
 func authCheckHandler(w http.ResponseWriter, r *http.Request) {
@@ -441,7 +472,7 @@ func fetchFilesHandler(w http.ResponseWriter, r *http.Request) {
 	path := r.URL.Query().Get("path")
 	output, err := gitClones.LsFiles(filepath.Join(userName, projectName))
 	if err != nil {
-		// log.Println(err.Error())
+		log.Println(err.Error())
 		// w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
@@ -501,6 +532,35 @@ func fetchTestsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set(goconst.HTTP_HEADER_CONTENT_TYPE, goconst.HTTP_HEADER_CONTENT_TYPE_JSON)
 	w.Write(jsonBytes)
+}
+
+func testSocketHandler(w http.ResponseWriter, r *http.Request) {
+	socketHandler(w, r, &websocketsTest)
+}
+
+func testResultSocketHandler(w http.ResponseWriter, r *http.Request) {
+	socketHandler(w, r, &websocketsTestResult)
+	// c := make(chan []byte)
+	// read := func() {
+	// 	for {
+	// 		if _, msg, err := socket.ReadMessage(); err == nil {
+	// 			c <- msg
+	// 		} else {
+	// 			break
+	// 		}
+	// 	}
+	// 	socket.Close()
+	// }
+	// write := func() {
+	// 	for msg := range c {
+	// 		if err := socket.WriteMessage(websocket.TextMessage, msg); err != nil {
+	// 			break
+	// 		}
+	// 	}
+	// 	socket.Close()
+	// }
+	// go write()
+	// read()
 }
 
 func fetchTestResultsHandler(w http.ResponseWriter, r *http.Request) {

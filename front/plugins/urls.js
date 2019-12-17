@@ -14,5 +14,5 @@ Vue.prototype.$urls = {
   testStatuses: "test_statuses",
   user: "user",
   users: "users",
-  vulnerabilities: "vulnerabilities"
+  vulnerabilities: "vulnerabilities",
 };

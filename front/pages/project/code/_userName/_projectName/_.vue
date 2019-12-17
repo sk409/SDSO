@@ -4,7 +4,10 @@
       <pre>{{ childFile ? childFile.text : "" }}</pre>
     </div>
     <div v-else>
-      <FileTable :files="children" @click-file-name="fileNameClicked"></FileTable>
+      <FileTable
+        :files="children"
+        @click-file-name="fileNameClicked"
+      ></FileTable>
     </div>
   </div>
 </template>
