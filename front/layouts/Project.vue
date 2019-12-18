@@ -1,13 +1,38 @@
 <template>
   <div>
-    <AppHeader></AppHeader>
-    <div>
-      <div class="header px-3 pt-3">
-        <h2 class="project-name">{{ projectName }}</h2>
+    <AppHeader id="app-header"></AppHeader>
+    <div id="app-body">
+      <div class="project-header">
+        <div class="metadata">
+          <n-link :to="$routes.dashboardProjects">{{pathParamUserName}}</n-link>
+          <span>/</span>
+          <n-link
+            :to="$routes.projectCode(pathParamUserName, pathParamProjectName)"
+          >{{pathParamProjectName}}</n-link>
+        </div>
         <div class="tabs">
-          <n-link :to="$routes.projectCode(userName, projectName)">Code</n-link>
-          <n-link :to="$routes.projectTest(userName, projectName)">Test</n-link>
-          <n-link :to="$routes.projectVulnerabilities(userName, projectName)">Vulnerabilities</n-link>
+          <div class="spacer"></div>
+          <n-link
+            tag="div"
+            :to="$routes.projectCode(pathParamUserName, pathParamProjectName)"
+            :style="tabStyle($routes.projectCode(pathParamUserName, pathParamProjectName), false)"
+            class="tab"
+          >Code</n-link>
+          <n-link
+            tag="div"
+            :event="isAuthor ? 'click' :''"
+            :to="$routes.projectTest(pathParamUserName, pathParamProjectName)"
+            :style="tabStyle($routes.projectTest(pathParamUserName, pathParamProjectName), true)"
+            class="tab"
+          >Test</n-link>
+          <n-link
+            tag="div"
+            :event="isAuthor ? 'click' :''"
+            :to="$routes.projectVulnerabilities(pathParamUserName, pathParamProjectName)"
+            :style="tabStyle($routes.projectVulnerabilities(pathParamUserName, pathParamProjectName), true)"
+            class="tab"
+          >Vulnerabilities</n-link>
+          <div class="spacer"></div>
         </div>
       </div>
       <div class="p-3">
@@ -24,25 +49,83 @@ export default {
   components: {
     AppHeader
   },
+  data() {
+    return {
+      user: null
+    };
+  },
   computed: {
-    userName() {
+    pathParamUserName() {
       return this.$route.params.userName;
     },
-    projectName() {
+    pathParamProjectName() {
       return this.$route.params.projectName
         ? this.$route.params.projectName
         : this.$route.params.pathMatch;
+    },
+    isAuthor() {
+      return this.user && this.user.Name === this.pathParamUserName;
     }
   },
-  methods: {}
+  created() {
+    this.fetchUser();
+  },
+  methods: {
+    tabStyle(route, applyingToColor) {
+      const style = {
+        color: !applyingToColor || this.isAuthor ? "black" : "gray"
+      };
+      if (this.$route.path.startsWith(route)) {
+        return Object.assign(style, {
+          "border-top": "2px solid rgb(212, 105, 43)",
+          "border-left": "1px solid rgb(180, 180, 180)",
+          "border-right": "1px solid rgb(180, 180, 180)",
+          "border-bottom": "none",
+          background: "rgb(245, 245, 245)"
+        });
+      }
+      return style;
+    },
+    fetchUser() {
+      this.$ajax.get(
+        this.$urls.user,
+        {},
+        { withCredentials: true },
+        response => {
+          console.log(response);
+          this.user = response.data;
+        }
+      );
+    }
+  }
 };
 </script>
 
 <style scoped>
-/* border-bottom my-3 */
-/* .header {
+.project-header {
   background: rgb(240, 240, 240);
 }
+.metadata {
+  font-size: 1.25rem;
+  margin: 0.6rem 0 0 1rem;
+}
 .tabs {
-} */
+  display: flex;
+  align-items: flex-end;
+}
+.tab {
+  display: inline-block;
+  height: 100%;
+  padding: 0.5rem 1rem;
+  margin: 0;
+  border-bottom: 1px solid rgb(180, 180, 180);
+}
+.tab:hover {
+  cursor: pointer;
+  text-decoration: underline;
+}
+.spacer {
+  flex: 1;
+  border-bottom: 1px solid rgb(180, 180, 180);
+}
 </style>

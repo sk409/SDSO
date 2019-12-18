@@ -28,6 +28,11 @@ func main() {
 	loginRouter.HandleFunc("/login", loginHandler).Methods(http.MethodPost, http.MethodOptions)
 	http.Handle("/login", loginRouter)
 
+	logoutRouter := mux.NewRouter()
+	logoutRouter.Use(corsMiddleware)
+	logoutRouter.HandleFunc("/logout", logoutHandler).Methods(http.MethodPost)
+	http.Handle("/logout", logoutRouter)
+
 	registerRouter := mux.NewRouter()
 	registerRouter.Use(corsMiddleware)
 	registerRouter.HandleFunc("/register", registerHandler).Methods(http.MethodPost, http.MethodOptions)

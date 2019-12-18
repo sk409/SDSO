@@ -5,6 +5,7 @@ Vue.prototype.$urls = {
   files: "file",
   filesText: "files/text",
   login: "login",
+  logout: "logout",
   projects: "projects",
   register: "register",
   repositoriesInit: "repositories/init",

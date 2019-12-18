@@ -2,9 +2,7 @@
   <div>
     <div v-for="(test, index) in tests" :key="test.ID" class="test">
       <div class="d-flex align-items-center mb-2">
-        <div :style="testResultStyle(test)" class="test-status">
-          {{ testResultText(test) }}
-        </div>
+        <div :style="testResultStyle(test)" class="test-status">{{ testResultText(test) }}</div>
         <div class="ml-auto">{{ test.CreatedAt | formatDate }}</div>
       </div>
       <el-collapse v-model="activeNames[index]">
@@ -14,10 +12,7 @@
           :name="testResult.ID"
         >
           <template slot="title">
-            <span
-              :style="markerStyle(testResult.TestStatusID)"
-              class="marker"
-            ></span>
+            <span :style="markerStyle(testResult.TestStatusID)" class="marker"></span>
             <span class="ml-2">{{ testResult.Command }}</span>
           </template>
           <div class="p-2">
@@ -69,9 +64,6 @@ function testStatus(test) {
   const runningTestResultIndex = test.results.findIndex(
     result => result.TestStatusID === 1
   );
-  console.log("==============");
-  console.log(test.results.length < test.Steps);
-  console.log(runningTestResultIndex !== notFound);
   if (test.results.length < test.Steps || runningTestResultIndex !== notFound) {
     return "RUNNING";
   }
@@ -86,6 +78,16 @@ export default {
       project: null,
       tests: []
     };
+  },
+  computed: {
+    pathParamUserName() {
+      return this.$route.params.userName;
+    },
+    pathParamProjectName() {
+      return this.$route.params.projectName
+        ? this.$route.params.projectName
+        : this.$route.params.pathMatch;
+    }
   },
   created() {
     this.setupSocket();
@@ -153,51 +155,49 @@ export default {
       };
     },
     fetchData() {
-      this.$ajax.get(
-        this.$urls.user,
-        {},
-        { withCredentials: true },
-        response => {
+      const data = {
+        name: this.pathParamUserName
+      };
+      this.$ajax.get(this.$urls.users, data, {}, response => {
+        if (response.status !== 200) {
+          return;
+        }
+        user = response.data[0];
+        const projectName = this.$route.params.projectName;
+        const data = {
+          name: projectName,
+          user_id: user.ID
+        };
+        this.$ajax.get(this.$urls.projects, data, {}, response => {
           if (response.status !== 200) {
             return;
           }
-          user = response.data;
-          const projectName = this.$route.params.projectName;
+          this.project = response.data[0];
           const data = {
-            name: projectName,
-            user_id: user.ID
+            project_id: this.project.ID
           };
-          this.$ajax.get(this.$urls.projects, data, {}, response => {
+          this.$ajax.get(this.$urls.tests, data, {}, response => {
             if (response.status !== 200) {
               return;
             }
-            this.project = response.data[0];
-            const data = {
-              project_id: this.project.ID
-            };
-            this.$ajax.get(this.$urls.tests, data, {}, response => {
-              if (response.status !== 200) {
-                return;
-              }
-              this.tests = response.data.sort((a, b) => {
-                return a.CreatedAt < b.CreatedAt ? 1 : -1;
-              });
-              response.data.forEach((test, index) => {
-                this.activeNames.push([]);
-                const data = {
-                  test_id: test.ID
-                };
-                this.$ajax.get(this.$urls.testResults, data, {}, response => {
-                  if (response.status !== 200) {
-                    return;
-                  }
-                  this.$set(this.tests[index], "results", response.data);
-                });
+            this.tests = response.data.sort((a, b) => {
+              return a.CreatedAt < b.CreatedAt ? 1 : -1;
+            });
+            response.data.forEach((test, index) => {
+              this.activeNames.push([]);
+              const data = {
+                test_id: test.ID
+              };
+              this.$ajax.get(this.$urls.testResults, data, {}, response => {
+                if (response.status !== 200) {
+                  return;
+                }
+                this.$set(this.tests[index], "results", response.data);
               });
             });
           });
-        }
-      );
+        });
+      });
     }
   }
 };

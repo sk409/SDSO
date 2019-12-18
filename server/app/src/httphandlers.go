@@ -137,6 +137,19 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(response))
 }
 
+func logoutHandler(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("logoutHandler")
+	w.Header().Set(goconst.HTTP_HEADER_ACCESS_CONTROL_ALLOW_CREDENTIALS, "true")
+	sessionCookie, err := r.Cookie(cookieNameSessionID)
+	if err == nil {
+		sessionManager.Provider.Stop(sessionCookie.Value)
+	}
+	http.SetCookie(w, &http.Cookie{
+		Name:   cookieNameSessionID,
+		MaxAge: -1,
+	})
+}
+
 func registerHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("registerHandler")
 	allowedHeaders := strings.Join([]string{goconst.HTTP_HEADER_CONTENT_TYPE, goconst.HTTP_HEADER_X_XSRF_TOKEN}, ",")

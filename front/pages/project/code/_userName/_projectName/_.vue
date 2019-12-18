@@ -4,10 +4,7 @@
       <pre>{{ childFile ? childFile.text : "" }}</pre>
     </div>
     <div v-else>
-      <FileTable
-        :files="children"
-        @click-file-name="fileNameClicked"
-      ></FileTable>
+      <FileTable :files="children" @click-file-name="fileNameClicked"></FileTable>
     </div>
   </div>
 </template>
@@ -28,6 +25,16 @@ export default {
       childFile: null,
       children: []
     };
+  },
+  computed: {
+    pathParamUserName() {
+      return this.$route.params.userName;
+    },
+    pathParamProjectName() {
+      return this.$route.params.projectName
+        ? this.$route.params.projectName
+        : this.$route.params.pathMatch;
+    }
   },
   created() {
     // this.$ajax.get("test", {}, {}, response => {
@@ -57,8 +64,14 @@ export default {
     //   this.fetchFiles(path);
     // });
 
-    this.$ajax.get(this.$urls.user, {}, { withCredentials: true }, response => {
-      user = response.data;
+    const data = {
+      name: this.pathParamUserName
+    };
+    this.$ajax.get(this.$urls.users, data, {}, response => {
+      if (response.status !== 200) {
+        return;
+      }
+      user = response.data[0];
       const pathPrefix = this.$routes.projectCode(user.Name, projectName) + "/";
       const path = this.$route.path.startsWith(pathPrefix)
         ? this.$route.path.substring(pathPrefix.length)
