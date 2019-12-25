@@ -64,3 +64,14 @@ body {
   color: #fff;
   background-color: #35495e;
 }
+
+.table th,
+.table td {
+  padding: 1rem;
+}
+
+.table-border th,
+.table-border td {
+  border-collapse: collapse;
+  border: 1px solid lightgray;
+}

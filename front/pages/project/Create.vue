@@ -13,9 +13,8 @@
 
 <script>
 let user = null;
-const projectNames = [];
 const validateUniqueProjectName = (rule, value, callback) => {
-  if (projectNames.includes(value)) {
+  if (user.projects.map(project => project.Name).includes(value)) {
     callback(new Error("同じ名前のプロジェクトが存在しています"));
     return;
   }
@@ -46,6 +45,13 @@ export default {
       { withCredentials: true },
       response => {
         user = response.data;
+        const data = {
+          user_id: user.ID
+        };
+        this.$ajax.get(this.$urls.projects, data, {}, response => {
+          console.log(response);
+          user.projects = response.data;
+        });
       }
     );
   },

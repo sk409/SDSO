@@ -6,21 +6,22 @@
     </div>
     <el-divider class="m-0 my-3"></el-divider>
     <div>
-      <el-table height="550" :data="projects" stripe>
-        <el-table-column label="プロジェクト名">
-          <template slot-scope="scope">
-            <el-button type="success" @click="projectNameClicked(scope.row)">
-              {{
-              scope.row.Name
-              }}
-            </el-button>
-          </template>
-        </el-table-column>
-        <el-table-column label="作成者">
-          <div>{{ user ? user.Name : "" }}</div>
-        </el-table-column>
-        <el-table-column label="作成日" prop="CreatedAt"></el-table-column>
-      </el-table>
+      <table class="table table-border">
+        <thead>
+          <tr>
+            <th>プロジェクト名</th>
+            <th>作成日</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="project in projects" :key="project.ID">
+            <td>
+              <n-link :to="$routes.projectCode(user.Name, project.Name)">{{project.Name}}</n-link>
+            </td>
+            <td>{{project.CreatedAt}}</td>
+          </tr>
+        </tbody>
+      </table>
     </div>
   </div>
 </template>
@@ -53,9 +54,6 @@ export default {
     );
   },
   methods: {
-    projectNameClicked(project) {
-      this.$router.push(this.$routes.projectCode(this.user.Name, project.Name));
-    },
     createProject() {
       this.$router.push(this.$routes.projectCreate);
     }
