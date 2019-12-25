@@ -1,11 +1,16 @@
 <template>
   <div>
     <div v-if="parent && !parent.isDirectory">
-      <pre>{{ childFile ? childFile.text : "" }}</pre>
+      <div id="editor"></div>
     </div>
     <div v-else>
-      <FileTable :files="children" @click-file-name="fileNameClicked"></FileTable>
+      <FileTable
+        :files="children"
+        @click-file-name="fileNameClicked"
+      ></FileTable>
     </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.2.0/ace.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.2.0/ext-language_tools.js"></script>
   </div>
 </template>
 
@@ -14,6 +19,7 @@ import FileTable from "@/components/FileTable.vue";
 
 let projectName = null;
 let user = null;
+let editor = null;
 export default {
   layout: "Project",
   components: {
@@ -21,9 +27,9 @@ export default {
   },
   data() {
     return {
-      parent: null,
       childFile: null,
-      children: []
+      children: [],
+      parent: null
     };
   },
   computed: {
@@ -51,7 +57,7 @@ export default {
     //   }
     // });
 
-    console.log(this.$route.params);
+    // console.log(this.$route.params);
     projectName = this.$route.params.projectName
       ? this.$route.params.projectName
       : this.$route.params.pathMatch;
@@ -107,6 +113,28 @@ export default {
       }
     });
   },
+  watch: {
+    childFile(value) {
+      const modes = {
+        php: "php",
+        js: "javascript"
+      };
+      const mode = Object.keys(modes).includes(value.extension)
+        ? modes[value.extension]
+        : "text";
+      editor = ace.edit("editor");
+      editor.$blockScrolling = Infinity;
+      editor.setOptions({
+        enableBasicAutocompletion: true,
+        enableSnippets: false,
+        enableLiveAutocompletion: true
+      });
+      editor.setTheme("ace/theme/monokai");
+      editor.getSession().setMode("ace/mode/" + mode);
+      editor.setFontSize(20);
+      editor.setValue(this.childFile ? this.childFile.text : "");
+    }
+  },
   methods: {
     fileNameClicked(file) {
       this.$router.push(
@@ -120,9 +148,13 @@ export default {
         path: path
       };
       this.$ajax.get(this.$urls.filesText, data, {}, response => {
+        const s = this.$route.path.split(".");
         this.childFile = {
           text: response.data
         };
+        if (s.length) {
+          this.childFile.extension = s[s.length - 1];
+        }
       });
     },
     fetchFiles(path) {
@@ -178,3 +210,9 @@ export default {
   }
 };
 </script>
+
+<style scoped>
+#editor {
+  height: 500px;
+}
+</style>
