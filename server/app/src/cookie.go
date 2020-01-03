@@ -12,5 +12,6 @@ func newCookie(name, value string, maxAge int) *http.Cookie {
 		Name:   name,
 		Value:  value,
 		MaxAge: cookie30Days,
+		Path:   "/",
 	}
 }

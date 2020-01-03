@@ -2,6 +2,15 @@ package main
 
 import (
 	"net/http"
+	"os"
+	"path"
+	"path/filepath"
+
+	"github.com/stretchr/gomniauth/providers/google"
+
+	"github.com/stretchr/gomniauth"
+
+	"github.com/joho/godotenv"
 
 	"github.com/gorilla/mux"
 )
@@ -17,6 +26,15 @@ func f(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 
+	godotenv.Load(filepath.Join("..", ".env"))
+	googleAuthClientID := os.Getenv("GOOGLE_AUTH_CLIENT_ID")
+	googleAuthClientSecret := os.Getenv("GOOGLE_AUTH_CLIENT_SECRET")
+	gomniauthSecurityKey := os.Getenv("GOMNIAUTH_SECURITY_KEY")
+	gomniauth.SetSecurityKey(gomniauthSecurityKey)
+	gomniauth.WithProviders(
+		google.New(googleAuthClientID, googleAuthClientSecret, "http://localhost:8080/"+path.Join("auth", "callback", "google")),
+	)
+
 	authRouter := mux.NewRouter().PathPrefix("/auth")
 	authCheckRouter := authRouter.Subrouter()
 	authCheckRouter.Use(corsMiddleware)
@@ -28,9 +46,22 @@ func main() {
 	loginRouter.HandleFunc("/login", loginHandler).Methods(http.MethodPost, http.MethodOptions)
 	http.Handle("/login", loginRouter)
 
+	socialLoginRouter := mux.NewRouter()
+	socialLoginRouter.Use(corsMiddleware)
+	socialLoginRouter.HandleFunc("/social_login", socialLoginHandler).Methods(http.MethodGet)
+	http.Handle("/social_login", socialLoginRouter)
+
+	/*************************************/
+	// socialLoginCallbackRouter := mux.NewRouter()
+	// socialLoginCallbackRouter.Use(corsMiddleware)
+	// socialLoginCallbackRouter.HandleFunc("/auth/callback/{provider}", socialLoginCallbackHandler)
+	// http.Handle("/auth/callback/{provider}", socialLoginCallbackRouter)
+	http.HandleFunc("/auth/callback/", socialLoginCallbackHandler)
+	/*************************************/
+
 	logoutRouter := mux.NewRouter()
 	logoutRouter.Use(corsMiddleware)
-	logoutRouter.HandleFunc("/logout", logoutHandler).Methods(http.MethodPost)
+	logoutRouter.HandleFunc("/logout", logoutHandler).Methods(http.MethodPost, http.MethodOptions)
 	http.Handle("/logout", logoutRouter)
 
 	registerRouter := mux.NewRouter()

@@ -1,6 +1,6 @@
 <template>
   <div>
-    <el-form ref="form" :model="form" :rules="rules" class="p-3 border">
+    <el-form ref="form" :model="form" :rules="rules" class="p-1 p-lg-3">
       <el-form-item label="ユーザ名" prop="name">
         <el-input type="text" v-model="form.name"></el-input>
       </el-form-item>

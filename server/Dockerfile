@@ -11,6 +11,12 @@ RUN go get github.com/sk409/gofile
 RUN go get github.com/google/uuid
 RUN go get github.com/sk409/gotype
 RUN go get github.com/gorilla/websocket
+RUN go get github.com/stretchr/gomniauth
+RUN go get github.com/joho/godotenv
+RUN go get gopkg.in/mgo.v2/bson
+RUN go get github.com/ugorji/go/codec
+RUN go get github.com/clbanning/x2j
+RUN go get github.com/joho/godotenv
 
 RUN apt-get update && apt-get install -y \
     curl \

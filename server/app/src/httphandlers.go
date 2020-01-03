@@ -14,6 +14,8 @@ import (
 	"strings"
 
 	"github.com/gorilla/websocket"
+	"github.com/stretchr/gomniauth"
+	"github.com/stretchr/objx"
 
 	"github.com/gorilla/mux"
 
@@ -139,7 +141,13 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 
 func logoutHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("logoutHandler")
+	allowedHeaders := strings.Join([]string{goconst.HTTP_HEADER_CONTENT_TYPE, goconst.HTTP_HEADER_X_XSRF_TOKEN}, ",")
+	w.Header().Set(goconst.HTTP_HEADER_ACCESS_CONTROL_ALLOW_HEADERS, allowedHeaders)
+	w.Header().Set(goconst.HTTP_HEADER_ACCESS_CONTROL_ALLOW_METHODS, http.MethodGet)
 	w.Header().Set(goconst.HTTP_HEADER_ACCESS_CONTROL_ALLOW_CREDENTIALS, "true")
+	if r.Method == http.MethodOptions {
+		return
+	}
 	sessionCookie, err := r.Cookie(cookieNameSessionID)
 	if err == nil {
 		sessionManager.Provider.Stop(sessionCookie.Value)
@@ -148,6 +156,65 @@ func logoutHandler(w http.ResponseWriter, r *http.Request) {
 		Name:   cookieNameSessionID,
 		MaxAge: -1,
 	})
+}
+
+func socialLoginHandler(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("socialLoginHandler")
+	providerName := r.URL.Query().Get("provider")
+	if len(providerName) == 0 {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	provider, err := gomniauth.Provider(providerName)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	loginURL, err := provider.GetBeginAuthURL(nil, nil)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set(goconst.HTTP_HEADER_LOCATION, loginURL)
+	w.WriteHeader(http.StatusTemporaryRedirect)
+}
+
+func socialLoginCallbackHandler(w http.ResponseWriter, r *http.Request) {
+	segs := strings.Split(r.URL.Path, "/")
+	providerName := segs[3]
+	provider, err := gomniauth.Provider(providerName)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	creds, err := provider.CompleteAuth(objx.MustFromURLQuery(r.URL.RawQuery))
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	userInfo, err := provider.GetUser(creds)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	email := userInfo.Email()
+	usr := user{}
+	db.Where("email = ?", email).First(&usr)
+	if usr.ID == 0 {
+		profileImagePath := userInfo.AvatarURL()
+		usr = user{Name: email, ProfileImagePath: &profileImagePath}
+		db.Save(&usr)
+	}
+	session, err := sessionManager.Provider.Start()
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	session.Store(sessionStoreNameUserID, usr.ID)
+	sessionCookie := newCookie(cookieNameSessionID, session.ID(), cookie30Days)
+	http.SetCookie(w, sessionCookie)
+	w.Header().Set(goconst.HTTP_HEADER_LOCATION, "http://localhost:3000")
+	w.WriteHeader(http.StatusTemporaryRedirect)
 }
 
 func registerHandler(w http.ResponseWriter, r *http.Request) {
@@ -166,7 +233,7 @@ func registerHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	hashedPassword := fmt.Sprintf("%x", sha512.Sum512([]byte(password)))
-	user := user{Name: name, Password: hashedPassword}
+	user := user{Name: name, Password: &hashedPassword}
 	count := 0
 	db.Model(user).Where("name = ? AND password = ?", user.Name, user.Password).Count(&count)
 	if count != 0 {

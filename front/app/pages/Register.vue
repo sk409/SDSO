@@ -1,6 +1,6 @@
 <template>
   <div>
-    <AuthForm class="auth-form" type="登録" @submit="register"></AuthForm>
+    <AuthForm class="w-100 auth-form" type="登録" @submit="register"></AuthForm>
     <div class="text-center">
       <n-link :to="$routes.login">アカウントをお持ちの方</n-link>
     </div>
@@ -11,6 +11,7 @@
 import AuthForm from "@/components/AuthForm.vue";
 export default {
   name: "login",
+  layout: "Auth",
   components: {
     AuthForm
   },
@@ -22,6 +23,7 @@ export default {
         { withCredentials: true },
         response => {
           if (response.status == 200) {
+            this.$notify.success({ message: "登録しました", duration: 3000 });
             this.$router.push(this.$routes.dashboardProjects);
             return;
           }
@@ -35,7 +37,6 @@ export default {
 
 <style scoped>
 .auth-form {
-  width: 60%;
   margin: 2.5rem auto;
 }
 </style>

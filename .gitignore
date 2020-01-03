@@ -7,3 +7,4 @@ server/app/repositories
 server/app/clones
 server/app/testing
 .git
+.env

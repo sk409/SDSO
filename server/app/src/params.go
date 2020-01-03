@@ -33,6 +33,7 @@ const (
 	messageBufferSize = 256
 	serverHostAndPort = "0.0.0.0:8080"
 	serverScheme      = "http"
+	serverOrigin      = serverScheme + "://" + serverHostAndPort
 	socketBufferSize  = 1024
 	tableNameProjects = "projects"
 	tableNameUsers    = "users"

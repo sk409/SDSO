@@ -13,11 +13,12 @@ import '../assets/css/global.css'
 
 import '../node_modules/element-ui/lib/theme-chalk/index.css'
 
+import _2d12f2be from '../layouts/Auth.vue'
 import _51d4d984 from '../layouts/Dashboard.vue'
 import _6f6c098b from '../layouts/default.vue'
 import _64211643 from '../layouts/Project.vue'
 
-const layouts = { "_Dashboard": _51d4d984,"_default": _6f6c098b,"_Project": _64211643 }
+const layouts = { "_Auth": _2d12f2be,"_Dashboard": _51d4d984,"_default": _6f6c098b,"_Project": _64211643 }
 
 export default {
   head: {"title":"front","meta":[{"charset":"utf-8"},{"name":"viewport","content":"width=device-width, initial-scale=1"},{"hid":"description","name":"description","content":"My mind-blowing Nuxt.js project"}],"link":[{"rel":"icon","type":"image\u002Fx-icon","href":"\u002Ffavicon.ico"},{"rel":"stylesheet","href":"https:\u002F\u002Fstackpath.bootstrapcdn.com\u002Fbootstrap\u002F4.3.1\u002Fcss\u002Fbootstrap.min.css"}],"style":[],"script":[]},

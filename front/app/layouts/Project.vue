@@ -4,34 +4,63 @@
     <div id="app-body">
       <div class="project-header">
         <div class="metadata">
-          <n-link :to="$routes.dashboardProjects">{{pathParamUserName}}</n-link>
+          <n-link :to="$routes.dashboardProjects">{{
+            pathParamUserName
+          }}</n-link>
           <span>/</span>
           <n-link
             :to="$routes.projectCode(pathParamUserName, pathParamProjectName)"
-          >{{pathParamProjectName}}</n-link>
+            >{{ pathParamProjectName }}</n-link
+          >
         </div>
-        <div class="tabs">
+        <div class="tabs mt-3 mt-lg-0">
           <div class="spacer"></div>
           <n-link
             tag="div"
             :to="$routes.projectCode(pathParamUserName, pathParamProjectName)"
-            :style="tabStyle($routes.projectCode(pathParamUserName, pathParamProjectName), false)"
+            :style="
+              tabStyle(
+                $routes.projectCode(pathParamUserName, pathParamProjectName),
+                false
+              )
+            "
             class="tab"
-          >Code</n-link>
+            >Code</n-link
+          >
           <n-link
             tag="div"
-            :event="isAuthor ? 'click' :''"
+            :event="isAuthor ? 'click' : ''"
             :to="$routes.projectTest(pathParamUserName, pathParamProjectName)"
-            :style="tabStyle($routes.projectTest(pathParamUserName, pathParamProjectName), true)"
+            :style="
+              tabStyle(
+                $routes.projectTest(pathParamUserName, pathParamProjectName),
+                true
+              )
+            "
             class="tab"
-          >Test</n-link>
+            >Test</n-link
+          >
           <n-link
             tag="div"
-            :event="isAuthor ? 'click' :''"
-            :to="$routes.projectVulnerabilities(pathParamUserName, pathParamProjectName)"
-            :style="tabStyle($routes.projectVulnerabilities(pathParamUserName, pathParamProjectName), true)"
+            :event="isAuthor ? 'click' : ''"
+            :to="
+              $routes.projectVulnerabilities(
+                pathParamUserName,
+                pathParamProjectName
+              )
+            "
+            :style="
+              tabStyle(
+                $routes.projectVulnerabilities(
+                  pathParamUserName,
+                  pathParamProjectName
+                ),
+                true
+              )
+            "
             class="tab"
-          >Vulnerabilities</n-link>
+            >Vulnerabilities</n-link
+          >
           <div class="spacer"></div>
         </div>
       </div>

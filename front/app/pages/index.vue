@@ -6,7 +6,7 @@
 import Logo from "~/components/Logo.vue";
 
 export default {
-  middleware: "auth",
+  //middleware: "auth",
   created() {
     this.$router.push(this.$routes.dashboardProjects);
   }
