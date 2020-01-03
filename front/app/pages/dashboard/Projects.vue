@@ -7,15 +7,12 @@
           <el-button
             type="primary"
             class="ml-auto d-none d-lg-inline"
-            @click="transitionToProjectCreate()"
-            >新規作成</el-button
-          >
+            @click="showCreatingProjectDialog"
+          >新規作成</el-button>
         </div>
         <el-divider class="m-0 my-3"></el-divider>
         <div>
-          <div class="text-center" v-if="projects.length === 0">
-            プロジェクトがありません
-          </div>
+          <div class="text-center" v-if="projects.length === 0">プロジェクトがありません</div>
           <div v-else>
             <div class="d-none d-lg-block">
               <table class="table table-border">
@@ -28,10 +25,7 @@
                 <tbody>
                   <tr v-for="project in projects" :key="project.ID">
                     <td>
-                      <n-link
-                        :to="$routes.projectCode(user.Name, project.Name)"
-                        >{{ project.Name }}</n-link
-                      >
+                      <n-link :to="$routes.projectCode(user.Name, project.Name)">{{ project.Name }}</n-link>
                     </td>
                     <td>{{ project.CreatedAt }}</td>
                   </tr>
@@ -54,11 +48,7 @@
                       <span class="ml-2">{{ project.CreatedAt }}</span>
                     </div>
                     <div class="text-center mt-3">
-                      <el-button
-                        type="primary"
-                        @click="transitionToProjectCode(project.Name)"
-                        >詳細</el-button
-                      >
+                      <el-button type="primary" @click="transitionToProjectCode(project.Name)">詳細</el-button>
                     </div>
                   </div>
                 </div>
@@ -68,18 +58,28 @@
         </div>
       </div>
     </div>
-    <div class="fab d-lg-none" @click="transitionToProjectCreate">
+    <div class="fab d-lg-none" @click="showCreatingProjectDialog">
       <i class="el-icon-plus"></i>
     </div>
+    <el-dialog :visible.sync="creatingProjectDialog.isVisible">
+      <ProjectForm @created="hideCreatingProjectDialog();fetchProjects()"></ProjectForm>
+    </el-dialog>
   </div>
 </template>
 
 <script>
+import ProjectForm from "@/components/ProjectForm.vue";
 export default {
   layout: "Dashboard",
+  components: {
+    ProjectForm
+  },
   data() {
     return {
       activeNames: [],
+      creatingProjectDialog: {
+        isVisible: false
+      },
       projects: [],
       user: null
     };
@@ -92,18 +92,24 @@ export default {
       { withCredentials: true },
       response => {
         that.user = response.data;
-        const data = {
-          user_id: that.user.ID
-        };
-        that.$ajax.get(that.$urls.projects, data, {}, response => {
-          that.projects = response.data;
-        });
+        that.fetchProjects();
       }
     );
   },
   methods: {
-    transitionToProjectCreate() {
-      this.$router.push(this.$routes.projectCreate);
+    fetchProjects() {
+      const data = {
+        user_id: this.user.ID
+      };
+      this.$ajax.get(this.$urls.projects, data, {}, response => {
+        this.projects = response.data;
+      });
+    },
+    hideCreatingProjectDialog() {
+      this.creatingProjectDialog.isVisible = false;
+    },
+    showCreatingProjectDialog() {
+      this.creatingProjectDialog.isVisible = true;
     },
     transitionToProjectCode(projectName) {
       this.$router.push(this.$routes.projectCode(this.user.Name, projectName));

@@ -1,8 +1,14 @@
 <template>
-  <div>
-    <AuthForm class="w-100 auth-form" type="登録" @submit="register"></AuthForm>
-    <div class="text-center">
-      <n-link :to="$routes.login">アカウントをお持ちの方</n-link>
+  <div class="container-fluid">
+    <div class="row mt-5 mb-3">
+      <div class="col-10 offset-1 col-lg-8 offset-lg-2 border">
+        <AuthForm class="w-100" type="登録" @submit="register"></AuthForm>
+      </div>
+    </div>
+    <div class="row">
+      <div class="col-12 text-center">
+        <n-link :to="$routes.login">アカウントをお持ちの方</n-link>
+      </div>
     </div>
   </div>
 </template>
@@ -36,7 +42,4 @@ export default {
 </script>
 
 <style scoped>
-.auth-form {
-  margin: 2.5rem auto;
-}
 </style>

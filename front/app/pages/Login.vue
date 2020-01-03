@@ -15,7 +15,7 @@
         class="col-10 offset-1 col-lg-2 offset-lg-5 p-1 text-center social-login-button social-login-google"
       >Google でログイン</a>
     </div>
-    <div class="text-center">
+    <div class="col-12 text-center">
       <n-link :to="$routes.register">アカウントをお持ちでない方</n-link>
     </div>
   </div>
@@ -62,11 +62,6 @@ export default {
 </script>
 
 <style scoped>
-.auth-form {
-  margin-top: 2.5rem;
-  margin-bottom: 2.5rem;
-}
-
 .social-login-button {
   color: white;
 }

@@ -1,5 +1,5 @@
 <template>
-  <div class="w-75 mt-3 mx-auto">
+  <div>
     <el-form ref="form" :model="form" :rules="rules">
       <el-form-item label="プロジェクト名" prop="name">
         <el-input type="text" v-model="form.name"></el-input>
@@ -21,7 +21,7 @@ const validateUniqueProjectName = (rule, value, callback) => {
   callback();
 };
 export default {
-  middleware: "auth",
+  name: "ProjectForm",
   data() {
     return {
       form: {
@@ -49,7 +49,6 @@ export default {
           user_id: user.ID
         };
         this.$ajax.get(this.$urls.projects, data, {}, response => {
-          console.log(response);
           user.projects = response.data;
         });
       }
@@ -77,7 +76,8 @@ export default {
                   message: "プロジェクトを作成しました",
                   duration: 3000
                 });
-                this.$router.push(this.$routes.dashboardProjects);
+                this.$emit("created", this.form.name);
+                this.form.name = "";
               }
             });
           }

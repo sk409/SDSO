@@ -3,7 +3,6 @@ import Vue from "vue";
 Vue.prototype.$routes = {
   dashboardProjects: "/dashboard/projects",
   login: "/login",
-  projectCreate: "/project/Create",
   projectCode(userName, projectName, filePath) {
     let path = "/project/code/" + userName + "/" + projectName;
     if (filePath) {
