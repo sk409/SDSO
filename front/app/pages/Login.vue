@@ -10,10 +10,10 @@
         
         @click="socialLogin('google')"
       ></div>-->
-      <a
+      <!-- <a
         :href="socialLoginURL('google')"
         class="col-10 offset-1 col-lg-2 offset-lg-5 p-1 text-center social-login-button social-login-google"
-      >Google でログイン</a>
+      >Google でログイン</a> -->
     </div>
     <div class="col-12 text-center">
       <n-link :to="$routes.register">アカウントをお持ちでない方</n-link>

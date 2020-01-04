@@ -147,7 +147,7 @@ func main() {
 
 	gitRouter := mux.NewRouter()
 	gitRouter.HandleFunc("/{user}/{project}/info/refs", gitInfoRefsHandler).Methods(http.MethodGet)
-	gitRouter.HandleFunc("/{user}/{project}/git-receive-pack", gitReceivePackHandler).Methods(http.MethodPost)
+	gitRouter.Handle("/{user}/{project}/git-receive-pack", gitBasicAuthMiddleware(http.HandlerFunc(gitReceivePackHandler))).Methods(http.MethodPost)
 	gitRouter.HandleFunc("/{user}/{project}/git-upload-pack", gitUploadPackHandler).Methods(http.MethodPost)
 	http.Handle("/", gitRouter)
 

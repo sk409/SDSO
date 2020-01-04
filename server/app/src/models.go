@@ -63,7 +63,7 @@ type testResult struct {
 type user struct {
 	gorm.Model
 	Name             string  `gorm:"type:varchar(32);not null;unique"`
-	Password         *string `gorm:"type:varchar(512);"`
+	Password         string  `gorm:"type:varchar(512);not null;"`
 	ProfileImagePath *string `gorm:"type:varchar(256);unique"`
 }
 

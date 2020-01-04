@@ -47,7 +47,7 @@ func init() {
 	}
 	rootRepositoryPath := filepath.Join(cwd, "..", "repositories")
 	gitClones = gogit.NewGit(filepath.Join(cwd, "..", "clones"), gitBinPath)
-	gitRepositories = gogit.NewGit(rootRepositoryPath, gitBinPath)
+	gitRepositories = gogit.NewGit(filepath.Join(cwd, "..", "repositories"), gitBinPath)
 	//gitTesting = gogit.NewGit(filepath.Join(cwd, "..", "testing"))
 	gitServer = gogit.NewHTTPServer(rootRepositoryPath, gitBinPath)
 }

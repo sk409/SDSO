@@ -35,7 +35,7 @@ func runTest(userName, projectName string) {
 		log.Println(db.Error)
 		return
 	}
-	clonePath := filepath.Join(gitClones.RootPath, filepath.Join(userName, projectName))
+	clonePath := filepath.Join(gitClones.RootDirectoryPath, filepath.Join(userName, projectName))
 	uuid, err := uuid.NewUUID()
 	if err != nil {
 		return

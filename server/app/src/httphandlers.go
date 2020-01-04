@@ -199,7 +199,7 @@ func socialLoginCallbackHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	email := userInfo.Email()
 	usr := user{}
-	db.Where("email = ?", email).First(&usr)
+	db.Where("name = ?", email).First(&usr)
 	if usr.ID == 0 {
 		profileImagePath := userInfo.AvatarURL()
 		usr = user{Name: email, ProfileImagePath: &profileImagePath}
@@ -233,7 +233,7 @@ func registerHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	hashedPassword := fmt.Sprintf("%x", sha512.Sum512([]byte(password)))
-	user := user{Name: name, Password: &hashedPassword}
+	user := user{Name: name, Password: hashedPassword}
 	count := 0
 	db.Model(user).Where("name = ? AND password = ?", user.Name, user.Password).Count(&count)
 	if count != 0 {
@@ -496,7 +496,7 @@ func initRepositoryHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	repositoryPath := filepath.Join(userName, projectName)
-	exist := existDirectory(filepath.Join(gitRepositories.RootPath, repositoryPath))
+	exist := existDirectory(filepath.Join(gitRepositories.RootDirectoryPath, repositoryPath))
 	// if err != nil {
 	// 	log.Println(err.Error())
 	// 	w.WriteHeader(http.StatusInternalServerError)
@@ -507,7 +507,7 @@ func initRepositoryHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	//mkDirIfNotExist(filepath.Join(gitRepositories.RootPath, repositoryPath))
-	err := os.MkdirAll(filepath.Join(gitRepositories.RootPath, repositoryPath), 0755)
+	err := os.MkdirAll(filepath.Join(gitRepositories.RootDirectoryPath, repositoryPath), 0755)
 	if err != nil {
 		log.Println(err.Error())
 		w.WriteHeader(http.StatusInternalServerError)
@@ -530,7 +530,7 @@ func fetchFileTextHandler(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	file, err := os.Open(filepath.Join(gitClones.RootPath, userName, projectName, path))
+	file, err := os.Open(filepath.Join(gitClones.RootDirectoryPath, userName, projectName, path))
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
@@ -574,7 +574,7 @@ func fetchFilesHandler(w http.ResponseWriter, r *http.Request) {
 		if exist {
 			continue
 		}
-		directory, err := isDirectory(filepath.Join(gitClones.RootPath, userName, projectName, path, fileName))
+		directory, err := isDirectory(filepath.Join(gitClones.RootDirectoryPath, userName, projectName, path, fileName))
 		if err != nil {
 			log.Println(err.Error())
 			w.WriteHeader(http.StatusInternalServerError)
@@ -689,9 +689,9 @@ func gitReceivePackHandler(w http.ResponseWriter, r *http.Request) {
 	pathParams := mux.Vars(r)
 	userName := pathParams["user"]
 	projectName := pathParams["project"]
-	repositoryPath := serverScheme + "://" + path.Join(serverHostAndPort, userName, projectName)
 	gitServer.ServeHTTP(w, r)
-	clonePath := filepath.Join(gitClones.RootPath, filepath.Join(userName, projectName))
+	repositoryPath := serverScheme + "://" + path.Join(serverHostAndPort, userName, projectName)
+	clonePath := filepath.Join(gitClones.RootDirectoryPath, filepath.Join(userName, projectName))
 	if existDirectory(clonePath) {
 		os.RemoveAll(clonePath)
 	}
