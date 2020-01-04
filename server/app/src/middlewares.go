@@ -45,8 +45,6 @@ func gitBasicAuthMiddleware(next http.Handler) http.Handler {
 		}
 		n, p, ok := r.BasicAuth()
 		hashedPassword := fmt.Sprintf("%x", sha512.Sum512([]byte(p)))
-		// log.Println(n)
-		// log.Println(p)
 		if !ok || user.Name != n || user.Password != hashedPassword {
 			w.Header().Set("WWW-Authenticate", `Basic realm="Please enter your username and password."`)
 			w.WriteHeader(http.StatusUnauthorized)
