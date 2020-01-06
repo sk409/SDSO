@@ -6,6 +6,7 @@ import scrollBehavior from './router.scrollBehavior.js'
 const _6f14d94f = () => interopDefault(import('../pages/Login.vue' /* webpackChunkName: "pages/Login" */))
 const _6985892d = () => interopDefault(import('../pages/Register.vue' /* webpackChunkName: "pages/Register" */))
 const _3f94c89f = () => interopDefault(import('../pages/dashboard/Projects.vue' /* webpackChunkName: "pages/dashboard/Projects" */))
+const _7c84303e = () => interopDefault(import('../pages/project/settings/_userName/_projectName/index.vue' /* webpackChunkName: "pages/project/settings/_userName/_projectName/index" */))
 const _cd20affe = () => interopDefault(import('../pages/project/testing/_userName/_projectName/index.vue' /* webpackChunkName: "pages/project/testing/_userName/_projectName/index" */))
 const _64537592 = () => interopDefault(import('../pages/project/vulnerabilities/_userName/_projectName/index.vue' /* webpackChunkName: "pages/project/vulnerabilities/_userName/_projectName/index" */))
 const _5408cc7e = () => interopDefault(import('../pages/project/code/_userName/_projectName/_.vue' /* webpackChunkName: "pages/project/code/_userName/_projectName/_" */))
@@ -32,6 +33,10 @@ export const routerOptions = {
     path: "/dashboard/Projects",
     component: _3f94c89f,
     name: "dashboard-Projects"
+  }, {
+    path: "/project/settings/:userName?/:projectName?",
+    component: _7c84303e,
+    name: "project-settings-userName-projectName"
   }, {
     path: "/project/testing/:userName?/:projectName?",
     component: _cd20affe,

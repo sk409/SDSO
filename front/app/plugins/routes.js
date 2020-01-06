@@ -16,6 +16,9 @@ Vue.prototype.$routes = {
   projectVulnerabilities(userName, projectName) {
     return "/project/vulnerabilities/" + userName + "/" + projectName;
   },
+  projectSettings(userName, projectName) {
+    return "/project/settings/" + userName + "/" + projectName;
+  },
   // projectCodeFileText: "/project/code/FileText",
   register: "/register"
 };

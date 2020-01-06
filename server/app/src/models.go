@@ -6,6 +6,12 @@ import (
 	"github.com/jinzhu/gorm"
 )
 
+type branchProtectionRule struct {
+	gorm.Model
+	BranchName string `gorm:"type:varchar(128);not null"`
+	ProjectID  uint   `gorm:"not null"`
+}
+
 type build struct {
 	Docker []docker
 	Steps  []interface{}

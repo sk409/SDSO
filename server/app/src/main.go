@@ -145,9 +145,16 @@ func main() {
 	testStatusesRouter.HandleFunc("/test_statuses", fetchTestStatuses).Methods(http.MethodGet)
 	http.Handle("/test_statuses", testStatusesRouter)
 
+	branchProtectionRulesRouter := mux.NewRouter()
+	branchProtectionRulesRouter.Use(corsMiddleware)
+	branchProtectionRulesRouter.HandleFunc("/branch_protection_rules", fetchBranchProtectionRules).Methods(http.MethodGet)
+	branchProtectionRulesRouter.HandleFunc("/branch_protection_rules", storeBranchProtectionRules).Methods(http.MethodPost)
+	http.Handle("/branch_protection_rules", branchProtectionRulesRouter)
+
 	gitRouter := mux.NewRouter()
 	gitRouter.HandleFunc("/{user}/{project}/info/refs", gitInfoRefsHandler).Methods(http.MethodGet)
 	gitRouter.Handle("/{user}/{project}/git-receive-pack", gitBasicAuthMiddleware(http.HandlerFunc(gitReceivePackHandler))).Methods(http.MethodPost)
+	//gitRouter.HandleFunc("/{user}/{project}/git-receive-pack", gitReceivePackHandler).Methods(http.MethodPost)
 	gitRouter.HandleFunc("/{user}/{project}/git-upload-pack", gitUploadPackHandler).Methods(http.MethodPost)
 	http.Handle("/", gitRouter)
 

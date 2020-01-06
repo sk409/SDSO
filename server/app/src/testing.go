@@ -13,6 +13,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/sk409/gogit"
+
 	"github.com/gorilla/websocket"
 	"github.com/sk409/gotype"
 
@@ -22,53 +24,57 @@ import (
 	"github.com/sk409/gofile"
 )
 
-func runTest(userName, projectName string) {
+func runTest(userName, projectName, clonePath string) (bool, error) {
 	user := user{}
 	db.Where("name = ?", userName).First(&user)
 	if db.Error != nil {
-		log.Print(db.Error)
-		return
+		// log.Print(db.Error)
+		return false, db.Error
 	}
 	project := project{}
 	db.Where("name = ? AND user_id = ?", projectName, user.ID).First(&project)
 	if db.Error != nil {
-		log.Println(db.Error)
-		return
+		//log.Println(db.Error)
+		return false, db.Error
 	}
-	clonePath := filepath.Join(gitClones.RootDirectoryPath, filepath.Join(userName, projectName))
+	// clonePath := filepath.Join(gitClones.RootDirectoryPath, filepath.Join(userName, projectName))
 	uuid, err := uuid.NewUUID()
 	if err != nil {
-		return
+		return false, err
 	}
 	testPath := filepath.Join(cwd, "..", "testing", uuid.String())
 	testAppPath := filepath.Join(testPath, "app")
-	os.MkdirAll(testAppPath, 0755)
-	defer os.RemoveAll(testPath)
-	err = gofile.Copy(clonePath, testAppPath)
+	err = os.MkdirAll(testAppPath, 0755)
 	if err != nil {
-		log.Println(err.Error())
-		return
+		return false, err
+	}
+	defer os.RemoveAll(testPath)
+	git := gogit.NewGit(testAppPath, gitBinPath)
+	err = git.Clone(clonePath, ".")
+	if err != nil {
+		// log.Println(err)
+		return false, err
 	}
 	configFilePath := filepath.Join(testAppPath, ".sdso", "config.yml")
 	if !gofile.IsExist(configFilePath) {
-		return
+		return true, nil
 	}
 	configFile, err := os.Open(configFilePath)
 	if err != nil {
-		log.Println(err.Error())
-		return
+		// log.Println(err.Error())
+		return false, err
 	}
 	defer configFile.Close()
 	configFileBytes, err := ioutil.ReadAll(configFile)
 	if err != nil {
-		log.Println(err.Error())
-		return
+		// log.Println(err.Error())
+		return false, err
 	}
 	config := config{}
 	err = yaml.Unmarshal(configFileBytes, &config)
 	if err != nil {
-		log.Println(err.Error())
-		return
+		// log.Println(err.Error())
+		return false, err
 	}
 	workDir := "/app"
 	serviceNames := []string{}
@@ -84,14 +90,14 @@ func runTest(userName, projectName string) {
 			dockerDirectoryPath = filepath.Join(testPath, serviceName)
 			err = os.Mkdir(dockerDirectoryPath, 0755)
 			if err != nil {
-				log.Println(err.Error())
-				return
+				// log.Println(err.Error())
+				return false, err
 			}
 		}
 		dockerfile, err := os.Create(filepath.Join(dockerDirectoryPath, "Dockerfile"))
 		if err != nil {
-			log.Println(err.Error())
-			return
+			// log.Println(err.Error())
+			return false, err
 		}
 		defer dockerfile.Close()
 		dockerfileText := fmt.Sprintf("FROM %s\n", docker.Image)
@@ -112,8 +118,8 @@ func runTest(userName, projectName string) {
 	}
 	dockercomposeFile, err := os.Create(filepath.Join(testPath, "docker-compose.yml"))
 	if err != nil {
-		log.Println(err.Error())
-		return
+		// log.Println(err.Error())
+		return false, err
 	}
 	defer dockercomposeFile.Close()
 	dockercomposeFile.Write([]byte(dockerComposeText))
@@ -121,8 +127,8 @@ func runTest(userName, projectName string) {
 	upCommand.Dir = testPath
 	err = upCommand.Run()
 	if err != nil {
-		log.Println(err.Error())
-		return
+		// log.Println(err.Error())
+		return false, err
 	}
 	defer func() {
 		downCommand := exec.Command("docker-compose", "down")
@@ -135,8 +141,8 @@ func runTest(userName, projectName string) {
 	}
 	db.Save(&test)
 	if db.Error != nil {
-		log.Print(db.Error)
-		return
+		// log.Print(db.Error)
+		return false, db.Error
 	}
 	socketTest, exist := websocketsTest[user.ID]
 	if exist {
@@ -159,7 +165,7 @@ func runTest(userName, projectName string) {
 						}
 						jsonBytes, err := json.Marshal(testResult)
 						if err != nil {
-							log.Println(err)
+							// log.Println(err)
 							return
 						}
 						socket.WriteMessage(websocket.TextMessage, []byte(jsonBytes))
@@ -168,7 +174,7 @@ func runTest(userName, projectName string) {
 						var testStatus testStatus
 						db.Where("text = ?", status).First(&testStatus)
 						if db.Error != nil {
-							log.Println(db.Error)
+							// log.Println(db.Error)
 							return
 						}
 						now := time.Now()
@@ -177,7 +183,7 @@ func runTest(userName, projectName string) {
 						testResult.CompletedAt = &now
 						db.Save(&testResult)
 						if db.Error != nil {
-							log.Println(db.Error)
+							// log.Println(db.Error)
 							return
 						}
 					}
@@ -190,8 +196,8 @@ func runTest(userName, projectName string) {
 					}
 					db.Save(&testResult)
 					if db.Error != nil {
-						log.Print(db.Error)
-						return
+						// log.Println(db.Error)
+						return false, db.Error
 					}
 					sendToClient(&testResult)
 					log.Println("ID = ", testResult.ID)
@@ -204,10 +210,10 @@ func runTest(userName, projectName string) {
 					execCommand.Stdout = &output
 					err = execCommand.Run()
 					if err != nil {
-						log.Println(err.Error())
+						// log.Println(err.Error())
 						compltedTestResult("failed", output.String(), &testResult)
 						sendToClient(&testResult)
-						return
+						return false, nil
 					}
 					compltedTestResult("success", output.String(), &testResult)
 					sendToClient(&testResult)
@@ -215,4 +221,5 @@ func runTest(userName, projectName string) {
 			}
 		}
 	}
+	return true, nil
 }

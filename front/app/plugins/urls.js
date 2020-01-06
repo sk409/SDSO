@@ -2,6 +2,7 @@ import Vue from "vue";
 
 Vue.prototype.$urls = {
   authCheck: "auth/check",
+  branchProtectionRules: "branch_protection_rules",
   files: "file",
   filesText: "files/text",
   login: "login",

@@ -4,9 +4,9 @@
     <div id="app-body">
       <div class="project-header">
         <div class="metadata">
-          <n-link :to="$routes.dashboardProjects">{{
-            pathParamUserName
-          }}</n-link>
+          <n-link :to="$routes.dashboardProjects">
+            {{ pathParamUserName }}
+          </n-link>
           <span>/</span>
           <n-link
             :to="$routes.projectCode(pathParamUserName, pathParamProjectName)"
@@ -25,7 +25,7 @@
               )
             "
             class="tab"
-            >Code</n-link
+            >コード</n-link
           >
           <n-link
             tag="div"
@@ -38,7 +38,7 @@
               )
             "
             class="tab"
-            >Test</n-link
+            >テスト</n-link
           >
           <n-link
             tag="div"
@@ -59,7 +59,25 @@
               )
             "
             class="tab"
-            >Vulnerabilities</n-link
+            >脆弱性</n-link
+          >
+          <n-link
+            tag="div"
+            :event="isAuthor ? 'click' : ''"
+            :to="
+              $routes.projectSettings(pathParamUserName, pathParamProjectName)
+            "
+            :style="
+              tabStyle(
+                $routes.projectSettings(
+                  pathParamUserName,
+                  pathParamProjectName
+                ),
+                true
+              )
+            "
+            class="tab"
+            >設定</n-link
           >
           <div class="spacer"></div>
         </div>

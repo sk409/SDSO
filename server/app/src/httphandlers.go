@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"crypto/sha512"
 	"encoding/json"
 	"fmt"
@@ -12,6 +13,10 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+
+	"github.com/sk409/gofile"
+
+	"github.com/sk409/gogit"
 
 	"github.com/gorilla/websocket"
 	"github.com/stretchr/gomniauth"
@@ -679,6 +684,47 @@ func fetchTestStatuses(w http.ResponseWriter, r *http.Request) {
 	w.Write(jsonBytes)
 }
 
+func fetchBranchProtectionRules(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("fetchBranchProtectionRules")
+	query, values := makeQueryAndValues(r)
+	branchProtectionRules := []branchProtectionRule{}
+	db.Where(query, values...).Find(&branchProtectionRules)
+	if db.Error != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	jsonBytes, err := json.Marshal(branchProtectionRules)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set(goconst.HTTP_HEADER_CONTENT_TYPE, goconst.HTTP_HEADER_CONTENT_TYPE_JSON)
+	w.Write(jsonBytes)
+}
+
+func storeBranchProtectionRules(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("storeBranchProtectionRules")
+	branchName := r.PostFormValue("branchName")
+	projectID, err := strconv.ParseUint(r.PostFormValue("projectID"), 10, 64)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	branchProtectionRule := branchProtectionRule{BranchName: branchName, ProjectID: uint(projectID)}
+	db.Save(&branchProtectionRule)
+	if db.Error != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	jsonBytes, err := json.Marshal(branchProtectionRule)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set(goconst.HTTP_HEADER_CONTENT_TYPE, goconst.HTTP_HEADER_CONTENT_TYPE_JSON)
+	w.Write(jsonBytes)
+}
+
 func gitInfoRefsHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("gitInfoRefsHandler")
 	gitServer.ServeHTTP(w, r)
@@ -689,17 +735,115 @@ func gitReceivePackHandler(w http.ResponseWriter, r *http.Request) {
 	pathParams := mux.Vars(r)
 	userName := pathParams["user"]
 	projectName := pathParams["project"]
-	gitServer.ServeHTTP(w, r)
-	repositoryPath := serverScheme + "://" + path.Join(serverHostAndPort, userName, projectName)
-	clonePath := filepath.Join(gitClones.RootDirectoryPath, filepath.Join(userName, projectName))
-	if existDirectory(clonePath) {
-		os.RemoveAll(clonePath)
+	user := user{}
+	db.Where("name = ?", userName).First(&user)
+	if db.Error != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
 	}
-	gitClones.Clone(
-		repositoryPath,
-		filepath.Join(userName, projectName),
-	)
-	go runTest(userName, projectName)
+	if user.ID == 0 {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	project := project{}
+	db.Where("name = ? AND user_id = ?", projectName, user.ID).First(&project)
+	if db.Error != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	if project.ID == 0 {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	branchProtectionRules := []branchProtectionRule{}
+	db.Where("project_id = ?", project.ID).Find(&branchProtectionRules)
+	branchName, err := getBranchName(r)
+	if err != nil {
+		return
+	}
+	protection := false
+	for _, branchProtectionRule := range branchProtectionRules {
+		// log.Println("====================")
+		// log.Println(branchProtectionRule.BranchName)
+		// log.Println(len(branchProtectionRule.BranchName))
+		// log.Println(branchName)
+		// log.Println(len(branchName))
+		// log.Println(branchName == branchProtectionRule.BranchName)
+		if branchName == branchProtectionRule.BranchName {
+			protection = true
+			break
+		}
+	}
+	push := func() {
+		gitServer.ServeHTTP(w, r)
+	}
+	clone := func() {
+		repositoryPath := serverScheme + "://" + path.Join(serverHostAndPort, userName, projectName)
+		clonePath := filepath.Join(gitClones.RootDirectoryPath, filepath.Join(userName, projectName))
+		if existDirectory(clonePath) {
+			os.RemoveAll(clonePath)
+		}
+		gitClones.Clone(
+			repositoryPath,
+			filepath.Join(userName, projectName),
+		)
+	}
+	//
+	// protection = false
+	//
+	if protection {
+		body, err := gogit.GetReadCloser(r)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		bodyBytes, err := ioutil.ReadAll(body)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		r.Body = ioutil.NopCloser(bytes.NewBuffer(bodyBytes))
+		repositoryPath := filepath.Join(gitRepositories.RootDirectoryPath, userName, projectName)
+		tmpRepositoryPath := filepath.Join(gitTmpRepositories.RootDirectoryPath, userName, projectName)
+		err = os.RemoveAll(tmpRepositoryPath)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		err = os.MkdirAll(tmpRepositoryPath, 0755)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		defer os.RemoveAll(filepath.Join(gitTmpRepositories.RootDirectoryPath, userName))
+		err = gofile.Copy(repositoryPath, tmpRepositoryPath)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		err = gitTmpRepositories.RPC(filepath.Join(userName, projectName), gogit.RPCReceivePack, r)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		succeeded, err := runTest(userName, projectName, tmpRepositoryPath)
+		if !succeeded || err != nil {
+			// log.Println("****************")
+			// log.Println(err)
+			//
+			// TODO: ちゃんとしたレスポンスを返す
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+			//
+		}
+		r.Body = ioutil.NopCloser(bytes.NewBuffer(bodyBytes))
+		push()
+		go clone()
+	} else {
+		push()
+		go clone()
+		go runTest(userName, projectName, filepath.Join(gitRepositories.RootDirectoryPath, userName, projectName))
+	}
 }
 
 func gitUploadPackHandler(w http.ResponseWriter, r *http.Request) {
