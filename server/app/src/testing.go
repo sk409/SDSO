@@ -24,7 +24,7 @@ import (
 	"github.com/sk409/gofile"
 )
 
-func runTest(userName, projectName, clonePath string) (bool, error) {
+func runTest(userName, projectName, clonePath, branchName, commitSHA1 string) (bool, error) {
 	user := user{}
 	db.Where("name = ?", userName).First(&user)
 	if db.Error != nil {
@@ -50,7 +50,7 @@ func runTest(userName, projectName, clonePath string) (bool, error) {
 	}
 	defer os.RemoveAll(testPath)
 	git := gogit.NewGit(testAppPath, gitBinPath)
-	err = git.Clone(clonePath, ".")
+	err = git.Clone(clonePath, ".", "-b", branchName)
 	if err != nil {
 		// log.Println(err)
 		return false, err
@@ -136,8 +136,10 @@ func runTest(userName, projectName, clonePath string) (bool, error) {
 		downCommand.Run()
 	}()
 	test := test{
-		Steps:     len(config.Jobs.Build.Steps),
-		ProjectID: project.ID,
+		Steps:      len(config.Jobs.Build.Steps),
+		BranchName: branchName,
+		CommitSHA1: commitSHA1,
+		ProjectID:  project.ID,
 	}
 	db.Save(&test)
 	if db.Error != nil {

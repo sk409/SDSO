@@ -590,20 +590,59 @@ func fetchFilesHandler(w http.ResponseWriter, r *http.Request) {
 
 func fetchTestsHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("fetchTestsHandler")
-	query, values := makeQueryAndValues(r)
+	userName := r.URL.Query().Get("userName")
+	projectName := r.URL.Query().Get("projectName")
+	projectID := r.URL.Query().Get("projectID")
+	branchName := r.URL.Query().Get("branchName")
+	fmt.Println(r.URL)
+	if len(userName) == 0 || len(projectName) == 0 || len(projectID) == 0 || len(branchName) == 0 {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
 	tests := []test{}
-	db.Where(query, values...).Find(&tests)
+	db.Where("project_id = ?", projectID).Find(&tests)
 	if db.Error != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	jsonBytes, err := json.Marshal(tests)
+	commitSHA1sByte, err := gitRepositories.RevList(filepath.Join(userName, projectName), branchName)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	commitSHA1s := strings.Split(string(commitSHA1sByte), "\n")
+	// fmt.Println("===============")
+	// fmt.Println(tests)
+	// fmt.Println(commitSHA1s)
+	filteredTests := []test{}
+	for _, test := range tests {
+		for _, commitSHA1 := range commitSHA1s {
+			if test.CommitSHA1 == commitSHA1 {
+				filteredTests = append(filteredTests, test)
+			}
+		}
+	}
+	jsonBytes, err := json.Marshal(filteredTests)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 	w.Header().Set(goconst.HTTP_HEADER_CONTENT_TYPE, goconst.HTTP_HEADER_CONTENT_TYPE_JSON)
 	w.Write(jsonBytes)
+	// query, values := makeQueryAndValues(r)
+	// tests := []test{}
+	// db.Where(query, values...).Find(&tests)
+	// if db.Error != nil {
+	// 	w.WriteHeader(http.StatusInternalServerError)
+	// 	return
+	// }
+	// jsonBytes, err := json.Marshal(tests)
+	// if err != nil {
+	// 	w.WriteHeader(http.StatusInternalServerError)
+	// 	return
+	// }
+	// w.Header().Set(goconst.HTTP_HEADER_CONTENT_TYPE, goconst.HTTP_HEADER_CONTENT_TYPE_JSON)
+	// w.Write(jsonBytes)
 }
 
 func testSocketHandler(w http.ResponseWriter, r *http.Request) {
@@ -804,18 +843,12 @@ func gitReceivePackHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	branchProtectionRules := []branchProtectionRule{}
 	db.Where("project_id = ?", project.ID).Find(&branchProtectionRules)
-	branchName, err := getBranchName(r)
+	branchName, commitSHA1, err := getBranchNameAndCommitSHA1(r)
 	if err != nil {
 		return
 	}
 	protection := false
 	for _, branchProtectionRule := range branchProtectionRules {
-		// log.Println("====================")
-		// log.Println(branchProtectionRule.BranchName)
-		// log.Println(len(branchProtectionRule.BranchName))
-		// log.Println(branchName)
-		// log.Println(len(branchName))
-		// log.Println(branchName == branchProtectionRule.BranchName)
 		if branchName == branchProtectionRule.BranchName {
 			protection = true
 			break
@@ -835,9 +868,6 @@ func gitReceivePackHandler(w http.ResponseWriter, r *http.Request) {
 			filepath.Join(userName, projectName),
 		)
 	}
-	//
-	// protection = false
-	//
 	if protection {
 		body, err := gogit.GetReadCloser(r)
 		if err != nil {
@@ -873,7 +903,7 @@ func gitReceivePackHandler(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-		succeeded, err := runTest(userName, projectName, tmpRepositoryPath)
+		succeeded, err := runTest(userName, projectName, tmpRepositoryPath, branchName, commitSHA1)
 		if !succeeded || err != nil {
 			// log.Println("****************")
 			// log.Println(err)
@@ -889,7 +919,8 @@ func gitReceivePackHandler(w http.ResponseWriter, r *http.Request) {
 	} else {
 		push()
 		go clone()
-		go runTest(userName, projectName, filepath.Join(gitRepositories.RootDirectoryPath, userName, projectName))
+		clonePath := filepath.Join(gitRepositories.RootDirectoryPath, userName, projectName)
+		go runTest(userName, projectName, clonePath, branchName, commitSHA1)
 	}
 }
 

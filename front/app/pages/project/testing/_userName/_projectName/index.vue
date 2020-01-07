@@ -1,8 +1,23 @@
 <template>
   <div>
-    <div v-for="(test, index) in tests" :key="test.ID" class="test">
+    <div>
+      <div class="d-flex align-items-center">
+        <div class="mr-1">ブランチ:</div>
+        <el-select v-model="branchName" @change="changeBranch">
+          <el-option
+            v-for="branchName in branchNames"
+            :key="branchName"
+            :label="branchName"
+            :value="branchName"
+          ></el-option>
+        </el-select>
+      </div>
+    </div>
+    <div v-for="(test, index) in tests" :key="test.ID" class="test mt-3">
       <div class="d-flex align-items-center mb-2">
-        <div :style="testResultStyle(test)" class="test-status">{{ testResultText(test) }}</div>
+        <div :style="testResultStyle(test)" class="test-status">
+          {{ testResultText(test) }}
+        </div>
         <div class="ml-auto">{{ test.CreatedAt | formatDate }}</div>
       </div>
       <el-collapse v-model="activeNames[index]">
@@ -12,7 +27,10 @@
           :name="testResult.ID"
         >
           <template slot="title">
-            <span :style="markerStyle(testResult.TestStatusID)" class="marker"></span>
+            <span
+              :style="markerStyle(testResult.TestStatusID)"
+              class="marker"
+            ></span>
             <span class="ml-2">{{ testResult.Command }}</span>
           </template>
           <div class="p-2">
@@ -25,6 +43,8 @@
 </template>
 
 <script>
+import { mapMutations } from "vuex";
+
 let socketTest = null;
 let socketTestResult = null;
 let user = null;
@@ -75,6 +95,8 @@ export default {
   data() {
     return {
       activeNames: [],
+      branchName: "",
+      branchNames: [],
       project: null,
       tests: []
     };
@@ -90,10 +112,18 @@ export default {
     }
   },
   created() {
+    this.branchName = this.$store.state.project.branchName;
     this.setupSocket();
     this.fetchData();
   },
   methods: {
+    ...mapMutations({
+      setBranchName: "project/setBranchName"
+    }),
+    changeBranch(newBranchName) {
+      this.setBranchName(newBranchName);
+      this.fetchData();
+    },
     testResultStyle(test) {
       if (!test.results) {
         return;
@@ -125,6 +155,9 @@ export default {
       const that = this;
       socketTest.onmessage = function(e) {
         const test = JSON.parse(e.data);
+        if (test.BranchName !== that.$store.state.project.branchName) {
+          return;
+        }
         test.results = [];
         that.tests.unshift(test);
       };
@@ -144,14 +177,18 @@ export default {
         if (testIndex === notFound) {
           return;
         }
-        const testResultIndex = that.tests[testIndex].results.findIndex(
+        const test = that.tests[testIndex];
+        if (test.BranchName !== that.$store.state.project.branchName) {
+          return;
+        }
+        const testResultIndex = test.results.findIndex(
           tr => tr.ID === testResult.ID
         );
         if (testResultIndex === notFound) {
-          that.tests[testIndex].results.push(testResult);
+          test.results.push(testResult);
           return;
         }
-        that.$set(that.tests[testIndex].results, testResultIndex, testResult);
+        that.$set(test.results, testResultIndex, testResult);
       };
     },
     fetchData() {
@@ -174,7 +211,10 @@ export default {
           }
           this.project = response.data[0];
           const data = {
-            project_id: this.project.ID
+            userName: this.pathParamUserName,
+            projectName: this.pathParamProjectName,
+            projectID: this.project.ID,
+            branchName: this.$store.state.project.branchName
           };
           this.$ajax.get(this.$urls.tests, data, {}, response => {
             if (response.status !== 200) {
@@ -183,6 +223,7 @@ export default {
             this.tests = response.data.sort((a, b) => {
               return a.CreatedAt < b.CreatedAt ? 1 : -1;
             });
+            this.activeNames = [];
             response.data.forEach((test, index) => {
               this.activeNames.push([]);
               const data = {
@@ -197,6 +238,17 @@ export default {
             });
           });
         });
+      });
+      const branchData = {
+        userName: this.pathParamUserName,
+        projectName: this.pathParamProjectName
+      };
+      this.$ajax.get(this.$urls.branches, branchData, {}, response => {
+        if (response.status !== 200) {
+          return;
+        }
+        //console.log(response);
+        this.branchNames = response.data;
       });
     }
   }

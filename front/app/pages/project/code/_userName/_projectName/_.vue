@@ -70,7 +70,7 @@ export default {
     }
   },
   created() {
-    this.branch = this.$store.state.project.branch;
+    this.branch = this.$store.state.project.branchName;
     this.fetchData();
   },
   watch: {
@@ -97,10 +97,10 @@ export default {
   },
   methods: {
     ...mapMutations({
-      setBranch: "project/setBranch"
+      setBranchName: "project/setBranchName"
     }),
-    changeBranch(newBranch) {
-      this.setBranch(newBranch);
+    changeBranch(newBranchName) {
+      this.setBranchName(newBranchName);
       if (this.pathParamPath === "") {
         this.fetchData();
       } else {
@@ -143,7 +143,7 @@ export default {
           const data = {
             userName: this.pathParamUserName,
             projectName: this.pathParamProjectName,
-            branchName: this.$store.state.project.branch,
+            branchName: this.$store.state.project.branchName,
             path: parentPath
           };
           this.$ajax.get(this.$urls.files, data, {}, response => {
@@ -176,7 +176,7 @@ export default {
       const data = {
         userName: this.pathParamUserName,
         projectName: this.pathParamProjectName,
-        branchName: this.$store.state.project.branch,
+        branchName: this.$store.state.project.branchName,
         path: path
       };
       this.$ajax.get(this.$urls.filesText, data, {}, response => {
@@ -193,7 +193,7 @@ export default {
       const data = {
         userName: this.pathParamUserName,
         projectName: this.pathParamProjectName,
-        branchName: this.$store.state.project.branch,
+        branchName: this.$store.state.project.branchName,
         path: path
       };
       this.$ajax.get(this.$urls.files, data, {}, response => {

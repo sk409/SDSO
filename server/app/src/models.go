@@ -48,8 +48,10 @@ type scan struct {
 
 type test struct {
 	gorm.Model
-	Steps     int  `gorm:"not null"`
-	ProjectID uint `gorm:"not null"`
+	Steps      int    `gorm:"not null"`
+	BranchName string `gorm:"type:varchar(256); not null;"`
+	CommitSHA1 string `gorm:"type:char(40);not null;unique"`
+	ProjectID  uint   `gorm:"not null"`
 }
 
 type testStatus struct {

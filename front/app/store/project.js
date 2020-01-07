@@ -1,9 +1,9 @@
 export const state = () => ({
-  branch: "master"
-})
+  branchName: "master"
+});
 
 export const mutations = {
-  setBranch(state, branch) {
-    state.branch = branch;
+  setBranchName(state, branchName) {
+    state.branchName = branchName;
   }
-}
+};
