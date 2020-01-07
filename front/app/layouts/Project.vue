@@ -139,7 +139,6 @@ export default {
         {},
         { withCredentials: true },
         response => {
-          console.log(response);
           this.user = response.data;
         }
       );

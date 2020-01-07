@@ -8,11 +8,14 @@
             type="primary"
             class="ml-auto d-none d-lg-inline"
             @click="showCreatingProjectDialog"
-          >新規作成</el-button>
+            >新規作成</el-button
+          >
         </div>
         <el-divider class="m-0 my-3"></el-divider>
         <div>
-          <div class="text-center" v-if="projects.length === 0">プロジェクトがありません</div>
+          <div class="text-center" v-if="projects.length === 0">
+            プロジェクトがありません
+          </div>
           <div v-else>
             <div class="d-none d-lg-block">
               <table class="table table-border">
@@ -25,7 +28,10 @@
                 <tbody>
                   <tr v-for="project in projects" :key="project.ID">
                     <td>
-                      <n-link :to="$routes.projectCode(user.Name, project.Name)">{{ project.Name }}</n-link>
+                      <n-link
+                        :to="$routes.projectCode(user.Name, project.Name)"
+                        >{{ project.Name }}</n-link
+                      >
                     </td>
                     <td>{{ project.CreatedAt }}</td>
                   </tr>
@@ -48,7 +54,11 @@
                       <span class="ml-2">{{ project.CreatedAt }}</span>
                     </div>
                     <div class="text-center mt-3">
-                      <el-button type="primary" @click="transitionToProjectCode(project.Name)">詳細</el-button>
+                      <el-button
+                        type="primary"
+                        @click="transitionToProjectCode(project.Name)"
+                        >詳細</el-button
+                      >
                     </div>
                   </div>
                 </div>
@@ -62,7 +72,12 @@
       <i class="el-icon-plus"></i>
     </div>
     <el-dialog :visible.sync="creatingProjectDialog.isVisible">
-      <ProjectForm @created="hideCreatingProjectDialog();fetchProjects()"></ProjectForm>
+      <ProjectForm
+        @created="
+          hideCreatingProjectDialog();
+          fetchProjects();
+        "
+      ></ProjectForm>
     </el-dialog>
   </div>
 </template>

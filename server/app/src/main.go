@@ -151,6 +151,11 @@ func main() {
 	branchProtectionRulesRouter.HandleFunc("/branch_protection_rules", storeBranchProtectionRules).Methods(http.MethodPost)
 	http.Handle("/branch_protection_rules", branchProtectionRulesRouter)
 
+	branchesRouter := mux.NewRouter()
+	branchesRouter.Use(corsMiddleware)
+	branchesRouter.HandleFunc("/branches", fetchBranchesHandler).Methods(http.MethodGet)
+	http.Handle("/branches", branchesRouter)
+
 	gitRouter := mux.NewRouter()
 	gitRouter.HandleFunc("/{user}/{project}/info/refs", gitInfoRefsHandler).Methods(http.MethodGet)
 	gitRouter.Handle("/{user}/{project}/git-receive-pack", gitBasicAuthMiddleware(http.HandlerFunc(gitReceivePackHandler))).Methods(http.MethodPost)

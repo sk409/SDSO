@@ -11,6 +11,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -492,73 +493,65 @@ func fetchVulnerabilities(w http.ResponseWriter, r *http.Request) {
 	w.Write(jsonBytes)
 }
 
-func initRepositoryHandler(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("initRepositoryHandler")
-	userName := r.PostFormValue("userName")
-	projectName := r.PostFormValue("projectName")
-	if len(userName) == 0 || len(projectName) == 0 {
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-	repositoryPath := filepath.Join(userName, projectName)
-	exist := existDirectory(filepath.Join(gitRepositories.RootDirectoryPath, repositoryPath))
-	// if err != nil {
-	// 	log.Println(err.Error())
-	// 	w.WriteHeader(http.StatusInternalServerError)
-	// 	return
-	// }
-	if exist {
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-	//mkDirIfNotExist(filepath.Join(gitRepositories.RootPath, repositoryPath))
-	err := os.MkdirAll(filepath.Join(gitRepositories.RootDirectoryPath, repositoryPath), 0755)
-	if err != nil {
-		log.Println(err.Error())
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-	err = gitRepositories.InitBare(repositoryPath)
-	if err != nil {
-		log.Println(err.Error())
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-}
-
 func fetchFileTextHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("fetchFileTextHandler")
 	userName := r.URL.Query().Get("userName")
 	projectName := r.URL.Query().Get("projectName")
+	branchName := r.URL.Query().Get("branchName")
 	path := r.URL.Query().Get("path")
-	if len(userName) == 0 || len(projectName) == 0 || len(path) == 0 {
+	if len(userName) == 0 || len(projectName) == 0 || len(branchName) == 0 || len(path) == 0 {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	file, err := os.Open(filepath.Join(gitClones.RootDirectoryPath, userName, projectName, path))
+	output, err := gitRepositories.LsTree(filepath.Join(userName, projectName), branchName, path)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	fileTextBytes, err := ioutil.ReadAll(file)
+	regex := regexp.MustCompile("[0-9]+ [a-z]+ ([0-9a-z]+)")
+	matches := regex.FindSubmatch(output)
+	if len(matches) != 2 {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	sha1 := string(matches[1])
+	textBytes, err := gitRepositories.CatFile(filepath.Join(userName, projectName), sha1, "-p")
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	defer file.Close()
 	w.Header().Set(goconst.HTTP_HEADER_CONTENT_TYPE, goconst.HTTP_HEADER_CONTENT_TYPE_PLAIN_TEXT)
-	w.Write(fileTextBytes)
+	w.Write(textBytes)
+	// file, err := os.Open(filepath.Join(gitClones.RootDirectoryPath, userName, projectName, path))
+	// if err != nil {
+	// 	w.WriteHeader(http.StatusInternalServerError)
+	// 	return
+	// }
+	// fileTextBytes, err := ioutil.ReadAll(file)
+	// if err != nil {
+	// 	w.WriteHeader(http.StatusInternalServerError)
+	// 	return
+	// }
+	// defer file.Close()
+	// w.Header().Set(goconst.HTTP_HEADER_CONTENT_TYPE, goconst.HTTP_HEADER_CONTENT_TYPE_PLAIN_TEXT)
+	// w.Write(fileTextBytes)
 }
 
 func fetchFilesHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("fetchFilesHandler")
+	branchName := r.URL.Query().Get("branchName")
 	userName := r.URL.Query().Get("userName")
 	projectName := r.URL.Query().Get("projectName")
 	path := r.URL.Query().Get("path")
-	output, err := gitClones.LsFiles(filepath.Join(userName, projectName))
+	var output []byte
+	var err error
+	if len(path) == 0 {
+		output, err = gitRepositories.LsTree(filepath.Join(userName, projectName), branchName, "-r", "--name-only")
+	} else {
+		output, err = gitRepositories.LsTree(filepath.Join(userName, projectName), branchName, "-r", "--name-only", path)
+	}
 	if err != nil {
 		log.Println(err.Error())
-		// w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 	outputLines := strings.Split(string(output), "\n")
@@ -579,16 +572,10 @@ func fetchFilesHandler(w http.ResponseWriter, r *http.Request) {
 		if exist {
 			continue
 		}
-		directory, err := isDirectory(filepath.Join(gitClones.RootDirectoryPath, userName, projectName, path, fileName))
-		if err != nil {
-			log.Println(err.Error())
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
 		file := map[string]interface{}{}
 		file["path"] = filepath.Join(path, fileName)
 		file["name"] = fileName
-		file["isDirectory"] = directory
+		file["isDirectory"] = 2 <= len(strings.Split(strings.TrimPrefix(outputLine, path+"/"), "/"))
 		files[fileName] = file
 	}
 	jsonBytes, err := json.Marshal(&files)
@@ -723,6 +710,66 @@ func storeBranchProtectionRules(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set(goconst.HTTP_HEADER_CONTENT_TYPE, goconst.HTTP_HEADER_CONTENT_TYPE_JSON)
 	w.Write(jsonBytes)
+}
+
+func fetchBranchesHandler(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("fetchBranchesHandler")
+	userName := r.URL.Query().Get("userName")
+	projectName := r.URL.Query().Get("projectName")
+	if len(userName) == 0 || len(projectName) == 0 {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	branches, err := gitRepositories.Branches(filepath.Join(userName, projectName))
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	branchNames := []string{}
+	for _, branch := range branches {
+		branchNames = append(branchNames, string(branch))
+	}
+	jsonBytes, err := json.Marshal(branchNames)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set(goconst.HTTP_HEADER_CONTENT_TYPE, goconst.HTTP_HEADER_CONTENT_TYPE_JSON)
+	w.Write(jsonBytes)
+}
+
+func initRepositoryHandler(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("initRepositoryHandler")
+	userName := r.PostFormValue("userName")
+	projectName := r.PostFormValue("projectName")
+	if len(userName) == 0 || len(projectName) == 0 {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	repositoryPath := filepath.Join(userName, projectName)
+	exist := existDirectory(filepath.Join(gitRepositories.RootDirectoryPath, repositoryPath))
+	// if err != nil {
+	// 	log.Println(err.Error())
+	// 	w.WriteHeader(http.StatusInternalServerError)
+	// 	return
+	// }
+	if exist {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	//mkDirIfNotExist(filepath.Join(gitRepositories.RootPath, repositoryPath))
+	err := os.MkdirAll(filepath.Join(gitRepositories.RootDirectoryPath, repositoryPath), 0755)
+	if err != nil {
+		log.Println(err.Error())
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	err = gitRepositories.InitBare(repositoryPath)
+	if err != nil {
+		log.Println(err.Error())
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
 }
 
 func gitInfoRefsHandler(w http.ResponseWriter, r *http.Request) {

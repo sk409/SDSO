@@ -17,14 +17,14 @@ void (function updateModules () {
   // Enforce store modules
   store.modules = store.modules || {}
 
-  resolveStoreModules(require('../store/projects.js'), 'projects.js')
+  resolveStoreModules(require('../store/project.js'), 'project.js')
 
   // If the environment supports hot reloading...
 
   if (process.client && module.hot) {
     // Whenever any Vuex module is updated...
     module.hot.accept([
-      '../store/projects.js',
+      '../store/project.js',
     ], () => {
       // Update `root.modules` with the latest definitions.
       updateModules()
