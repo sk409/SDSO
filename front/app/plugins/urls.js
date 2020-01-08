@@ -4,6 +4,7 @@ Vue.prototype.$urls = {
   authCheck: "auth/check",
   branches: "branches",
   branchProtectionRules: "branch_protection_rules",
+  commits: "commits",
   files: "file",
   filesText: "files/text",
   login: "login",

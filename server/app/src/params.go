@@ -12,7 +12,6 @@ import (
 
 var (
 	cwd                  string
-	gitClones            *gogit.Git
 	gitTmpRepositories   *gogit.Git
 	gitRepositories      *gogit.Git
 	gitTesting           *gogit.Git
@@ -47,9 +46,7 @@ func init() {
 		panic(err)
 	}
 	rootRepositoryPath := filepath.Join(cwd, "..", "repositories")
-	gitClones = gogit.NewGit(filepath.Join(cwd, "..", "clones"), gitBinPath)
 	gitTmpRepositories = gogit.NewGit(filepath.Join(cwd, "..", "tmp_repositories"), gitBinPath)
 	gitRepositories = gogit.NewGit(filepath.Join(cwd, "..", "repositories"), gitBinPath)
-	//gitTesting = gogit.NewGit(filepath.Join(cwd, "..", "testing"))
 	gitServer = gogit.NewHTTPServer(rootRepositoryPath, gitBinPath)
 }

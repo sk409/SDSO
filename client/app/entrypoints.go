@@ -114,7 +114,7 @@ func entrypointRecord() {
 	}
 	crtFilePath := makeFilePath(filepath.Join("ca", "server.crt"))
 	keyFilePath := makeFilePath(filepath.Join("ca", "server.key"))
-	p, err := goproxy.NewHTTPProxy(crtFilePath, keyFilePath, true)
+	p, err := goproxy.NewHTTPProxy(crtFilePath, keyFilePath)
 	if err != nil {
 		panic(err)
 	}
@@ -176,7 +176,6 @@ func entrypointScan() {
 	}
 	user, err := loadUser()
 	if err != nil {
-		log.Println(err.Error())
 		fmt.Println("ログインしてください")
 		return
 	}

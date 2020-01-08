@@ -9,7 +9,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"path"
 	"path/filepath"
 	"regexp"
 	"strconv"
@@ -522,19 +521,6 @@ func fetchFileTextHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set(goconst.HTTP_HEADER_CONTENT_TYPE, goconst.HTTP_HEADER_CONTENT_TYPE_PLAIN_TEXT)
 	w.Write(textBytes)
-	// file, err := os.Open(filepath.Join(gitClones.RootDirectoryPath, userName, projectName, path))
-	// if err != nil {
-	// 	w.WriteHeader(http.StatusInternalServerError)
-	// 	return
-	// }
-	// fileTextBytes, err := ioutil.ReadAll(file)
-	// if err != nil {
-	// 	w.WriteHeader(http.StatusInternalServerError)
-	// 	return
-	// }
-	// defer file.Close()
-	// w.Header().Set(goconst.HTTP_HEADER_CONTENT_TYPE, goconst.HTTP_HEADER_CONTENT_TYPE_PLAIN_TEXT)
-	// w.Write(fileTextBytes)
 }
 
 func fetchFilesHandler(w http.ResponseWriter, r *http.Request) {
@@ -777,6 +763,67 @@ func fetchBranchesHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write(jsonBytes)
 }
 
+func fetchCommitSHA1sHandler(w http.ResponseWriter, r *http.Request) {
+	userName := r.URL.Query().Get("userName")
+	projectName := r.URL.Query().Get("projectName")
+	branchName := r.URL.Query().Get("branchName")
+	if len(userName) == 0 || len(projectName) == 0 || len(branchName) == 0 {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	commitSHA1sByte, err := gitRepositories.RevList(filepath.Join(userName, projectName), branchName)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	commitSHA1s := strings.Split(string(commitSHA1sByte), "\n")
+	jsonBytes, err := json.Marshal(commitSHA1s)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set(goconst.HTTP_HEADER_CONTENT_TYPE, goconst.HTTP_HEADER_CONTENT_TYPE_JSON)
+	w.Write(jsonBytes)
+}
+
+func fetchCommitsHandler(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("fetchCommitsHandler")
+	userName := r.URL.Query().Get("userName")
+	projectName := r.URL.Query().Get("projectName")
+	branchName := r.URL.Query().Get("branchName")
+	if len(userName) == 0 || len(projectName) == 0 || len(branchName) == 0 {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	commitsByte, err := gitRepositories.Log(filepath.Join(userName, projectName), branchName, "--pretty=oneline")
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	regex := regexp.MustCompile("([0-9a-z]+) (.+)")
+	matches := regex.FindAllSubmatch(commitsByte, -1)
+	w.Header().Set(goconst.HTTP_HEADER_CONTENT_TYPE, goconst.HTTP_HEADER_CONTENT_TYPE_JSON)
+	if len(matches) == 0 {
+		w.Write([]byte("[]"))
+		return
+	}
+	commits := []commit{}
+	for _, match := range matches {
+		sha1 := match[1]
+		message := match[2]
+		if len(match) == 4 {
+			message = match[3]
+		}
+		commits = append(commits, commit{SHA1: string(sha1), Message: string(message)})
+	}
+	jsonBytes, err := json.Marshal(commits)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	w.Write(jsonBytes)
+}
+
 func initRepositoryHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("initRepositoryHandler")
 	userName := r.PostFormValue("userName")
@@ -854,20 +901,6 @@ func gitReceivePackHandler(w http.ResponseWriter, r *http.Request) {
 			break
 		}
 	}
-	push := func() {
-		gitServer.ServeHTTP(w, r)
-	}
-	clone := func() {
-		repositoryPath := serverScheme + "://" + path.Join(serverHostAndPort, userName, projectName)
-		clonePath := filepath.Join(gitClones.RootDirectoryPath, filepath.Join(userName, projectName))
-		if existDirectory(clonePath) {
-			os.RemoveAll(clonePath)
-		}
-		gitClones.Clone(
-			repositoryPath,
-			filepath.Join(userName, projectName),
-		)
-	}
 	if protection {
 		body, err := gogit.GetReadCloser(r)
 		if err != nil {
@@ -914,11 +947,11 @@ func gitReceivePackHandler(w http.ResponseWriter, r *http.Request) {
 			//
 		}
 		r.Body = ioutil.NopCloser(bytes.NewBuffer(bodyBytes))
-		push()
-		go clone()
+		gitServer.ServeHTTP(w, r)
+		//go clone()
 	} else {
-		push()
-		go clone()
+		gitServer.ServeHTTP(w, r)
+		//go clone()
 		clonePath := filepath.Join(gitRepositories.RootDirectoryPath, userName, projectName)
 		go runTest(userName, projectName, clonePath, branchName, commitSHA1)
 	}

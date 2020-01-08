@@ -17,6 +17,11 @@ type build struct {
 	Steps  []interface{}
 }
 
+type commit struct {
+	SHA1    string
+	Message string
+}
+
 type config struct {
 	Version int
 	Jobs    jobs

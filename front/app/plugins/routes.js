@@ -10,6 +10,9 @@ Vue.prototype.$routes = {
     }
     return path;
   },
+  projectCodeCommits(userName, projectName) {
+    return `/project/code/${userName}/${projectName}/commits`;
+  },
   projectTest(useraName, projectName) {
     return "/project/testing/" + useraName + "/" + projectName;
   },

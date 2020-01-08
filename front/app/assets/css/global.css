@@ -75,3 +75,12 @@ body {
   border-collapse: collapse;
   border: 1px solid lightgray;
 }
+
+.link {
+  color: rgb(79, 121, 206);
+  cursor: pointer;
+}
+
+.link:hover {
+  text-decoration: underline;
+}

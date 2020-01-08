@@ -28,16 +28,13 @@ func runTest(userName, projectName, clonePath, branchName, commitSHA1 string) (b
 	user := user{}
 	db.Where("name = ?", userName).First(&user)
 	if db.Error != nil {
-		// log.Print(db.Error)
 		return false, db.Error
 	}
 	project := project{}
 	db.Where("name = ? AND user_id = ?", projectName, user.ID).First(&project)
 	if db.Error != nil {
-		//log.Println(db.Error)
 		return false, db.Error
 	}
-	// clonePath := filepath.Join(gitClones.RootDirectoryPath, filepath.Join(userName, projectName))
 	uuid, err := uuid.NewUUID()
 	if err != nil {
 		return false, err

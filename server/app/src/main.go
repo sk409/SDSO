@@ -156,6 +156,16 @@ func main() {
 	branchesRouter.HandleFunc("/branches", fetchBranchesHandler).Methods(http.MethodGet)
 	http.Handle("/branches", branchesRouter)
 
+	commitSHA1sRouter := mux.NewRouter()
+	commitSHA1sRouter.Use(corsMiddleware)
+	commitSHA1sRouter.HandleFunc("/commit_sha1s", fetchCommitSHA1sHandler).Methods(http.MethodGet)
+	http.Handle("/commit_sha1s", commitSHA1sRouter)
+
+	commitsRouter := mux.NewRouter()
+	commitsRouter.Use(corsMiddleware)
+	commitsRouter.HandleFunc("/commits", fetchCommitsHandler).Methods(http.MethodGet)
+	http.Handle("/commits", commitsRouter)
+
 	gitRouter := mux.NewRouter()
 	gitRouter.HandleFunc("/{user}/{project}/info/refs", gitInfoRefsHandler).Methods(http.MethodGet)
 	gitRouter.Handle("/{user}/{project}/git-receive-pack", gitBasicAuthMiddleware(http.HandlerFunc(gitReceivePackHandler))).Methods(http.MethodPost)
