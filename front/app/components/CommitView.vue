@@ -1,11 +1,12 @@
 <template>
   <div class="container-fluid">
     <div v-for="commit in commits" :key="commit.SHA1" class="mb-3 row">
-      <div
-        class="col-12 col-md-6 offset-md-3 d-flex align-items-center border p-2"
-      >
+      <div class="col-12 col-md-6 offset-md-3 d-flex align-items-center border p-2">
         <div>{{ commit.Message }}</div>
-        <div class="ml-auto link">{{ commit.SHA1.substring(0, 5) }}</div>
+        <n-link
+          :to="$routes.projectCodeCommit(pathParamUserName, pathParamProjectName, commit.SHA1)"
+          class="ml-auto"
+        >{{ commit.SHA1.substring(0, 5) }}</n-link>
       </div>
     </div>
   </div>

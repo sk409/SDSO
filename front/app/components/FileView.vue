@@ -1,26 +1,23 @@
 <template>
   <div>
     <div class="mb-3">
-      <div class="d-flex align-items-center">
+      <!-- <div class="d-flex align-items-center">
         <div class="mr-1">ブランチ:</div>
         <el-select v-model="branch" @change="changeBranch">
-          <el-option
-            v-for="branch in branches"
-            :key="branch"
-            :label="branch"
-            :value="branch"
-          ></el-option>
+          <el-option v-for="branch in branches" :key="branch" :label="branch" :value="branch"></el-option>
         </el-select>
-      </div>
+      </div>-->
+      <BranchSelection
+        v-model="branchName"
+        :branch-names="branchNames"
+        @select-branch="changeBranch"
+      ></BranchSelection>
     </div>
     <div v-if="parent && !parent.isDirectory">
       <div id="editor"></div>
     </div>
     <div v-else>
-      <FileTable
-        :files="children"
-        @click-file-name="fileNameClicked"
-      ></FileTable>
+      <FileTable :files="children" @click-file-name="fileNameClicked"></FileTable>
     </div>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.2.0/ace.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.2.0/ext-language_tools.js"></script>
@@ -28,6 +25,7 @@
 </template>
 
 <script>
+import BranchSelection from "@/components/BranchSelection.vue";
 import FileTable from "@/components/FileTable.vue";
 import { mapMutations } from "vuex";
 
@@ -37,12 +35,13 @@ let editor = null;
 export default {
   name: "FileView",
   components: {
+    BranchSelection,
     FileTable
   },
   data() {
     return {
-      branch: "",
-      branches: [],
+      branchName: "",
+      branchNames: [],
       childFile: null,
       children: [],
       parent: null
@@ -70,7 +69,7 @@ export default {
     }
   },
   created() {
-    this.branch = this.$store.state.project.branchName;
+    this.branchName = this.$store.state.project.branchName;
     this.fetchData();
   },
   watch: {
@@ -100,6 +99,7 @@ export default {
       setBranchName: "project/setBranchName"
     }),
     changeBranch(newBranchName) {
+      this.branchName = newBranchName;
       this.setBranchName(newBranchName);
       if (this.pathParamPath === "") {
         this.fetchData();
@@ -169,7 +169,7 @@ export default {
         if (response.status !== 200) {
           return;
         }
-        this.branches = response.data;
+        this.branchNames = response.data;
       });
     },
     fetchFileText(path) {

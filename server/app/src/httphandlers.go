@@ -824,6 +824,31 @@ func fetchCommitsHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write(jsonBytes)
 }
 
+func showCommitHandler(w http.ResponseWriter, r *http.Request) {
+	userName := r.URL.Query().Get("userName")
+	projectName := r.URL.Query().Get("projectName")
+	sha1 := r.URL.Query().Get("sha1")
+	if len(userName) == 0 || len(projectName) == 0 || len(sha1) == 0 {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	commits, err := gitRepositories.Log(filepath.Join(userName, projectName), "--pretty=oneline")
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	lines := strings.Split(string(commits), "\n")
+	commit := commit{SHA1: sha1}
+	for _, line := range lines {
+		if strings.Contains(line, sha1) {
+			message := strings.Split(line, " ")[1]
+			commit.Message = message
+			break
+		}
+	}
+	w.Write([]byte(sha1))
+}
+
 func initRepositoryHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("initRepositoryHandler")
 	userName := r.PostFormValue("userName")

@@ -166,6 +166,13 @@ func main() {
 	commitsRouter.HandleFunc("/commits", fetchCommitsHandler).Methods(http.MethodGet)
 	http.Handle("/commits", commitsRouter)
 
+	commitsShowRouter := mux.NewRouter()
+	commitsShowRouter.Use(corsMiddleware)
+	commitsShowRouter.HandleFunc("/commits/show", showCommitHandler).Methods(http.MethodGet)
+	http.Handle("/commits/show", commitsShowRouter)
+
+	//http.Handle("/commits/", corsMiddleware(commitsHandler{}))
+
 	gitRouter := mux.NewRouter()
 	gitRouter.HandleFunc("/{user}/{project}/info/refs", gitInfoRefsHandler).Methods(http.MethodGet)
 	gitRouter.Handle("/{user}/{project}/git-receive-pack", gitBasicAuthMiddleware(http.HandlerFunc(gitReceivePackHandler))).Methods(http.MethodPost)

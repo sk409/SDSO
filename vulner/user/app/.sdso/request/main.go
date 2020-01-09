@@ -70,7 +70,7 @@ func main() {
 			Proxy:           http.ProxyURL(proxyURL),
 		},
 	}
-	targetOrigin := "http://192.168.10.102:4800"
+	targetOrigin := "http://192.168.10.101:4800"
 	if err != nil {
 		panic(err)
 	}
@@ -162,9 +162,9 @@ func main() {
 			log.Println(err.Error())
 			continue
 		}
-		// log.Println("BEFORE DO")
+		log.Println("BEFORE DO")
 		response, err := client.Do(request)
-		// log.Println("AFTER DO")
+		log.Println("AFTER DO")
 		if err != nil {
 			log.Println(err.Error())
 			continue
