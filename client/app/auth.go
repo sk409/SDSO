@@ -21,10 +21,9 @@ func loadUser() (*user, error) {
 	}
 	response, err := sendRequest(
 		http.MethodGet,
-		route(pathUsersExist),
+		route(pathUsers),
 		map[string]string{
-			"name":     user.Name,
-			"password": user.Password,
+			"name": user.Name,
 		},
 	)
 	if err != nil {
@@ -40,7 +39,7 @@ func loadUser() (*user, error) {
 	if err != nil {
 		return nil, err
 	}
-	if !responseJSON["exist"] {
+	if len(responseJSON) == 0 {
 		return nil, errors.New("The specified user does not exist")
 	}
 	return &user, nil

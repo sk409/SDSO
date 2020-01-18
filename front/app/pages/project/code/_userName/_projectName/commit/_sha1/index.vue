@@ -1,5 +1,13 @@
 <template>
-  <div>{{commit}}</div>
+  <div>
+    <div v-if="commit">
+      <div>{{ commit.SHA1 }}</div>
+      <div>{{ commit.Message }}</div>
+      <pre>
+        {{ commit.Diff }}
+      </pre>
+    </div>
+  </div>
 </template>
 
 <script>
@@ -16,11 +24,18 @@ export default {
   methods: {
     fetchData() {
       const data = {
-        sha1: this.$route.params.sha1
+        userName: this.$route.params.userName,
+        projectName: this.$route.params.projectName
       };
-      this.$ajax.get(this.$urls.commitsShow, data, {}, response => {
-        console.log(response);
-      });
+      console.log(this.$route.params);
+      this.$ajax.get(
+        this.$urls.commitsShow(this.$route.params.sha1),
+        data,
+        {},
+        response => {
+          this.commit = response.data;
+        }
+      );
     }
   }
 };

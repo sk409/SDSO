@@ -15,9 +15,7 @@
     </div>
     <div v-for="(test, index) in tests" :key="test.ID" class="test mt-3">
       <div class="d-flex align-items-center mb-2">
-        <div :style="testResultStyle(test)" class="test-status">
-          {{ testResultText(test) }}
-        </div>
+        <div :style="testResultStyle(test)" class="test-status">{{ testResultText(test) }}</div>
         <div class="ml-auto">{{ test.CreatedAt | formatDate }}</div>
       </div>
       <el-collapse v-model="activeNames[index]">
@@ -27,10 +25,7 @@
           :name="testResult.ID"
         >
           <template slot="title">
-            <span
-              :style="markerStyle(testResult.TestStatusID)"
-              class="marker"
-            ></span>
+            <span :style="markerStyle(testResult.TestStatusID)" class="marker"></span>
             <span class="ml-2">{{ testResult.Command }}</span>
           </template>
           <div class="p-2">
@@ -215,8 +210,9 @@ export default {
             projectName: this.pathParamProjectName,
             projectID: this.project.ID,
             branchName: this.$store.state.project.branchName
+            //project_id: this.project.ID
           };
-          this.$ajax.get(this.$urls.tests, data, {}, response => {
+          this.$ajax.get(this.$urls.testsBranch, data, {}, response => {
             if (response.status !== 200) {
               return;
             }

@@ -4,7 +4,7 @@ export default async function ({
   redirect
 }) {
   const response = await Axios.get(
-    `${process.env.APP_SERVER_ORIGIN}/auth/check`, {
+    `${process.env.APP_SERVER_ORIGIN}/auth`, {
       withCredentials: true
     }
   );

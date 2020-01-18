@@ -3,7 +3,6 @@ package main
 import (
 	"crypto/rand"
 	"crypto/rsa"
-	"crypto/sha512"
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/json"
@@ -23,6 +22,8 @@ import (
 	"strings"
 	"time"
 
+	"golang.org/x/crypto/bcrypt"
+
 	"github.com/google/uuid"
 	"github.com/sk409/goconst"
 	"github.com/sk409/goproxy"
@@ -34,13 +35,12 @@ func entrypointLogin() {
 	name := fs.String("name", "", "user name")
 	password := fs.String("password", "", "password")
 	fs.Parse(os.Args[2:])
-	hashedPassword := fmt.Sprintf("%x", sha512.Sum512([]byte(*password)))
+	//hashedPassword := fmt.Sprintf("%x", sha512.Sum512([]byte(*password)))
 	fetchUsersResponse, err := sendRequest(
 		http.MethodGet,
 		route(pathUsers),
 		map[string]string{
-			"name":     *name,
-			"password": hashedPassword,
+			"name": *name,
 		},
 	)
 	if err != nil {
@@ -61,6 +61,11 @@ func entrypointLogin() {
 		return
 	}
 	user := users[0]
+	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(*password))
+	if err != nil {
+		log.Println("Password does not match")
+		return
+	}
 	userJSONBytes, err := json.Marshal(user)
 	if err != nil {
 		return
@@ -179,22 +184,43 @@ func entrypointScan() {
 		fmt.Println("ログインしてください")
 		return
 	}
-	userIDString := strconv.Itoa(int(user.ID))
-	exist, err := sendRequestExist(
-		http.MethodGet,
-		route(pathProjectsExist),
-		map[string]string{
-			"user_id": userIDString,
-			"name":    *projectName,
-		},
-	)
-	if err != nil {
-		return
-	}
-	if !exist {
-		fmt.Println("プロジェクトが存在していません")
-		return
-	}
+	// userIDString := strconv.Itoa(int(user.ID))
+	// exist, err := sendRequestExist(
+	// 	http.MethodGet,
+	// 	route(pathProjectsExist),
+	// 	map[string]string{
+	// 		"user_id": userIDString,
+	// 		"name":    *projectName,
+	// 	},
+	// )
+	// if err != nil {
+	// 	return
+	// }
+	// if !exist {
+	// 	fmt.Println("プロジェクトが存在していません")
+	// 	return
+	// }
+	// fetchProjectResponse, err := sendRequest(
+	// 	http.MethodGet,
+	// 	route(pathProjects),
+	// 	map[string]string{
+	// 		"user_id": userIDString,
+	// 		"name":    *projectName,
+	// 	},
+	// )
+	// if err != nil {
+	// 	return
+	// }
+	// defer fetchProjectResponse.Body.Close()
+	// projectsByte, err := ioutil.ReadAll(fetchProjectResponse.Body)
+	// if err != nil {
+	// 	return
+	// }
+	// projects := []project{}
+	// err = json.Unmarshal(projectsByte, &projects)
+	// if err != nil {
+	// 	return
+	// }
 	storeScanResponse, err := sendRequest(
 		http.MethodPost,
 		route(pathScans),
@@ -310,22 +336,22 @@ func entrypointUpload() {
 		fmt.Println("ログインしてください")
 		return
 	}
-	userIDString := strconv.Itoa(int(user.ID))
-	exist, err := sendRequestExist(
-		http.MethodGet,
-		route(pathProjectsExist),
-		map[string]string{
-			"user_id": userIDString,
-			"name":    *projectName,
-		},
-	)
-	if err != nil {
-		return
-	}
-	if !exist {
-		fmt.Println("プロジェクトが存在していません")
-		return
-	}
+	// userIDString := strconv.Itoa(int(user.ID))
+	// exist, err := sendRequestExist(
+	// 	http.MethodGet,
+	// 	route(pathProjectsExist),
+	// 	map[string]string{
+	// 		"user_id": userIDString,
+	// 		"name":    *projectName,
+	// 	},
+	// )
+	// if err != nil {
+	// 	return
+	// }
+	// if !exist {
+	// 	fmt.Println("プロジェクトが存在していません")
+	// 	return
+	// }
 	fileInfos, err := ioutil.ReadDir(makeFilePath("vulnerabilities"))
 	if err != nil {
 		return

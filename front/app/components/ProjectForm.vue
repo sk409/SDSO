@@ -5,7 +5,9 @@
         <el-input type="text" v-model="form.name"></el-input>
       </el-form-item>
       <el-form-item class="mt-3 text-center">
-        <el-button type="primary" click="create" @click="create">作成</el-button>
+        <el-button type="primary" click="create" @click="create"
+          >作成</el-button
+        >
       </el-form-item>
     </el-form>
   </div>
@@ -70,7 +72,7 @@ export default {
               userName: user.Name,
               projectName: this.form.name
             };
-            this.$ajax.post(this.$urls.repositoriesInit, data, {}, response => {
+            this.$ajax.post(this.$urls.repositories, data, {}, response => {
               if (response.status === 200) {
                 this.$notify.success({
                   message: "プロジェクトを作成しました",

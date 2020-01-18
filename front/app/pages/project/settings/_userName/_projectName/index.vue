@@ -11,9 +11,15 @@
             <div
               v-for="branchProtectionRule in branchProtectionRules"
               :key="branchProtectionRule.ID"
-            >{{ branchProtectionRule.BranchName }}</div>
+            >
+              {{ branchProtectionRule.BranchName }}
+            </div>
             <div class="text-center mt-3">
-              <el-button type="primary" @click="showAddingBranchProtectionRuleDialog">追加</el-button>
+              <el-button
+                type="primary"
+                @click="showAddingBranchProtectionRuleDialog"
+                >追加</el-button
+              >
             </div>
           </div>
         </el-card>
@@ -29,7 +35,9 @@
           <el-input v-model="branchProtectionRuleForm.branchName"></el-input>
         </el-form-item>
         <div class="text-center">
-          <el-button type="primary" @click="addBranchProtectionRule">追加</el-button>
+          <el-button type="primary" @click="addBranchProtectionRule"
+            >追加</el-button
+          >
         </div>
       </el-form>
     </el-dialog>
@@ -118,8 +126,8 @@ export default {
           return;
         }
         const data = {
-          branchName: this.branchProtectionRuleForm.branchName,
-          projectID: this.project.ID
+          BranchName: this.branchProtectionRuleForm.branchName,
+          ProjectID: this.project.ID
         };
         this.$ajax.post(
           this.$urls.branchProtectionRules,
