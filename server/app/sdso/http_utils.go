@@ -59,9 +59,9 @@ func fetch(r *http.Request, model interface{}) error {
 	return db.Error
 }
 
-func login(w http.ResponseWriter, name, password string) (*user, error) {
+func login(w http.ResponseWriter, username, password string) (*user, error) {
 	u := user{}
-	db.Where("name = ?", name).First(&u)
+	db.Where("name = ?", username).First(&u)
 	if db.Error != nil {
 		return nil, db.Error
 	}
@@ -89,7 +89,16 @@ func respondError(w http.ResponseWriter, statusCode int, err error) {
 }
 
 func respondJSON(w http.ResponseWriter, statusCode int, model interface{}) {
-	jsonBytes, err := json.Marshal(model)
+	data := model
+	if f, ok := model.(facade); ok {
+		data = f.public()
+	}
+	data, err := public(data)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
+	jsonBytes, err := json.Marshal(data)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
 		return

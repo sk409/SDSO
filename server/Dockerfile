@@ -8,6 +8,7 @@ RUN go get github.com/gorilla/websocket
 RUN go get github.com/jinzhu/gorm  
 RUN go get github.com/jinzhu/gorm/dialects/mysql
 RUN go get github.com/joho/godotenv
+RUN go get github.com/sk409/gocase
 RUN go get github.com/sk409/goconst
 RUN go get github.com/sk409/gogit
 RUN go get github.com/sk409/gofile

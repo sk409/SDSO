@@ -11,8 +11,8 @@ RUN yum -y update \
     && npm install -g vue-cli \
     && npm install -g nuxt \
     && npm install -g create-nuxt-app \
-    && mkdir /app
+    && mkdir /sdso
 
 ENV HOST 0.0.0.0
-WORKDIR /app
+WORKDIR /sdso
 CMD ["nginx", "-g", "daemon off;"]

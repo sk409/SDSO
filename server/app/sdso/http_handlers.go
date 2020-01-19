@@ -434,15 +434,16 @@ func (l *loginHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (l *loginHandler) login(w http.ResponseWriter, r *http.Request) {
-	name := r.PostFormValue("name")
+	username := r.PostFormValue("username")
 	password := r.PostFormValue("password")
-	if emptyAny(name, password) {
+	if emptyAny(username, password) {
 		respond(w, http.StatusBadRequest)
 		return
 	}
-	_, err := login(w, name, password)
-	response := map[string]bool{
-		"ok": err == nil,
+	u, err := login(w, username, password)
+	response := map[string]interface{}{
+		"ok":   err == nil,
+		"user": u,
 	}
 	respondJSON(w, http.StatusOK, response)
 }
@@ -526,9 +527,15 @@ func (h *registerHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *registerHandler) register(w http.ResponseWriter, r *http.Request) {
-	name := r.PostFormValue("name")
+	response := func(u *user, ok bool) map[string]interface{} {
+		return map[string]interface{}{
+			"ok":   ok,
+			"user": u,
+		}
+	}
+	username := r.PostFormValue("username")
 	password := r.PostFormValue("password")
-	if emptyAny(name, password) {
+	if emptyAny(username, password) {
 		respond(w, http.StatusNotFound)
 		return
 	}
@@ -538,13 +545,13 @@ func (h *registerHandler) register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	u := user{
-		Name:     name,
+		Name:     username,
 		Password: string(hashedPassword),
 	}
 	count := 0
 	db.Model(&user{}).Where("name = ?", u.Name).Count(&count)
 	if count != 0 {
-		respondMessage(w, http.StatusOK, "USER_NAME_ALREADY_USED")
+		respondJSON(w, http.StatusOK, response(nil, false))
 		return
 	}
 	db.Save(&u)
@@ -552,12 +559,12 @@ func (h *registerHandler) register(w http.ResponseWriter, r *http.Request) {
 		respondError(w, http.StatusInternalServerError, db.Error)
 		return
 	}
-	_, err = login(w, name, password)
+	_, err = login(w, username, password)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
 		return
 	}
-	respondJSON(w, http.StatusOK, u)
+	respondJSON(w, http.StatusOK, response(&u, true))
 }
 
 type repositoriesHandler struct {

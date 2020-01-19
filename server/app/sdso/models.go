@@ -2,14 +2,15 @@ package main
 
 import (
 	"time"
-
-	"github.com/jinzhu/gorm"
 )
 
 type branchProtectionRule struct {
-	gorm.Model
-	BranchName string `gorm:"type:varchar(128);not null"`
-	ProjectID  uint   `gorm:"not null"`
+	ID         uint `gorm:"primary_key"`
+	CreatedAt  time.Time
+	UpdatedAt  time.Time
+	DeletedAt  *time.Time `sql:"index"`
+	BranchName string     `gorm:"type:varchar(128);not null"`
+	ProjectID  uint       `gorm:"not null"`
 }
 
 type build struct {
@@ -37,9 +38,12 @@ type jobs struct {
 }
 
 type project struct {
-	gorm.Model
-	Name   string `gorm:"type:varchar(128);not null"`
-	UserID uint   `gorm:"not null"`
+	ID        uint `gorm:"primary_key"`
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	DeletedAt *time.Time `sql:"index"`
+	Name      string     `gorm:"type:varchar(128);not null"`
+	UserID    uint       `gorm:"not null"`
 }
 
 type request struct {
@@ -47,48 +51,66 @@ type request struct {
 }
 
 type scan struct {
-	gorm.Model
-	UserID    uint `gorm:"not null"`
-	ProjectID uint `gorm:"not null"`
+	ID        uint `gorm:"primary_key"`
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	DeletedAt *time.Time `sql:"index"`
+	UserID    uint       `gorm:"not null"`
+	ProjectID uint       `gorm:"not null"`
 }
 
 type test struct {
-	gorm.Model
-	Steps      int    `gorm:"not null"`
-	BranchName string `gorm:"type:varchar(256); not null;"`
-	CommitSHA1 string `gorm:"type:char(40);not null;unique"`
-	ProjectID  uint   `gorm:"not null"`
+	ID         uint `gorm:"primary_key"`
+	CreatedAt  time.Time
+	UpdatedAt  time.Time
+	DeletedAt  *time.Time `sql:"index"`
+	Steps      int        `gorm:"not null"`
+	BranchName string     `gorm:"type:varchar(256); not null;"`
+	CommitSHA1 string     `gorm:"type:char(40);not null;unique"`
+	ProjectID  uint       `gorm:"not null"`
 }
 
 type testStatus struct {
-	gorm.Model
-	Text string `gorm:"type:varchar(7);unique"`
+	ID        uint `gorm:"primary_key"`
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	DeletedAt *time.Time `sql:"index"`
+	Text      string     `gorm:"type:varchar(7);unique"`
 }
 
 type testResult struct {
-	gorm.Model
-	Command      string `gorm:"type:text;not null"`
-	Output       string `gorm:"type:text;"`
-	TestID       uint   `gorm:"not null"`
-	TestStatusID uint   `gorm:"not null"`
+	ID           uint `gorm:"primary_key"`
+	CreatedAt    time.Time
+	UpdatedAt    time.Time
+	DeletedAt    *time.Time `sql:"index"`
+	Command      string     `gorm:"type:text;not null"`
+	Output       string     `gorm:"type:text;"`
+	TestID       uint       `gorm:"not null"`
+	TestStatusID uint       `gorm:"not null"`
 	CompletedAt  *time.Time
 }
 
 type user struct {
-	gorm.Model
-	Name             string  `gorm:"type:varchar(32);not null;unique"`
-	Password         string  `gorm:"type:varchar(512);not null;"`
-	ProfileImagePath *string `gorm:"type:varchar(256);unique"`
+	ID               uint `gorm:"primary_key"`
+	CreatedAt        time.Time
+	UpdatedAt        time.Time
+	DeletedAt        *time.Time `sql:"index"`
+	Name             string     `gorm:"type:varchar(32);not null;unique"`
+	Password         string     `gorm:"type:char(60);not null;"`
+	ProfileImagePath *string    `gorm:"type:varchar(256);unique"`
 }
 
 type vulnerability struct {
-	gorm.Model
-	Name        string `gorm:"type:varchar(32);not null"`
-	Description string `gorm:"type:varchar(128);not null"`
-	Path        string `gorm:"type:varchar(256);not null"`
-	Method      string `gorm:"type:varchar(8);not null"`
-	Request     string `gorm:"type:text;not null"`
-	Response    string `gorm:"type:text;not null"`
-	ProjectID   uint   `gorm:"not null"`
-	ScanID      uint   `gorm:"not null"`
+	ID          uint `gorm:"primary_key"`
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
+	DeletedAt   *time.Time `sql:"index"`
+	Name        string     `gorm:"type:varchar(32);not null"`
+	Description string     `gorm:"type:varchar(128);not null"`
+	Path        string     `gorm:"type:varchar(256);not null"`
+	Method      string     `gorm:"type:varchar(8);not null"`
+	Request     string     `gorm:"type:text;not null"`
+	Response    string     `gorm:"type:text;not null"`
+	ProjectID   uint       `gorm:"not null"`
+	ScanID      uint       `gorm:"not null"`
 }

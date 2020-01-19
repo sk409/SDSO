@@ -1,21 +1,21 @@
 version: "3.3"
 services:
   client:
-    build: ./client
+    build: client
     tty: true
     volumes:
       - ./client/app:/go/src/github.com/sk409/sdso
   database:
     build: ./database
   front:
-    build: ./front
+    build: front
     tty: true
     ports:
       - 3000:3000
     volumes:
-      - ./front/app:/app
+      - ./front/sdso:/sdso
   server:
-    build: ./server
+    build: server
     tty: true
     ports:
       - 8080:8080
@@ -27,17 +27,17 @@ services:
     cap_add:
       - NET_ADMIN
   vulner_mysql:
-    build: ./vulner/mysql
+    build: vulner/mysql
   vulner_nginx:
     build: ./vulner/nginx
     ports:
       - 4800:80
   vulner_php:
-    build: ./vulner/php
+    build: vulner/php
     volumes:
       - ./vulner/user/app:/var/www/html
   vulner_user:
-    build: ./vulner/user
+    build: vulner/user
     tty: true
     ports:
       - 4080:4080
