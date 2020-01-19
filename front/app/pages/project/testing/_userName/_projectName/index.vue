@@ -15,7 +15,9 @@
     </div>
     <div v-for="(test, index) in tests" :key="test.ID" class="test mt-3">
       <div class="d-flex align-items-center mb-2">
-        <div :style="testResultStyle(test)" class="test-status">{{ testResultText(test) }}</div>
+        <div :style="testResultStyle(test)" class="test-status">
+          {{ testResultText(test) }}
+        </div>
         <div class="ml-auto">{{ test.CreatedAt | formatDate }}</div>
       </div>
       <el-collapse v-model="activeNames[index]">
@@ -25,7 +27,10 @@
           :name="testResult.ID"
         >
           <template slot="title">
-            <span :style="markerStyle(testResult.TestStatusID)" class="marker"></span>
+            <span
+              :style="markerStyle(testResult.TestStatusID)"
+              class="marker"
+            ></span>
             <span class="ml-2">{{ testResult.Command }}</span>
           </template>
           <div class="p-2">
@@ -145,7 +150,7 @@ export default {
           process.env.APP_SERVER_HOST +
           ":" +
           process.env.APP_SERVER_PORT +
-          "/test_socket"
+          "/tests/socket"
       );
       const that = this;
       socketTest.onmessage = function(e) {
@@ -161,7 +166,7 @@ export default {
           process.env.APP_SERVER_HOST +
           ":" +
           process.env.APP_SERVER_PORT +
-          "/test_result_socket"
+          "/test_results/socket"
       );
       socketTestResult.onmessage = function(e) {
         const testResult = JSON.parse(e.data);

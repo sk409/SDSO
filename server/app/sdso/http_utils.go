@@ -15,6 +15,28 @@ import (
 	"github.com/sk409/goconst"
 )
 
+func authenticatedUser(r *http.Request) (*user, error) {
+	sessionCookie, err := r.Cookie(cookieNameSessionID)
+	if err != nil {
+		return nil, err
+	}
+	sessionID := sessionCookie.Value
+	session, err := sessionManager.Provider.Get(sessionID)
+	if err != nil {
+		return nil, err
+	}
+	userID, err := session.Uint(sessionStoreNameUserID)
+	if err != nil {
+		return nil, err
+	}
+	u := user{}
+	db.Where("id = ?", userID).First(&u)
+	if db.Error != nil {
+		return nil, err
+	}
+	return &u, nil
+}
+
 func first(query map[string]interface{}, model interface{}) (int, error) {
 	db.Where(query).First(model)
 	if db.Error != nil {

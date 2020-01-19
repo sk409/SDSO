@@ -18,8 +18,6 @@ import (
 	"github.com/sk409/gofile"
 	"github.com/sk409/gogit"
 
-	"github.com/gorilla/websocket"
-
 	"github.com/sk409/goconst"
 )
 
@@ -661,8 +659,6 @@ type testsHandler struct {
 
 func (t *testsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	base := "/tests"
-	log.Print(r.URL.Path)
-	log.Println(path.Join(base, "branch"))
 	switch r.Method {
 	case http.MethodGet:
 		switch r.URL.Path {
@@ -671,6 +667,9 @@ func (t *testsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			return
 		case path.Join(base, "branch"):
 			t.branch(w, r)
+			return
+		case path.Join(base, "socket"):
+			t.socket(w, r)
 			return
 		}
 	}
@@ -723,14 +722,35 @@ func (t *testsHandler) branch(w http.ResponseWriter, r *http.Request) {
 	respondJSON(w, http.StatusOK, response)
 }
 
+func (t *testsHandler) socket(w http.ResponseWriter, r *http.Request) {
+	u, err := authenticatedUser(r)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
+	socket, err := websocketUpgrader.Upgrade(w, r, nil)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
+	websocketsTest[u.ID] = socket
+}
+
 type testResultsHandler struct {
 }
 
 func (t *testResultsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	base := "/test_results/"
 	switch r.Method {
 	case http.MethodGet:
-		t.fetch(w, r)
-		return
+		switch r.URL.Path {
+		case base:
+			t.fetch(w, r)
+			return
+		case path.Join(base, "socket"):
+			t.socket(w, r)
+			return
+		}
 	}
 	respond(w, http.StatusNotFound)
 }
@@ -743,6 +763,20 @@ func (t *testResultsHandler) fetch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	respondJSON(w, http.StatusOK, testResults)
+}
+
+func (t *testResultsHandler) socket(w http.ResponseWriter, r *http.Request) {
+	u, err := authenticatedUser(r)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
+	socket, err := websocketUpgrader.Upgrade(w, r, nil)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
+	websocketsTestResult[u.ID] = socket
 }
 
 type testStatusesHandler struct {
@@ -895,62 +929,4 @@ func (v *vulnerabilitiesHandler) store(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	respondJSON(w, http.StatusOK, vulnerability)
-}
-
-func socketHandler(w http.ResponseWriter, r *http.Request, websockets *map[uint]*websocket.Conn) {
-	sessionCookie, err := r.Cookie(cookieNameSessionID)
-	if err != nil {
-		log.Println(err.Error())
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-	sessionID := sessionCookie.Value
-	session, err := sessionManager.Provider.Get(sessionID)
-	if err != nil {
-		log.Println(err.Error())
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-	userID, err := session.Uint(sessionStoreNameUserID)
-	if err != nil {
-		log.Println(err.Error())
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-	socket, err := websocketUpgrader.Upgrade(w, r, nil)
-	if err != nil {
-		log.Println(err.Error())
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-	(*websockets)[userID] = socket
-}
-
-func testSocketHandler(w http.ResponseWriter, r *http.Request) {
-	socketHandler(w, r, &websocketsTest)
-}
-
-func testResultSocketHandler(w http.ResponseWriter, r *http.Request) {
-	socketHandler(w, r, &websocketsTestResult)
-	// c := make(chan []byte)
-	// read := func() {
-	// 	for {
-	// 		if _, msg, err := socket.ReadMessage(); err == nil {
-	// 			c <- msg
-	// 		} else {
-	// 			break
-	// 		}
-	// 	}
-	// 	socket.Close()
-	// }
-	// write := func() {
-	// 	for msg := range c {
-	// 		if err := socket.WriteMessage(websocket.TextMessage, msg); err != nil {
-	// 			break
-	// 		}
-	// 	}
-	// 	socket.Close()
-	// }
-	// go write()
-	// read()
 }
