@@ -5,21 +5,27 @@
         <v-select
           v-model="branchname"
           :items="branchnames"
-          label="ブランチを選択してください"
+          no-data-text="ブランチがありません"
+          :label="branchnames.length + '個のブランチ'"
+          @input="$router.push($routes.dashboard.git.files(branchname))"
         ></v-select>
       </v-col>
       <v-col cols="3">
         <v-select
           v-model="commitSHA1"
           :items="commitSHA1s"
-          label="コミットを選択してください"
+          no-data-text="コミットがありません"
+          @input="
+            $router.push($routes.dashboard.git.files(branchname, commitSHA1))
+          "
+          :label="commitSHA1s.length + '個のブランチ'"
         ></v-select>
       </v-col>
     </v-row>
-    <v-divider></v-divider>
-    <v-card>
+    <v-card max-height="510" class="overflow-scroll">
       <v-card-text>
-        <v-simple-table>
+        <pre v-if="fileMode" class="body-1">{{ fileText }}</pre>
+        <v-simple-table v-else>
           <template v-slot:default>
             <tbody>
               <tr
@@ -56,6 +62,8 @@ export default {
       commits: [],
       commitSHA1: "",
       fileItems: [],
+      fileMode: null,
+      fileText: "",
       user: null
     };
   },
@@ -70,8 +78,18 @@ export default {
       if (mutation.type !== mutations.projects.setProject) {
         return;
       }
-      this.fetchData();
+      const route = this.$routes.dashboard.git.files(
+        this.branchname,
+        this.commitSHA1
+      );
+      if (route === this.$route.path) {
+        this.fetchData();
+      } else {
+        this.$router.push(route);
+      }
     });
+  },
+  mounted() {
     this.$fetchUser().then(response => {
       this.user = response.data;
       this.fetchData();
@@ -79,15 +97,14 @@ export default {
   },
   methods: {
     clickFileItem(fileItem) {
-      if (fileItem.isDirectory) {
-        this.$router.push(
-          this.$routes.dashboard.git.files(
-            this.branchname,
-            this.commitSHA1,
-            fileItem.path
-          )
-        );
-      }
+      this.$router.push(
+        this.$routes.dashboard.git.files(
+          this.branchname,
+          this.commitSHA1,
+          fileItem.path,
+          !fileItem.isDirectory
+        )
+      );
     },
     fetchData() {
       const f = this.fetchBranches();
@@ -96,33 +113,35 @@ export default {
       }
       f.then(response => {
         this.branchnames = response.data;
-        const branchname = this.$route.params.branchname;
-        const commitSHA1 =
-          this.$route.params.commitSHA1 || this.$route.params.pathMatch;
-        if (
-          !branchname ||
-          !commitSHA1 ||
-          !this.branchnames.includes(branchname)
-        ) {
+        this.branchname = this.$route.params.branchname;
+        if (!this.branchname || !this.branchnames.includes(this.branchname)) {
           return;
         }
-        this.fetchCommits(branchname)
-          .then(response => {
-            const commits = response.data;
-            if (!commits.some(commit => commit.sha1 === commitSHA1)) {
-              return;
-            }
-            this.branchname = branchname;
-            this.commits = commits;
-            this.commitSHA1 = commitSHA1;
-            const path = this.$route.params.commitSHA1
-              ? this.$route.params.pathMatch
-              : "";
-            return this.fetchFiles(this.commitSHA1, path);
-          })
-          .then(response => {
-            this.fileItems = response.data;
-          });
+        this.fetchCommits(this.branchname).then(response => {
+          const commits = response.data;
+          this.commits = commits;
+          this.commitSHA1 =
+            this.$route.params.commitSHA1 || this.$route.params.pathMatch;
+          if (
+            !this.commitSHA1 ||
+            !commits.some(commit => commit.sha1 === this.commitSHA1)
+          ) {
+            return;
+          }
+          const path = this.$route.params.commitSHA1
+            ? this.$route.params.pathMatch
+            : "";
+          this.fileMode = this.$route.query.file === "true";
+          if (this.fileMode) {
+            this.fetchFileText(this.commitSHA1, path).then(response => {
+              this.fileText = response.data;
+            });
+          } else {
+            this.fetchFiles(this.commitSHA1, path).then(response => {
+              this.fileItems = response.data;
+            });
+          }
+        });
       });
     },
     fetchBranches() {
@@ -166,6 +185,20 @@ export default {
         path: path
       };
       return ajax.get(url.base, data);
+    },
+    fetchFileText(revision, path) {
+      const project = this.$store.state.projects.project;
+      if (!project) {
+        return;
+      }
+      const url = new Url(pathFiles);
+      const data = {
+        username: this.user.name,
+        projectname: project.name,
+        revision,
+        path
+      };
+      return ajax.get(url.text, data);
     }
   }
 };

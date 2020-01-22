@@ -10,5 +10,9 @@ export const pathUser = "user";
 export class Url {
   constructor(path) {
     this.base = process.env.serverOrigin + "/" + path;
+    switch (path) {
+      case pathFiles:
+        this.text = this.base + "text";
+    }
   }
 }

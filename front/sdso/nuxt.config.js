@@ -25,7 +25,14 @@ export default {
       rel: 'icon',
       type: 'image/x-icon',
       href: '/favicon.ico'
-    }]
+    }],
+    script: [{
+        src: "https://cdnjs.cloudflare.com/ajax/libs/ace/1.2.0/ace.js"
+      },
+      {
+        src: "https://cdnjs.cloudflare.com/ajax/libs/ace/1.2.0/ext-language_tools.js"
+      }
+    ]
   },
   /*
    ** Customize the progress-bar color

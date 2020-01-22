@@ -259,27 +259,29 @@ func (f *filesHandler) fetch(w http.ResponseWriter, r *http.Request) {
 }
 
 func (f *filesHandler) text(w http.ResponseWriter, r *http.Request) {
-	userName := r.URL.Query().Get("userName")
-	projectName := r.URL.Query().Get("projectName")
-	branchName := r.URL.Query().Get("branchName")
+	username := r.URL.Query().Get("username")
+	projectname := r.URL.Query().Get("projectname")
+	revision := r.URL.Query().Get("revision")
 	path := r.URL.Query().Get("path")
-	if emptyAny(userName, projectName, branchName, path) {
+	if emptyAny(username, projectname, revision, path) {
 		respond(w, http.StatusBadRequest)
 		return
 	}
-	output, err := gitRepositories.LsTree(filepath.Join(userName, projectName), branchName, path)
+	output, err := gitRepositories.LsTree(filepath.Join(username, projectname), revision, path)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
 		return
 	}
 	regex := regexp.MustCompile("[0-9]+ [a-z]+ ([0-9a-z]+)")
 	matches := regex.FindSubmatch(output)
+	log.Println(string(output))
+	log.Println(matches)
 	if len(matches) != 2 {
 		respond(w, http.StatusBadRequest)
 		return
 	}
 	sha1 := string(matches[1])
-	text, err := gitRepositories.CatFile(filepath.Join(userName, projectName), sha1, "-p")
+	text, err := gitRepositories.CatFile(filepath.Join(username, projectname), sha1, "-p")
 	if err != nil {
 		respond(w, http.StatusInternalServerError)
 		return
