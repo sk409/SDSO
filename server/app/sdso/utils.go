@@ -85,9 +85,6 @@ func getBranchNameAndCommitSHA1(r *http.Request) (string, string, error) {
 }
 
 func public(data interface{}) (interface{}, error) {
-	if !gotype.IsMap(data) && !gotype.IsSlice(data) && !gotype.IsStruct(data) {
-
-	}
 	rt := reflect.TypeOf(data)
 	rv := reflect.ValueOf(data)
 	if gotype.IsMap(data) {
@@ -124,19 +121,5 @@ func public(data interface{}) (interface{}, error) {
 		}
 		return p, nil
 	}
-	return nil, errInvalidType
-	// s := make(map[string]interface{})
-	// if !gotype.IsMap(data) {
-	// 	var err error
-	// 	s, err = convert(data)
-	// 	if err != nil {
-	// 		return nil, err
-	// 	}
-	// }
-	// m := make(map[string]interface{})
-	// for key, value := range s {
-	// 	l := string(gocase.LowerCamelCase([]byte(key), true))
-	// 	m[l] = value
-	// }
-	// return m, nil
+	return data, nil
 }

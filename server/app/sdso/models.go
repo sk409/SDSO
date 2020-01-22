@@ -19,9 +19,11 @@ type build struct {
 }
 
 type commit struct {
-	SHA1    string
-	Message string
-	Diff    string
+	Branchname string
+	Date       string
+	Diff       string
+	Message    string
+	SHA1       string
 }
 
 type config struct {

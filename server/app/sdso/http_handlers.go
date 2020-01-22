@@ -2,8 +2,6 @@ package main
 
 import (
 	"bytes"
-	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -17,8 +15,6 @@ import (
 
 	"github.com/sk409/gofile"
 	"github.com/sk409/gogit"
-
-	"github.com/sk409/goconst"
 )
 
 type authHandler struct {
@@ -63,29 +59,22 @@ func (b *branchesHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (b *branchesHandler) fetch(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("fetchBranchesHandler")
-	userName := r.URL.Query().Get("userName")
-	projectName := r.URL.Query().Get("projectName")
-	if len(userName) == 0 || len(projectName) == 0 {
-		w.WriteHeader(http.StatusBadRequest)
+	username := r.URL.Query().Get("username")
+	projectname := r.URL.Query().Get("projectname")
+	if emptyAny(username, projectname) {
+		respond(w, http.StatusBadRequest)
 		return
 	}
-	branches, err := gitRepositories.Branches(filepath.Join(userName, projectName))
+	branches, err := gitRepositories.Branches(filepath.Join(username, projectname))
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
+		respondError(w, http.StatusInternalServerError, err)
 		return
 	}
-	branchNames := []string{}
+	branchnames := []string{}
 	for _, branch := range branches {
-		branchNames = append(branchNames, string(branch))
+		branchnames = append(branchnames, string(branch))
 	}
-	jsonBytes, err := json.Marshal(branchNames)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-	w.Header().Set(goconst.HTTP_HEADER_CONTENT_TYPE, goconst.HTTP_HEADER_CONTENT_TYPE_JSON)
-	w.Write(jsonBytes)
+	respondJSON(w, http.StatusOK, branchnames)
 }
 
 type branchProtectionRulesHandler struct {
@@ -143,32 +132,34 @@ func (c *commitsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *commitsHandler) fetch(w http.ResponseWriter, r *http.Request) {
-	userName := r.URL.Query().Get("userName")
-	projectName := r.URL.Query().Get("projectName")
-	branchName := r.URL.Query().Get("branchName")
-	if emptyAny(userName, projectName, branchName) {
+	username := r.URL.Query().Get("username")
+	projectname := r.URL.Query().Get("projectname")
+	branchname := r.URL.Query().Get("branchname")
+	if emptyAny(username, projectname, branchname) {
 		respond(w, http.StatusBadRequest)
 		return
 	}
-	commitsByte, err := gitRepositories.Log(filepath.Join(userName, projectName), branchName, "--pretty=oneline")
+	commitsByte, err := gitRepositories.Log(filepath.Join(username, projectname), branchname, "--pretty=format:%h %cd %s")
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
 		return
 	}
-	regex := regexp.MustCompile("([0-9a-z]+) (.+)")
-	matches := regex.FindAllSubmatch(commitsByte, -1)
-	if len(matches) == 0 {
-		respondJSON(w, http.StatusOK, []string{})
-		return
-	}
+	lines := strings.Split(string(commitsByte), "\n")
 	commits := []commit{}
-	for _, match := range matches {
-		sha1 := match[1]
-		message := match[2]
-		if len(match) == 4 {
-			message = match[3]
+	for _, line := range lines {
+		components := strings.Split(line, " ")
+		if len(components) < 8 {
+			continue
 		}
-		commits = append(commits, commit{SHA1: string(sha1), Message: string(message)})
+		sha1 := components[0]
+		date := strings.Join(components[1:7], " ")
+		message := strings.Join(components[7:], " ")
+		commits = append(commits, commit{
+			Branchname: branchname,
+			SHA1:       sha1,
+			Date:       date,
+			Message:    message,
+		})
 	}
 	respondJSON(w, http.StatusOK, commits)
 }
@@ -224,44 +215,45 @@ func (f *filesHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (f *filesHandler) fetch(w http.ResponseWriter, r *http.Request) {
-	userName := r.URL.Query().Get("userName")
-	projectName := r.URL.Query().Get("projectName")
-	branchName := r.URL.Query().Get("branchName")
+	username := r.URL.Query().Get("username")
+	projectname := r.URL.Query().Get("projectname")
+	treeIsh := r.URL.Query().Get("treeIsh")
 	path := r.URL.Query().Get("path")
-	if emptyAny(userName, projectName, branchName) {
+	if emptyAny(username, projectname, treeIsh) {
 		respond(w, http.StatusBadRequest)
 		return
 	}
-	args := []string{"-r", "--name-only"}
-	if len(path) != 0 {
+	args := []string{}
+	if !emptyAny(path) {
+		if !strings.HasSuffix(path, "/") {
+			path += "/"
+		}
 		args = append(args, path)
 	}
-	output, err := gitRepositories.LsTree(filepath.Join(userName, projectName), branchName, args...)
+	output, err := gitRepositories.LsTree(filepath.Join(username, projectname), treeIsh, args...)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
 		return
 	}
-	outputLines := strings.Split(string(output), "\n")
-	files := make(map[string]map[string]interface{})
-	for _, outputLine := range outputLines {
-		var fileName string
-		if len(path) == 0 {
-			fileName = strings.Split(outputLine, "/")[0]
-		} else if strings.HasPrefix(outputLine, path) {
-			fileName = strings.Split(strings.TrimPrefix(outputLine, path), "/")[1]
-		}
-		if len(fileName) == 0 {
+	regex := regexp.MustCompile("[0-9]+ ([a-z]+) [a-z0-9]+\\t(.+)")
+	files := []map[string]interface{}{}
+	lines := strings.Split(string(output), "\n")
+	for _, line := range lines {
+		matches := regex.FindAllStringSubmatch(line, -1)
+		if len(matches) == 0 {
 			continue
 		}
-		_, exist := files[fileName]
-		if exist {
+		match := matches[0]
+		if len(match) != 3 {
 			continue
 		}
+		kind := match[1]
+		filename := strings.TrimPrefix(match[2], path)
 		file := map[string]interface{}{}
-		file["path"] = filepath.Join(path, fileName)
-		file["name"] = fileName
-		file["isDirectory"] = 2 <= len(strings.Split(strings.TrimPrefix(outputLine, path+"/"), "/"))
-		files[fileName] = file
+		file["path"] = filepath.Join(path, filename)
+		file["name"] = filename
+		file["isDirectory"] = kind == "tree"
+		files = append(files, file)
 	}
 	respondJSON(w, http.StatusOK, files)
 }

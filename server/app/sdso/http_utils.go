@@ -53,7 +53,8 @@ func first(query map[string]interface{}, model interface{}) (int, error) {
 func fetch(r *http.Request, model interface{}) error {
 	query := make(map[string]interface{})
 	for key, value := range r.URL.Query() {
-		query[key] = value[0]
+		s := string(gocase.SnakeCase([]byte(key)))
+		query[s] = value[0]
 	}
 	db.Where(query).Find(model)
 	return db.Error

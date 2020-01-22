@@ -1,4 +1,7 @@
 export const pathAuth = "auth";
+export const pathBranches = "branches";
+export const pathCommits = "commits/";
+export const pathFiles = "files/";
 export const pathLogin = "login";
 export const pathProjects = "projects";
 export const pathRegister = "register";

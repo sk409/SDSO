@@ -1,8 +1,8 @@
 import ajax from "@/assets/js/ajax.js";
 import Vue from "vue";
 import {
-  Url,
-  pathUser
+  pathUser,
+  Url
 } from "@/assets/js/urls.js";
 
 Vue.prototype.$fetchUser = function () {

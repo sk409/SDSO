@@ -12,9 +12,7 @@
             <v-icon>{{ navItem.icon }}</v-icon>
           </v-list-item-action>
           <v-list-item-content>
-            <v-list-item-title>
-              {{ navItem.title }}
-            </v-list-item-title>
+            <v-list-item-title>{{ navItem.title }}</v-list-item-title>
           </v-list-item-content>
         </v-list-item>
       </v-list>
@@ -27,7 +25,9 @@
             <v-select
               hide-details
               :items="projectnames"
+              no-data-text="プロジェクトがありません"
               label="プロジェクトを選択してください"
+              @input="selectProjectname"
             ></v-select>
           </v-col>
           <v-col cols="1" offset="7">
@@ -48,9 +48,7 @@
                     <v-icon>{{ menuItem.icon }}</v-icon>
                   </v-list-item-action>
                   <v-list-item-content>
-                    <v-list-item-title>
-                      {{ menuItem.title }}
-                    </v-list-item-title>
+                    <v-list-item-title>{{ menuItem.title }}</v-list-item-title>
                   </v-list-item-content>
                 </v-list-item>
               </v-list>
@@ -64,6 +62,12 @@
 
 <script>
 export default {
+  props: {
+    projects: {
+      type: Array,
+      default: () => []
+    }
+  },
   data() {
     return {
       drawer: false,
@@ -95,13 +99,17 @@ export default {
           icon: "mdi-account-badge-horizontal",
           route: ""
         }
-      ],
-      projects: [{ name: "test" }, { name: "test2" }]
+      ]
     };
   },
   computed: {
     projectnames() {
       return this.projects.map(project => project.name);
+    }
+  },
+  methods: {
+    selectProjectname(projectname) {
+      this.$emit("select-projectname", projectname);
     }
   }
 };

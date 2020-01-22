@@ -1,7 +1,7 @@
 import ajax from "@/assets/js/ajax.js";
 import {
-  Url,
-  pathAuth
+  pathAuth,
+  Url
 } from "@/assets/js/urls.js";
 
 export default function ({

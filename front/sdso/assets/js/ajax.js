@@ -16,7 +16,7 @@ class Ajax {
   get(url, data, config) {
     url += "?"
     for (const key in data) {
-      url += `${key}=${value}&`
+      url += `${key}=${data[key]}&`
     }
     return axios.get(url, config)
   }

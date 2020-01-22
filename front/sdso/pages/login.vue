@@ -25,7 +25,7 @@
 <script>
 import AuthForm from "@/components/AuthForm.vue";
 import ajax from "@/assets/js/ajax.js";
-import { Url, pathLogin } from "@/assets/js/urls.js";
+import { pathLogin, Url } from "@/assets/js/urls.js";
 export default {
   components: {
     AuthForm
