@@ -18,11 +18,11 @@
           @input="
             $router.push($routes.dashboard.git.files(branchname, commitSHA1))
           "
-          :label="commitSHA1s.length + '個のブランチ'"
+          :label="commitSHA1s.length + '個のコミット'"
         ></v-select>
       </v-col>
     </v-row>
-    <v-card max-height="510" class="overflow-scroll">
+    <v-card>
       <v-card-text>
         <pre v-if="fileMode" class="body-1">{{ fileText }}</pre>
         <v-simple-table v-else>
@@ -138,7 +138,13 @@ export default {
             });
           } else {
             this.fetchFiles(this.commitSHA1, path).then(response => {
-              this.fileItems = response.data;
+              const folders = response.data.filter(
+                fileItem => fileItem.isDirectory
+              );
+              const files = response.data.filter(
+                fileItem => !fileItem.isDirectory
+              );
+              this.fileItems = folders.concat(files);
             });
           }
         });

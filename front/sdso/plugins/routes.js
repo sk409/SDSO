@@ -6,7 +6,7 @@ Vue.prototype.$routes = {
     git: {
       commits: "/dashboard/git/commits",
       files(branchname, commitSHA1, path, file) {
-        const r = (route) => {
+        const r = route => {
           if (!file) {
             return route;
           }
@@ -29,15 +29,18 @@ Vue.prototype.$routes = {
         }
         return r(route + path);
       }
+    },
+    tests: {
+      results: "/dashboard/tests/results"
     }
   },
   login: {
-    base: "/login",
+    base: "/login"
   },
   projects: {
     create: "/projects/create"
   },
   register: {
-    base: "/register",
+    base: "/register"
   }
-}
+};

@@ -4,8 +4,34 @@
       :projects="projects"
       @select-projectname="selectProjectname"
     ></NavbarAuth>
-    <v-content class="white black--text">
-      <v-container fluid class="h-100">
+    <v-content class="white black--text h-100">
+      <div class="d-flex h-100">
+        <div class="h-100 sidemenu">
+          <v-list class="pa-2">
+            <v-list-item
+              v-for="sidemenuItem in sidemenuItems"
+              :key="sidemenuItem.title"
+              :to="sidemenuItem.route"
+              router
+            >
+              <v-list-item-action>
+                <v-icon>{{ sidemenuItem.icon }}</v-icon>
+              </v-list-item-action>
+              <v-list-item-content>
+                <v-list-item-title>{{ sidemenuItem.title }}</v-list-item-title>
+              </v-list-item-content>
+            </v-list-item>
+          </v-list>
+        </div>
+        <div ref="container" class="w-100 h-100">
+          <nuxt
+            ref="contents"
+            :style="contentsStyle"
+            class="overflow-y-auto h-100"
+          />
+        </div>
+      </div>
+      <!-- <v-container fluid class="h-100">
         <v-row class="h-100">
           <v-col md="3" class="d-none d-md-block sidemenu pr-2">
             <v-list>
@@ -30,7 +56,7 @@
             <nuxt />
           </v-col>
         </v-row>
-      </v-container>
+      </v-container> -->
     </v-content>
   </v-app>
 </template>
@@ -48,6 +74,7 @@ export default {
   },
   data() {
     return {
+      contentsStyle: {},
       projects: [],
       allSidemenuItems: {
         git: [
@@ -60,6 +87,13 @@ export default {
             title: "ファイル",
             icon: "mdi-file-outline",
             route: this.$routes.dashboard.git.files()
+          }
+        ],
+        tests: [
+          {
+            title: "テスト結果",
+            icon: "mdi-test-tube",
+            route: this.$routes.dashboard.tests.results
           }
         ]
       },
@@ -87,13 +121,15 @@ export default {
         this.projects = response.data;
       });
   },
+  mounted() {
+    this.contentsStyle = {
+      "max-height": this.$refs.container.scrollHeight + 64 + "px"
+    };
+  },
   methods: {
     ...mapMutations({
       setProject: mutations.projects.setProject
     }),
-    setSidemenuType(sidemenuType) {
-      this.sidemenuType = sidemenuType;
-    },
     selectProjectname(projectname) {
       const url = new Url(pathProjects);
       const data = {
@@ -104,6 +140,9 @@ export default {
         const project = response.data[0];
         this.setProject(project);
       });
+    },
+    setSidemenuType(sidemenuType) {
+      this.sidemenuType = sidemenuType;
     }
   }
 };

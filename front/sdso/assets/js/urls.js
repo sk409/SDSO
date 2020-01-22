@@ -5,6 +5,7 @@ export const pathFiles = "files/";
 export const pathLogin = "login";
 export const pathProjects = "projects";
 export const pathRegister = "register";
+export const pathTests = "tests/";
 export const pathUser = "user";
 
 export class Url {
@@ -13,6 +14,8 @@ export class Url {
     switch (path) {
       case pathFiles:
         this.text = this.base + "text";
+      case pathTests:
+        this.socket = this.base + "socket";
     }
   }
 }

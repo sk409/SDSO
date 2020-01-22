@@ -87,7 +87,7 @@ export default {
         {
           title: "テスト",
           icon: "mdi-test-tube",
-          route: ""
+          route: this.$routes.dashboard.tests.results
         },
         {
           title: "脆弱性",

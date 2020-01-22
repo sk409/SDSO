@@ -8,6 +8,8 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/sk409/gotype"
+
 	"github.com/sk409/gocase"
 
 	"golang.org/x/crypto/bcrypt"
@@ -35,6 +37,18 @@ func authenticatedUser(r *http.Request) (*user, error) {
 		return nil, err
 	}
 	return &u, nil
+}
+
+func find(query map[string]interface{}, model interface{}) (int, error) {
+	db.Where(query).Find(model)
+	if db.Error != nil {
+		return http.StatusInternalServerError, db.Error
+	}
+	rv := reflect.ValueOf(model).Elem()
+	if rv.Len() == 0 {
+		return http.StatusBadRequest, errNotExist
+	}
+	return 0, nil
 }
 
 func first(query map[string]interface{}, model interface{}) (int, error) {
@@ -91,8 +105,22 @@ func respondError(w http.ResponseWriter, statusCode int, err error) {
 
 func respondJSON(w http.ResponseWriter, statusCode int, model interface{}) {
 	data := model
-	if f, ok := model.(facade); ok {
-		data = f.public()
+	if gotype.IsSlice(data) {
+		ft := reflect.TypeOf((*facade)(nil)).Elem()
+		dt := reflect.TypeOf(data).Elem()
+		if dt.Implements(ft) {
+			dv := reflect.ValueOf(data)
+			s := make([]interface{}, dv.Len())
+			for i := 0; i < dv.Len(); i++ {
+				p := dv.Index(i).Interface().(facade).public()
+				s[i] = p
+			}
+			data = s
+		}
+	} else {
+		if f, ok := model.(facade); ok {
+			data = f.public()
+		}
 	}
 	data, err := public(data)
 	if err != nil {

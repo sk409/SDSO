@@ -10,8 +10,6 @@ import (
 	"reflect"
 	"regexp"
 
-	"github.com/sk409/gocase"
-
 	"github.com/sk409/goconst"
 	"github.com/sk409/gotype"
 )
@@ -82,44 +80,4 @@ func getBranchNameAndCommitSHA1(r *http.Request) (string, string, error) {
 	branchName = branchName[:len(branchName)-1]
 	//
 	return branchName, commitSHA1, nil
-}
-
-func public(data interface{}) (interface{}, error) {
-	rt := reflect.TypeOf(data)
-	rv := reflect.ValueOf(data)
-	if gotype.IsMap(data) {
-		if rt.Key().Kind() != reflect.String {
-			return nil, errInvalidType
-		}
-		m := make(map[string]interface{})
-		for _, key := range rv.MapKeys() {
-			l := string(gocase.LowerCamelCase([]byte(key.String()), true))
-			m[l] = rv.MapIndex(key).Interface()
-		}
-		return m, nil
-	}
-	if gotype.IsSlice(data) {
-		s := make([]interface{}, rv.Len())
-		for index := 0; index < rv.Len(); index++ {
-			v := rv.Index(index)
-			p, err := public(v.Interface())
-			if err != nil {
-				return nil, errInvalidType
-			}
-			s[index] = p
-		}
-		return s, nil
-	}
-	if gotype.IsStruct(data) {
-		c, err := convert(data)
-		if err != nil {
-			return nil, err
-		}
-		p, err := public(c)
-		if err != nil {
-			return nil, err
-		}
-		return p, nil
-	}
-	return data, nil
 }

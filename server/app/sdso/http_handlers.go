@@ -3,7 +3,6 @@ package main
 import (
 	"bytes"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"os"
 	"path"
@@ -187,8 +186,7 @@ func (c *commitsHandler) show(w http.ResponseWriter, r *http.Request, sha1 strin
 	}
 	diff, err := gitRepositories.Show(filepath.Join(userName, projectName), sha1)
 	if err != nil {
-		log.Println(err)
-		w.WriteHeader(http.StatusInternalServerError)
+		respondError(w, http.StatusInternalServerError, err)
 		return
 	}
 	commit.Diff = string(diff)
@@ -274,8 +272,6 @@ func (f *filesHandler) text(w http.ResponseWriter, r *http.Request) {
 	}
 	regex := regexp.MustCompile("[0-9]+ [a-z]+ ([0-9a-z]+)")
 	matches := regex.FindSubmatch(output)
-	log.Println(string(output))
-	log.Println(matches)
 	if len(matches) != 2 {
 		respond(w, http.StatusBadRequest)
 		return
@@ -659,17 +655,17 @@ type testsHandler struct {
 }
 
 func (t *testsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	base := "/tests"
+	base := "/tests/"
 	switch r.Method {
 	case http.MethodGet:
 		switch r.URL.Path {
 		case base:
 			t.fetch(w, r)
 			return
-		case path.Join(base, "branch"):
-			t.branch(w, r)
-			return
-		case path.Join(base, "socket"):
+		// case path.Join(base, "branch"):
+		// 	t.branch(w, r)
+		// 	return
+		case base + "socket":
 			t.socket(w, r)
 			return
 		}
@@ -678,35 +674,32 @@ func (t *testsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (t *testsHandler) fetch(w http.ResponseWriter, r *http.Request) {
-	tests := []test{}
-	err := fetch(r, &tests)
-	if err != nil {
-		respondError(w, http.StatusInternalServerError, err)
-		return
-	}
-	respondJSON(w, http.StatusOK, tests)
-}
-
-func (t *testsHandler) branch(w http.ResponseWriter, r *http.Request) {
-	userName := r.URL.Query().Get("userName")
-	projectName := r.URL.Query().Get("projectName")
-	projectID := r.URL.Query().Get("projectID")
-	branchName := r.URL.Query().Get("branchName")
-	if emptyAny(userName, projectName, projectID, branchName) {
+	username := r.URL.Query().Get("username")
+	projectname := r.URL.Query().Get("projectname")
+	revision := r.URL.Query().Get("revision")
+	if emptyAny(username, projectname, revision) {
 		respond(w, http.StatusBadRequest)
 		return
 	}
+	u := user{}
+	statusCode, err := first(map[string]interface{}{"name": username}, &u)
+	if err != nil {
+		respondError(w, statusCode, err)
+		return
+	}
+	p := project{}
+	statusCode, err = first(map[string]interface{}{"name": projectname, "user_id": u.ID}, &p)
 	tests := []test{}
-	db.Where("project_id = ?", projectID).Find(&tests)
+	db.Where("project_id = ?", p.ID).Find(&tests)
 	if db.Error != nil {
-		respondError(w, http.StatusInternalServerError, db.Error)
+		respondError(w, statusCode, db.Error)
 		return
 	}
 	if len(tests) == 0 {
 		respondJSON(w, http.StatusOK, []test{})
 		return
 	}
-	commitSHA1sByte, err := gitRepositories.RevList(filepath.Join(userName, projectName), branchName)
+	commitSHA1sByte, err := gitRepositories.RevList(filepath.Join(username, projectname), revision)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
 		return
@@ -721,7 +714,50 @@ func (t *testsHandler) branch(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	respondJSON(w, http.StatusOK, response)
+	// tests := []test{}
+	// err := fetch(r, &tests)
+	// if err != nil {
+	// 	respondError(w, http.StatusInternalServerError, err)
+	// 	return
+	// }
+	// respondJSON(w, http.StatusOK, tests)
 }
+
+// func (t *testsHandler) branch(w http.ResponseWriter, r *http.Request) {
+// 	userName := r.URL.Query().Get("userName")
+// 	projectName := r.URL.Query().Get("projectName")
+// 	projectID := r.URL.Query().Get("projectID")
+// 	branchName := r.URL.Query().Get("branchName")
+// 	if emptyAny(userName, projectName, projectID, branchName) {
+// 		respond(w, http.StatusBadRequest)
+// 		return
+// 	}
+// 	tests := []test{}
+// 	db.Where("project_id = ?", projectID).Find(&tests)
+// 	if db.Error != nil {
+// 		respondError(w, http.StatusInternalServerError, db.Error)
+// 		return
+// 	}
+// 	if len(tests) == 0 {
+// 		respondJSON(w, http.StatusOK, []test{})
+// 		return
+// 	}
+// 	commitSHA1sByte, err := gitRepositories.RevList(filepath.Join(userName, projectName), branchName)
+// 	if err != nil {
+// 		respondError(w, http.StatusInternalServerError, err)
+// 		return
+// 	}
+// 	commitSHA1s := strings.Split(string(commitSHA1sByte), "\n")
+// 	response := []test{}
+// 	for _, test := range tests {
+// 		for _, commitSHA1 := range commitSHA1s {
+// 			if test.CommitSHA1 == commitSHA1 {
+// 				response = append(response, test)
+// 			}
+// 		}
+// 	}
+// 	respondJSON(w, http.StatusOK, response)
+// }
 
 func (t *testsHandler) socket(w http.ResponseWriter, r *http.Request) {
 	u, err := authenticatedUser(r)
