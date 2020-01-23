@@ -24,8 +24,11 @@ export class Url {
     switch (path) {
       case pathFiles:
         this.text = this.base + "text";
+        break;
       case pathTests:
+      case pathTestResults:
         this.socket = socket(path);
+        break;
     }
   }
 }

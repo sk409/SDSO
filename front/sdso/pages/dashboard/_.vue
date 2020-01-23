@@ -1,11 +1,16 @@
 <template>
-  <div>
-    <v-row justify="center">
-      <v-col cols="11">
-        <v-card>
+  <div class="h-100">
+    <GitToolbar
+      class="toolbar"
+      @change-branchname="changeBranchname"
+      @change-revision="changeRevision"
+    ></GitToolbar>
+    <div v-if="file" id="editor"></div>
+    <v-row v-else justify="center" class="h-100">
+      <v-col cols="11 h-100">
+        <v-card class="mb-4">
           <v-card-text>
-            <pre v-if="file" class="body-1 code">{{ fileText }}</pre>
-            <v-simple-table v-else>
+            <v-simple-table>
               <template v-slot:default>
                 <tbody>
                   <tr
@@ -33,11 +38,38 @@
 
 <script>
 import ajax from "@/assets/js/ajax.js";
+import GitToolbar from "@/components/GitToolbar.vue";
 import mutations from "@/assets/js/mutations.js";
 import { pathFiles, Url } from "@/assets/js/urls.js";
 import { mapMutations } from "vuex";
+
+const extension = str => {
+  const components = str.split(".");
+  const extension =
+    components.length == 0 ? "" : components[components.length - 1];
+  return extension;
+};
+
+const aceMode = path => {
+  const ext = extension(path);
+  const modes = {
+    go: "golang",
+    js: "javascript",
+    php: "php"
+  };
+  const base = "ace/mode/";
+  if (!modes[ext]) {
+    return base + "text";
+  }
+  return base + modes[ext];
+};
+
+let editor = null;
 export default {
-  layout: "git",
+  layout: "dashboard",
+  components: {
+    GitToolbar
+  },
   data() {
     return {
       completion: false,
@@ -49,17 +81,18 @@ export default {
   },
   created() {
     this.$nuxt.$emit("setSidemenuType", "git");
-    this.subscribe();
     this.$fetchUser().then(response => {
       this.user = response.data;
       this.setup();
     });
   },
   methods: {
-    ...mapMutations({
-      setBranchname: mutations.git.setBranchname,
-      setRevision: mutations.git.setRevision
-    }),
+    changeBranchname() {
+      this.$router.push(this.$routes.dashboard.files());
+    },
+    changeRevision() {
+      this.setup();
+    },
     clickFileItem(fileItem) {
       this.$router.push(
         this.$routes.dashboard.files(fileItem.path, !fileItem.isDirectory)
@@ -108,19 +141,14 @@ export default {
       };
       ajax.get(url.text, data).then(response => {
         this.fileText = response.data;
+        editor = ace.edit("editor");
+        editor.$blockScrolling = Infinity;
+        editor.setTheme("ace/theme/xcode");
+        editor.setFontSize(20);
+        editor.setReadOnly(true);
+        editor.setValue(response.data);
+        editor.getSession().setMode(aceMode(path));
         this.completion = true;
-      });
-    },
-    subscribe() {
-      this.$store.subscribe((mutation, state) => {
-        switch (mutation.type) {
-          case mutations.git.setBranchname:
-            this.$router.push(this.$routes.dashboard.files());
-            break;
-          case mutations.git.setRevision:
-            this.setup();
-            break;
-        }
       });
     },
     setup() {
@@ -136,8 +164,11 @@ export default {
 </script>
 
 <style>
-.code {
-  width: 780px;
-  overflow-x: scroll;
+#editor {
+  width: 100%;
+  height: 85%;
+}
+.toolbar {
+  height: 15%;
 }
 </style>

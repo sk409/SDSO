@@ -67,7 +67,7 @@ type test struct {
 	UpdatedAt  time.Time
 	DeletedAt  *time.Time `sql:"index"`
 	Steps      int        `gorm:"not null"`
-	BranchName string     `gorm:"type:varchar(256); not null;"`
+	Branchname string     `gorm:"type:varchar(256); not null;"`
 	CommitSHA1 string     `gorm:"type:char(40);not null;unique"`
 	ProjectID  uint       `gorm:"not null"`
 }

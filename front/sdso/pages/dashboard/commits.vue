@@ -2,6 +2,10 @@
   <div>
     <v-subheader>コミット一覧</v-subheader>
     <v-divider class="mb-5"></v-divider>
+    <GitToolbar
+      :hide-revision="true"
+      @change-branchname="fetchCommits()"
+    ></GitToolbar>
     <v-data-table
       :headers="tableHeaders"
       :items="commits"
@@ -15,15 +19,18 @@
 
 <script>
 import ajax from "@/assets/js/ajax.js";
+import GitToolbar from "@/components/GitToolbar.vue";
 import mutations from "@/assets/js/mutations.js";
 import { pathCommits, Url } from "@/assets/js/urls.js";
 import { dateFormatter, truncate } from "@/assets/js/utils.js";
 import { mapMutations } from "vuex";
 export default {
   layout: "dashboard",
+  components: {
+    GitToolbar
+  },
   data() {
     return {
-      branchname: "master",
       commits: [],
       tableHeaders: [
         { text: "SHA1", value: "sha1" },
@@ -37,12 +44,6 @@ export default {
     this.$nuxt.$emit("setSidemenuType", "git");
     this.$fetchUser().then(response => {
       this.user = response.data;
-      this.fetchCommits();
-    });
-    this.$store.subscribe((mutation, state) => {
-      if (mutation.type !== mutations.projects.setProject) {
-        return;
-      }
       this.fetchCommits();
     });
   },
@@ -59,11 +60,15 @@ export default {
       if (!project) {
         return;
       }
+      const branchname = this.$store.state.git.branchname;
+      if (!branchname) {
+        return;
+      }
       const url = new Url(pathCommits);
       const data = {
         username: this.user.name,
         projectname: project.name,
-        branchname: this.branchname
+        branchname
       };
       ajax.get(url.base, data).then(response => {
         this.commits = response.data;

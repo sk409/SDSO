@@ -10,7 +10,7 @@ Vue.prototype.$routes = {
       }
       return "/dashboard/" + path + "?file=" + !!file;
     },
-    tests: "/dashboard/tests",
+    tests: "/dashboard/tests"
   },
   login: {
     base: "/login"

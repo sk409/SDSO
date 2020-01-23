@@ -2,6 +2,10 @@
   <div>
     <v-subheader>テスト結果一覧</v-subheader>
     <v-divider class="mb-5"></v-divider>
+    <GitToolbar
+      :new-revision="newRevision"
+      @change-revision="fetchTests"
+    ></GitToolbar>
     <v-container>
       <v-row justify="center">
         <v-col cols="10">
@@ -21,11 +25,9 @@
                     result.command
                   }}</v-expansion-panel-header>
                   <v-expansion-panel-content>
-                    <pre
-                      class="black white--text"
-                      style="width:600px;overflow-x:scroll;"
-                      >{{ result.output }}</pre
-                    >
+                    <pre class="black white--text pa-2 console-output">{{
+                      result.output
+                    }}</pre>
                   </v-expansion-panel-content>
                 </v-expansion-panel>
               </v-expansion-panels>
@@ -39,19 +41,26 @@
 
 <script>
 import ajax from "@/assets/js/ajax.js";
+import GitToolbar from "@/components/GitToolbar.vue";
 import mutations from "@/assets/js/mutations.js";
 import { pathTestResults, pathTests, Url } from "@/assets/js/urls.js";
+let socketTest = null;
+let socketTestResult = null;
 export default {
-  layout: "git",
+  layout: "dashboard",
+  components: {
+    GitToolbar
+  },
   data() {
     return {
+      newRevision: false,
       tests: [],
       user: null
     };
   },
   created() {
     this.$nuxt.$emit("setSidemenuType", "tests");
-    this.subscribe();
+    this.setupSocket();
     this.$fetchUser().then(response => {
       this.user = response.data;
       this.fetchTests();
@@ -74,16 +83,23 @@ export default {
         revision
       };
       ajax.get(url.base, data).then(response => {
-        response.data.forEach(test => {
-          const classAndText = this.testClassAndText(test);
-          test.class = classAndText.class;
-          test.text = classAndText.text;
-          test.results.forEach(result => {
-            result.class = this.resultClass(result);
-          });
-        });
-        this.tests = response.data;
+        this.tests = response.data.map(test => this.newTest(test));
       });
+    },
+    newTest(test) {
+      const t = {};
+      const classAndText = this.testClassAndText(test);
+      t.class = classAndText.class;
+      t.text = classAndText.text;
+      test.results = test.results.map(testResult =>
+        this.newTestResult(testResult)
+      );
+      return Object.assign(t, test);
+    },
+    newTestResult(testResult) {
+      const t = {};
+      t.class = this.resultClass(testResult);
+      return Object.assign(t, testResult);
     },
     testClassAndText(test) {
       const running = test.results.some(
@@ -128,61 +144,51 @@ export default {
       const urlTests = new Url(pathTests);
       socketTest = new WebSocket(urlTests.socket);
       socketTest.onmessage = function(e) {
-        const test = JSON.parse(e.data);
-        if (test.branchName !== that.$store.state.project.branchName) {
+        const branchname = that.$store.state.git.branchname;
+        if (!branchname) {
           return;
         }
-        test.results = [];
-        that.tests.unshift(test);
+        const test = JSON.parse(e.data);
+        if (branchname !== test.branchname) {
+          return;
+        }
+        that.newRevision = true;
       };
-      socketTestResult = new WebSocket(
-        "ws://" +
-          process.env.APP_SERVER_HOST +
-          ":" +
-          process.env.APP_SERVER_PORT +
-          "/test_results/socket"
-      );
+      const urlTestResults = new Url(pathTestResults);
+      socketTestResult = new WebSocket(urlTestResults.socket);
       socketTestResult.onmessage = function(e) {
-        const testResult = JSON.parse(e.data);
+        const testResult = that.newTestResult(JSON.parse(e.data));
+        // TODO: gocase
         const testIndex = that.tests.findIndex(
-          test => test.ID === testResult.TestID
+          test => test.id === testResult.testID
         );
         const notFound = -1;
         if (testIndex === notFound) {
           return;
         }
         const test = that.tests[testIndex];
-        if (test.BranchName !== that.$store.state.project.branchName) {
-          return;
-        }
         const testResultIndex = test.results.findIndex(
-          tr => tr.ID === testResult.ID
+          tr => tr.id === testResult.id
         );
         if (testResultIndex === notFound) {
           test.results.push(testResult);
-          return;
+        } else {
+          that.$set(test.results, testResultIndex, testResult);
         }
-        that.$set(test.results, testResultIndex, testResult);
+        const testClassAndText = that.testClassAndText(test);
+        test.text = testClassAndText.text;
+        test.class = testClassAndText.class;
       };
-    },
-    subscribe() {
-      this.$store.subscribe((mutation, state) => {
-        switch (mutation.type) {
-          case mutations.projects.setProject:
-          case mutations.git.setBranchname:
-            this.tests = [];
-            break;
-          case mutations.git.setRevision:
-            this.fetchTests();
-            break;
-        }
-      });
     }
   }
 };
 </script>
 
 <style>
+.console-output {
+  width: 600px;
+  overflow-x: scroll;
+}
 .test-label-running {
   border-left: 5px solid rgb(130, 209, 226);
 }

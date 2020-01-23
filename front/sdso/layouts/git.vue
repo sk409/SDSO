@@ -1,16 +1,19 @@
 <template>
   <Dashboard :sidemenu-type="sidemenuType">
     <template v-slot:content>
-      <div>
+      <div class="h-100">
         <GitToolbar
           :branchname="branchname"
           :branchnames="branchnames"
+          :hide-revision="hideRevision"
+          :new-revision="newRevision"
           :revision="revision"
           :revisions="revisions"
+          class="toolbar"
           @select-branchname="selectBranchname"
           @select-revision="selectRevision"
         ></GitToolbar>
-        <nuxt ref="contents" />
+        <nuxt ref="contents" class="main" />
       </div>
     </template>
   </Dashboard>
@@ -31,8 +34,6 @@ export default {
   },
   data() {
     return {
-      branchnames: [],
-      commits: [],
       sidemenuType: "git",
       user: null
     };
@@ -49,6 +50,9 @@ export default {
     }
   },
   created() {
+    this.$nuxt.$on("fetchCommits", this.fetchCommits);
+    this.$nuxt.$on("setHideRevision", this.setHideRevision);
+    this.$nuxt.$on("setNewRevision", this.setNewRevision);
     this.$nuxt.$on("setSidemenuType", this.setSidemenuType);
     this.$store.subscribe((mutation, state) => {
       switch (mutation.type) {
@@ -63,51 +67,31 @@ export default {
           break;
       }
     });
-    this.$fetchUser().then(response => {
-      this.user = response.data;
-      this.fetchBranches();
-      this.fetchCommits();
-    });
+    // this.$fetchUser().then(response => {
+    //   this.user = response.data;
+    //   this.fetchBranches();
+    //   this.fetchCommits();
+    // });
   },
   methods: {
     ...mapMutations({
       setBranchname: mutations.git.setBranchname,
       setRevision: mutations.git.setRevision
     }),
-    fetchBranches() {
-      const project = this.$store.state.projects.project;
-      if (!project) {
-        return;
-      }
-      const url = new Url(pathBranches);
-      const data = {
-        username: this.user.name,
-        projectname: project.name
-      };
-      ajax.get(url.base, data).then(response => {
-        this.branchnames = response.data;
-      });
-    },
-    fetchCommits() {
-      const project = this.$store.state.projects.project;
-      if (!project) {
-        return;
-      }
-      const url = new Url(pathCommits);
-      const data = {
-        username: this.user.name,
-        projectname: project.name,
-        branchname: this.branchname
-      };
-      ajax.get(url.base, data).then(response => {
-        this.commits = response.data;
-      });
-    },
     selectBranchname(branchname) {
       this.setBranchname(branchname);
     },
     selectRevision(revision) {
+      if (this.revisions[0] === revision) {
+        this.newRevision = false;
+      }
       this.setRevision(revision);
+    },
+    setHideRevision(hideRevision) {
+      this.hideRevision = hideRevision;
+    },
+    setNewRevision(newRevision) {
+      this.newRevision = newRevision;
     },
     setSidemenuType(sidemenuType) {
       this.sidemenuType = sidemenuType;
@@ -117,7 +101,13 @@ export default {
 </script>
 
 <style>
+.main {
+  height: 85%;
+}
 .sidemenu {
   border-right: 2px solid lightgrey;
+}
+.toolbar {
+  height: 15%;
 }
 </style>

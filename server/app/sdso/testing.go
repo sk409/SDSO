@@ -134,7 +134,7 @@ func runTest(userName, projectName, clonePath, branchName, commitSHA1 string) (b
 	}()
 	test := test{
 		Steps:      len(config.Jobs.Build.Steps),
-		BranchName: branchName,
+		Branchname: branchName,
 		CommitSHA1: commitSHA1,
 		ProjectID:  project.ID,
 	}
@@ -145,7 +145,8 @@ func runTest(userName, projectName, clonePath, branchName, commitSHA1 string) (b
 	}
 	socketTest, exist := websocketsTest[user.ID]
 	if exist {
-		jsonBytes, err := json.Marshal(test)
+		p, err := public(test.public())
+		jsonBytes, err := json.Marshal(p)
 		if err == nil {
 			socketTest.WriteMessage(websocket.TextMessage, jsonBytes)
 		}
@@ -162,7 +163,11 @@ func runTest(userName, projectName, clonePath, branchName, commitSHA1 string) (b
 						if !exist {
 							return
 						}
-						jsonBytes, err := json.Marshal(testResult)
+						p, err := public(testResult.public())
+						if err != nil {
+							return
+						}
+						jsonBytes, err := json.Marshal(p)
 						if err != nil {
 							// log.Println(err)
 							return

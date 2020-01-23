@@ -135,7 +135,7 @@ export default {
   },
   mounted() {
     this.mainStyle = {
-      "max-height": this.$refs.content.scrollHeight + this.navbarHeight + "px"
+      "max-height": this.$refs.content.clientHeight + "px"
     };
   },
   methods: {
