@@ -53,12 +53,13 @@ type request struct {
 }
 
 type scan struct {
-	ID        uint `gorm:"primary_key"`
-	CreatedAt time.Time
-	UpdatedAt time.Time
-	DeletedAt *time.Time `sql:"index"`
-	UserID    uint       `gorm:"not null"`
-	ProjectID uint       `gorm:"not null"`
+	ID         uint `gorm:"primary_key"`
+	CreatedAt  time.Time
+	UpdatedAt  time.Time
+	DeletedAt  *time.Time `sql:"index"`
+	CommitSHA1 string     `gorm:"type:char(40);not null"`
+	UserID     uint       `gorm:"not null"`
+	ProjectID  uint       `gorm:"not null"`
 }
 
 type test struct {

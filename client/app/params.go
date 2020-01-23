@@ -1,12 +1,42 @@
 package main
 
-var targetHost = ""
+import (
+	"os"
+	"path/filepath"
+)
+
+var (
+	directoryApp             = ""
+	directoryAuth            = ""
+	directoryCA              = ""
+	directoryRequests        = ""
+	directoryVulnerabilities = ""
+	filepathConfig           = ""
+	filepathUser             = ""
+	targetHost               = ""
+)
 
 const (
-	serverOrigin = "http://server:8080"
-	pathScans    = "scans"
-	pathUsers    = "users"
-	pathProjects = "projects"
+	pathProjects        = "projects"
+	pathScans           = "/scans"
+	pathUsers           = "users"
+	pathVulnerabilities = "/vulnerabilities"
+	projectDirectory    = ".sdso"
+	serverOrigin        = "http://server:8080"
 	// pathUsersExist    = "users/exist"
 	// pathProjectsExist = "projects/exist"
 )
+
+func init() {
+	directoryApp = filepath.Join("/etc", "sdso")
+	directoryCA = filepath.Join(directoryApp, "ca")
+	directoryAuth = filepath.Join(directoryApp, "auth")
+	directoryRequests = filepath.Join(directoryApp, "requests")
+	directoryVulnerabilities = filepath.Join(directoryApp, "vulnerabilities")
+	directories := []string{directoryAuth, directoryCA, directoryRequests, directoryVulnerabilities}
+	for _, directory := range directories {
+		os.Mkdir(directory, 0755)
+	}
+	filepathConfig = filepath.Join(projectDirectory, "config.json")
+	filepathUser = filepath.Join(directoryAuth, "user")
+}

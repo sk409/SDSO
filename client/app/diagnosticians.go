@@ -1,7 +1,7 @@
 package main
 
 import (
-	"fmt"
+	"bytes"
 	"io/ioutil"
 	"net/http"
 	"net/http/httputil"
@@ -20,9 +20,6 @@ func detectedVulnerability(request *http.Request, response *http.Response, r req
 		return false, "", "", err
 	}
 	requestString := string(requestBytes)
-	if r.Method == http.MethodPost {
-		fmt.Println(requestString)
-	}
 	responseBytes, err := httputil.DumpResponse(response, true)
 	if err != nil {
 		return false, "", "", err
@@ -65,6 +62,7 @@ func (t *textMatchDiagnostician) diagnose(r request) (bool, string, string, erro
 		}
 		responseBodyString := string(responseBodyBytes)
 		if strings.Contains(responseBodyString, t.matches[index]) {
+			response.Body = ioutil.NopCloser(bytes.NewBuffer(responseBodyBytes))
 			return detectedVulnerability(request, response, r, signature)
 		}
 	}

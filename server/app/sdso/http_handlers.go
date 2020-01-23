@@ -621,27 +621,29 @@ func (s *scansHandler) fetch(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *scansHandler) store(w http.ResponseWriter, r *http.Request) {
-	userName := r.PostFormValue("userName")
-	projectName := r.PostFormValue("projectName")
-	if emptyAny(userName, projectName) {
+	commitSHA1 := r.PostFormValue("commitSHA1")
+	username := r.PostFormValue("username")
+	projectname := r.PostFormValue("projectname")
+	if emptyAny(commitSHA1, username, projectname) {
 		respond(w, http.StatusBadRequest)
 		return
 	}
 	u := user{}
-	statusCode, err := first(map[string]interface{}{"name": userName}, &u)
+	statusCode, err := first(map[string]interface{}{"name": username}, &u)
 	if err != nil {
 		respondError(w, statusCode, err)
 		return
 	}
 	p := project{}
-	statusCode, err = first(map[string]interface{}{"name": projectName, "user_id": u.ID}, &p)
+	statusCode, err = first(map[string]interface{}{"name": projectname, "user_id": u.ID}, &p)
 	if err != nil {
 		respondError(w, statusCode, err)
 		return
 	}
 	scan := scan{
-		UserID:    u.ID,
-		ProjectID: p.ID,
+		CommitSHA1: commitSHA1,
+		UserID:     u.ID,
+		ProjectID:  p.ID,
 	}
 	db.Save(&scan)
 	if db.Error != nil {
@@ -926,21 +928,20 @@ func (v *vulnerabilitiesHandler) store(w http.ResponseWriter, r *http.Request) {
 	request := r.PostFormValue("request")
 	response := r.PostFormValue("response")
 	scanID := r.PostFormValue("scanID")
-	userName := r.PostFormValue("userName")
-	password := r.PostFormValue("password")
-	projectName := r.PostFormValue("projectName")
-	if emptyAny(name, description, path, method, request, response, scanID, userName, password, projectName) {
+	username := r.PostFormValue("username")
+	projectname := r.PostFormValue("projectname")
+	if emptyAny(name, description, path, method, request, response, scanID, username, projectname) {
 		respond(w, http.StatusBadRequest)
 		return
 	}
 	u := user{}
-	statusCode, err := first(map[string]interface{}{"name": userName}, &u)
+	statusCode, err := first(map[string]interface{}{"name": username}, &u)
 	if err != nil {
 		respondError(w, statusCode, err)
 		return
 	}
 	p := project{}
-	statusCode, err = first(map[string]interface{}{"name": projectName, "user_id": u.ID}, &p)
+	statusCode, err = first(map[string]interface{}{"name": projectname, "user_id": u.ID}, &p)
 	if err != nil {
 		respondError(w, statusCode, err)
 		return

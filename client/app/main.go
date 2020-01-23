@@ -4,16 +4,14 @@ import (
 	"os"
 )
 
-func init() {
-	mkDirIfNotExist(makeFilePath(""))
-}
-
 func main() {
 	if len(os.Args) == 1 {
 		return
 	}
 	subcommand := os.Args[1]
 	switch subcommand {
+	case "init":
+		entrypointInit()
 	case "login":
 		entrypointLogin()
 	case "record":

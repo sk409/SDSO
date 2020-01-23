@@ -14,23 +14,38 @@ import (
 	"math"
 	"math/big"
 	"net/http"
-	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strconv"
-	"strings"
 	"time"
+
+	"github.com/google/uuid"
+	"github.com/sk409/gofile"
 
 	"golang.org/x/crypto/bcrypt"
 
-	"github.com/google/uuid"
-	"github.com/sk409/goconst"
 	"github.com/sk409/goproxy"
 )
 
+func entrypointInit() {
+	if !gofile.IsExist(projectDirectory) {
+		err := os.Mkdir(projectDirectory, 0755)
+		if err != nil {
+			return
+		}
+	}
+	fs := flag.NewFlagSet(os.Args[0], flag.ExitOnError)
+	projectname := fs.String("project", "", "project name")
+	fs.Parse(os.Args[2:])
+	if emptyAny(projectname) {
+		return
+	}
+	c := config{Projectname: *projectname}
+	saveJSON(filepathConfig, c)
+}
+
 func entrypointLogin() {
-	mkDirIfNotExist(makeFilePath("auth"))
 	fs := flag.NewFlagSet(os.Args[0], flag.ExitOnError)
 	name := fs.String("name", "", "user name")
 	password := fs.String("password", "", "password")
@@ -70,7 +85,7 @@ func entrypointLogin() {
 	if err != nil {
 		return
 	}
-	userJSONFilePath := makeFilePath(filepath.Join("auth", "user"))
+	userJSONFilePath := filepath.Join(directoryAuth, "user")
 	userJSONFile, err := os.Create(userJSONFilePath)
 	if err != nil {
 		return
@@ -80,7 +95,6 @@ func entrypointLogin() {
 }
 
 func entrypointRecord() {
-	mkDirIfNotExist(makeFilePath("requests"))
 	fs := flag.NewFlagSet(os.Args[0], flag.ExitOnError)
 	host := fs.String("host", "abc", "Vulnerability scan target host")
 	// crtFile := fs.String("crt", makeFilePath(filepath.Join("ca", "server.crt")), "Root CA certificae")
@@ -97,7 +111,7 @@ func entrypointRecord() {
 			if file.IsDir() {
 				continue
 			}
-			jsonFile, err := os.Open(makeFilePath(filepath.Join("requests", file.Name())))
+			jsonFile, err := os.Open(filepath.Join(directoryRequests, file.Name()))
 			if err != nil {
 				continue
 			}
@@ -117,8 +131,8 @@ func entrypointRecord() {
 			storeRequestSignature(newRequestSignature(httpRequest))
 		}
 	}
-	crtFilePath := makeFilePath(filepath.Join("ca", "server.crt"))
-	keyFilePath := makeFilePath(filepath.Join("ca", "server.key"))
+	crtFilePath := filepath.Join(directoryCA, "server.crt")
+	keyFilePath := filepath.Join(directoryCA, "server.key")
 	p, err := goproxy.NewHTTPProxy(crtFilePath, keyFilePath)
 	if err != nil {
 		panic(err)
@@ -170,110 +184,40 @@ func entrypointRequestSend() {
 }
 
 func entrypointScan() {
-	mkDirIfNotExist(makeFilePath("vulnerabilities"))
-	fs := flag.NewFlagSet("scan", flag.ExitOnError)
-	projectName := fs.String("project", "", "project name")
-	verbose := fs.Bool("verbose", false, "verbose")
-	fs.Parse(os.Args[2:])
-	if len(*projectName) == 0 {
-		fmt.Println("--projectオプションを指定してください")
-		return
-	}
-	user, err := loadUser()
-	if err != nil {
-		fmt.Println("ログインしてください")
-		return
-	}
-	// userIDString := strconv.Itoa(int(user.ID))
-	// exist, err := sendRequestExist(
-	// 	http.MethodGet,
-	// 	route(pathProjectsExist),
-	// 	map[string]string{
-	// 		"user_id": userIDString,
-	// 		"name":    *projectName,
-	// 	},
-	// )
-	// if err != nil {
-	// 	return
-	// }
-	// if !exist {
-	// 	fmt.Println("プロジェクトが存在していません")
-	// 	return
-	// }
-	// fetchProjectResponse, err := sendRequest(
-	// 	http.MethodGet,
-	// 	route(pathProjects),
-	// 	map[string]string{
-	// 		"user_id": userIDString,
-	// 		"name":    *projectName,
-	// 	},
-	// )
-	// if err != nil {
-	// 	return
-	// }
-	// defer fetchProjectResponse.Body.Close()
-	// projectsByte, err := ioutil.ReadAll(fetchProjectResponse.Body)
-	// if err != nil {
-	// 	return
-	// }
-	// projects := []project{}
-	// err = json.Unmarshal(projectsByte, &projects)
-	// if err != nil {
-	// 	return
-	// }
-	storeScanResponse, err := sendRequest(
-		http.MethodPost,
-		route(pathScans),
-		map[string]string{
-			"projectName": *projectName,
-			"userName":    user.Name,
-			"password":    user.Password,
-		},
-	)
+	commitSHA1, err := command("git", "rev-parse", "HEAD")
 	if err != nil {
 		return
 	}
-	defer storeScanResponse.Body.Close()
-	scanJSONBytes, err := ioutil.ReadAll(storeScanResponse.Body)
+	c := config{}
+	err = readJSON(filepathConfig, &c)
 	if err != nil {
 		return
 	}
-	var scan map[string]interface{}
-	err = json.Unmarshal(scanJSONBytes, &scan)
+	u := user{}
+	err = readJSON(filepathUser, &u)
+	s := scan{}
+	err = store(pathScans, map[string]interface{}{"commitSHA1": string(commitSHA1), "projectname": c.Projectname, "username": u.Name}, &s)
 	if err != nil {
 		return
 	}
-	scanID, exist := scan["ID"]
-	if !exist {
-		return
-	}
-	scanIDUint := uint(scanID.(float64))
 	signatures := []signature{
 		newXSSSignatureAngleBrackets(),
 		newOSCommandInjectionSleep(),
 		newSQLInjectionSleep(),
 	}
-	requestFiles, err := ioutil.ReadDir(makeFilePath("requests"))
+	requestFiles, err := ioutil.ReadDir(directoryRequests)
 	if err != nil {
 		return
 	}
-	fmt.Println("*****スキャンを開始します*****")
-	for _, file := range requestFiles {
-		if file.IsDir() {
+	count := 0
+	for _, requestFile := range requestFiles {
+		if requestFile.IsDir() {
 			continue
 		}
-		jsonFile, err := os.Open(makeFilePath(filepath.Join("requests", file.Name())))
-		if err != nil {
-			continue
-		}
-		jsonBytes, err := ioutil.ReadAll(jsonFile)
-		if err != nil {
-			continue
-		}
-		var request request
-		json.Unmarshal(jsonBytes, &request)
+		r := request{}
+		err = readJSON(filepath.Join(directoryRequests, requestFile.Name()), &r)
 		for _, sig := range signatures {
-			detected, requestString, responseString, err := sig.diagnostician().diagnose(request)
+			detected, requestString, responseString, err := sig.diagnostician().diagnose(r)
 			if err != nil {
 				continue
 			}
@@ -283,114 +227,69 @@ func entrypointScan() {
 			vulnerability := vulnerability{
 				Name:        sig.name(),
 				Description: sig.description(),
-				Path:        request.Path,
-				Method:      request.Method,
+				Path:        r.Path,
+				Method:      r.Method,
 				Request:     requestString,
 				Response:    responseString,
-				ScanID:      scanIDUint,
-			}
-			if *verbose {
-				fmt.Println("-------------------------------------")
-				fmt.Print("Type: ", vulnerability.Name)
-				fmt.Println()
-				fmt.Print("Description: ", vulnerability.Description)
-				fmt.Println()
-				fmt.Print("Path: ", vulnerability.Path)
-				fmt.Println()
-				fmt.Print("Method: ", vulnerability.Method)
-				fmt.Println()
-				fmt.Println("Request:")
-				fmt.Print(vulnerability.Request)
-				fmt.Println("Response:")
-				fmt.Print(vulnerability.Response)
-			}
-			jsonBytes, err := json.Marshal(vulnerability)
-			if err != nil {
-				continue
+				ScanID:      s.ID,
 			}
 			id, err := uuid.NewUUID()
 			if err != nil {
 				continue
 			}
-			file, err := os.Create(makeFilePath(filepath.Join("vulnerabilities", id.String())))
-			if err != nil {
-				continue
-			}
-			defer file.Close()
-			file.Write(jsonBytes)
+			saveJSON(filepath.Join(directoryVulnerabilities, id.String()), vulnerability)
+			count++
 		}
 	}
-	fmt.Println("*****スキャンが終了しました*****")
+	if count == 0 {
+		fmt.Println("脆弱性は検出されませんでした")
+	} else {
+		fmt.Println(fmt.Sprintf("%d個の脆弱性が検出されました", count))
+	}
 }
 
 func entrypointUpload() {
-	fs := flag.NewFlagSet(os.Args[0], flag.ExitOnError)
-	projectName := fs.String("project", "", "project name")
-	fs.Parse(os.Args[2:])
-	if len(*projectName) == 0 {
-		fmt.Println("--projectオプションを指定してください")
-		return
-	}
-	user, err := loadUser()
-	if err != nil {
-		fmt.Println("ログインしてください")
-		return
-	}
-	// userIDString := strconv.Itoa(int(user.ID))
-	// exist, err := sendRequestExist(
-	// 	http.MethodGet,
-	// 	route(pathProjectsExist),
-	// 	map[string]string{
-	// 		"user_id": userIDString,
-	// 		"name":    *projectName,
-	// 	},
-	// )
-	// if err != nil {
-	// 	return
-	// }
-	// if !exist {
-	// 	fmt.Println("プロジェクトが存在していません")
-	// 	return
-	// }
-	fileInfos, err := ioutil.ReadDir(makeFilePath("vulnerabilities"))
+	c := config{}
+	err := readJSON(filepathConfig, &c)
 	if err != nil {
 		return
 	}
-	for _, fileInfo := range fileInfos {
-		if fileInfo.IsDir() {
+	u := user{}
+	err = readJSON(filepathUser, &u)
+	if err != nil {
+		return
+	}
+	vulnerabilityFiles, err := ioutil.ReadDir(directoryVulnerabilities)
+	if err != nil {
+		return
+	}
+	for _, vulnerabilityFile := range vulnerabilityFiles {
+		if vulnerabilityFile.IsDir() {
 			continue
 		}
-		filePath := makeFilePath(filepath.Join("vulnerabilities", fileInfo.Name()))
-		jsonBytes, err := ioutil.ReadFile(filePath)
+		v := vulnerability{}
+		vulnerabilityFilepath := filepath.Join(directoryVulnerabilities, vulnerabilityFile.Name())
+		err := readJSON(vulnerabilityFilepath, &v)
 		if err != nil {
 			continue
 		}
-		vulnerability := vulnerability{}
-		json.Unmarshal(jsonBytes, &vulnerability)
-		params := url.Values{}
-		params.Set("name", vulnerability.Name)
-		params.Set("description", vulnerability.Description)
-		params.Set("path", vulnerability.Path)
-		params.Set("method", vulnerability.Method)
-		params.Set("request", vulnerability.Request)
-		params.Set("response", vulnerability.Response)
-		params.Set("scanID", strconv.Itoa(int(vulnerability.ScanID)))
-		params.Set("userName", user.Name)
-		params.Set("password", user.Password)
-		params.Set("projectName", *projectName)
-		url := fmt.Sprintf("%s/vulnerabilities", serverOrigin)
-		request, err := http.NewRequest(http.MethodPost, url, strings.NewReader(params.Encode()))
+		data := map[string]interface{}{
+			"name":        v.Name,
+			"description": v.Description,
+			"path":        v.Path,
+			"method":      v.Method,
+			"request":     v.Request,
+			"response":    v.Response,
+			"scanID":      strconv.Itoa(int(v.ScanID)),
+			"username":    u.Name,
+			"projectname": c.Projectname,
+		}
+		err = store(pathVulnerabilities, data, &v)
 		if err != nil {
+			log.Println(err)
 			continue
 		}
-		request.Header.Set(goconst.HTTP_HEADER_CONTENT_TYPE, goconst.HTTP_HEADER_CONTENT_TYPE_URLENCODED)
-		client := new(http.Client)
-		response, err := client.Do(request)
-		if err != nil {
-			continue
-		}
-		defer response.Body.Close()
-		os.Remove(filePath)
+		os.Remove(vulnerabilityFilepath)
 	}
 }
 
@@ -421,8 +320,7 @@ func entrypointX509() {
 	if err != nil {
 		return
 	}
-	mkDirIfNotExist(makeFilePath("ca"))
-	crtFile, err := os.Create(makeFilePath(filepath.Join("ca", "server.crt")))
+	crtFile, err := os.Create(filepath.Join(directoryCA, "server.crt"))
 	if err != nil {
 		return
 	}
@@ -431,7 +329,7 @@ func entrypointX509() {
 	if err != nil {
 		return
 	}
-	keyFile, err := os.Create(makeFilePath(filepath.Join("ca", "server.key")))
+	keyFile, err := os.Create(filepath.Join(directoryCA, "server.key"))
 	if err != nil {
 		return
 	}
