@@ -17,7 +17,7 @@
         </v-list-item>
       </v-list>
     </v-navigation-drawer>
-    <v-app-bar color="primary" app dark fixed>
+    <v-app-bar color="primary" :height="height" app dark fixed>
       <v-app-bar-nav-icon @click.stop="drawer = !drawer" />
       <v-container fluid>
         <v-row align="center">
@@ -26,6 +26,7 @@
               hide-details
               :items="projectnames"
               no-data-text="プロジェクトがありません"
+              :value="activeProjectName"
               label="プロジェクトを選択してください"
               @input="selectProjectname"
             ></v-select>
@@ -63,6 +64,14 @@
 <script>
 export default {
   props: {
+    activeProjectName: {
+      type: String,
+      default: ""
+    },
+    height: {
+      type: Number,
+      default: 64
+    },
     projects: {
       type: Array,
       default: () => []
@@ -82,12 +91,12 @@ export default {
         {
           title: "コード管理",
           icon: "mdi-source-branch",
-          route: this.$routes.dashboard.git.commits
+          route: this.$routes.dashboard.commits
         },
         {
           title: "テスト",
           icon: "mdi-test-tube",
-          route: this.$routes.dashboard.tests.results
+          route: this.$routes.dashboard.tests
         },
         {
           title: "脆弱性",

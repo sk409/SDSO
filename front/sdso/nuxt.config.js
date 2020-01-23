@@ -1,36 +1,41 @@
-import colors from 'vuetify/es5/util/colors'
+import colors from "vuetify/es5/util/colors";
 
 export default {
-  mode: 'spa',
+  mode: "spa",
   /*
    ** Headers of the page
    */
   head: {
-    titleTemplate: '%s - ' + process.env.npm_package_name,
-    title: process.env.npm_package_name || '',
-    meta: [{
-        charset: 'utf-8'
+    titleTemplate: "%s - " + process.env.npm_package_name,
+    title: process.env.npm_package_name || "",
+    meta: [
+      {
+        charset: "utf-8"
       },
       {
-        name: 'viewport',
-        content: 'width=device-width, initial-scale=1'
+        name: "viewport",
+        content: "width=device-width, initial-scale=1"
       },
       {
-        hid: 'description',
-        name: 'description',
-        content: process.env.npm_package_description || ''
+        hid: "description",
+        name: "description",
+        content: process.env.npm_package_description || ""
       }
     ],
-    link: [{
-      rel: 'icon',
-      type: 'image/x-icon',
-      href: '/favicon.ico'
-    }],
-    script: [{
+    link: [
+      {
+        rel: "icon",
+        type: "image/x-icon",
+        href: "/favicon.ico"
+      }
+    ],
+    script: [
+      {
         src: "https://cdnjs.cloudflare.com/ajax/libs/ace/1.2.0/ace.js"
       },
       {
-        src: "https://cdnjs.cloudflare.com/ajax/libs/ace/1.2.0/ext-language_tools.js"
+        src:
+          "https://cdnjs.cloudflare.com/ajax/libs/ace/1.2.0/ext-language_tools.js"
       }
     ]
   },
@@ -38,12 +43,12 @@ export default {
    ** Customize the progress-bar color
    */
   loading: {
-    color: '#fff'
+    color: "#fff"
   },
   /*
    ** Global CSS
    */
-  css: ['@/assets/css/global.css'],
+  css: ["@/assets/css/global.css"],
   /*
    ** Plugins to load before mounting the App
    */
@@ -51,9 +56,7 @@ export default {
   /*
    ** Nuxt.js dev-modules
    */
-  buildModules: [
-    '@nuxtjs/vuetify',
-  ],
+  buildModules: ["@nuxtjs/vuetify"],
   /*
    ** Nuxt.js modules
    */
@@ -63,7 +66,7 @@ export default {
    ** https://github.com/nuxt-community/vuetify-module
    */
   vuetify: {
-    customVariables: ['~/assets/variables.scss'],
+    customVariables: ["~/assets/variables.scss"],
     theme: {
       light: true,
       themes: {
@@ -89,6 +92,8 @@ export default {
     extend(config, ctx) {}
   },
   env: {
+    serverHost: "localhost",
+    serverPort: "8080",
     serverOrigin: "http://localhost:8080"
   }
-}
+};

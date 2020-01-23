@@ -34,7 +34,7 @@ export default {
         {
           title: "ダッシュボード",
           icon: "mdi-view-dashboard",
-          route: this.$routes.dashboard.git.commits
+          route: this.$routes.dashboard.commits
         }
       ]
     };

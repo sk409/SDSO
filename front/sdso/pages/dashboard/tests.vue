@@ -40,24 +40,18 @@
 <script>
 import ajax from "@/assets/js/ajax.js";
 import mutations from "@/assets/js/mutations.js";
-import { pathCommits, pathTests, Url } from "@/assets/js/urls.js";
+import { pathTestResults, pathTests, Url } from "@/assets/js/urls.js";
 export default {
-  layout: "dashboard",
+  layout: "git",
   data() {
     return {
-      commitSHA1: "master",
       tests: [],
       user: null
     };
   },
   created() {
     this.$nuxt.$emit("setSidemenuType", "tests");
-    this.$store.subscribe((mutation, state) => {
-      if (mutation.type !== mutations.projects.setProject) {
-        return;
-      }
-      this.fetchTests();
-    });
+    this.subscribe();
     this.$fetchUser().then(response => {
       this.user = response.data;
       this.fetchTests();
@@ -69,11 +63,15 @@ export default {
       if (!project) {
         return;
       }
+      const revision = this.$store.state.git.revision;
+      if (!revision) {
+        return;
+      }
       const url = new Url(pathTests);
       const data = {
         username: this.user.name,
         projectname: project.name,
-        revision: this.commitSHA1
+        revision
       };
       ajax.get(url.base, data).then(response => {
         response.data.forEach(test => {
@@ -126,17 +124,12 @@ export default {
         alert("WebSocketに対応していないブラウザです。");
         return;
       }
-      socketTest = new WebSocket(
-        "ws://" +
-          process.env.APP_SERVER_HOST +
-          ":" +
-          process.env.APP_SERVER_PORT +
-          "/tests/socket"
-      );
       const that = this;
+      const urlTests = new Url(pathTests);
+      socketTest = new WebSocket(urlTests.socket);
       socketTest.onmessage = function(e) {
         const test = JSON.parse(e.data);
-        if (test.BranchName !== that.$store.state.project.branchName) {
+        if (test.branchName !== that.$store.state.project.branchName) {
           return;
         }
         test.results = [];
@@ -171,6 +164,19 @@ export default {
         }
         that.$set(test.results, testResultIndex, testResult);
       };
+    },
+    subscribe() {
+      this.$store.subscribe((mutation, state) => {
+        switch (mutation.type) {
+          case mutations.projects.setProject:
+          case mutations.git.setBranchname:
+            this.tests = [];
+            break;
+          case mutations.git.setRevision:
+            this.fetchTests();
+            break;
+        }
+      });
     }
   }
 };

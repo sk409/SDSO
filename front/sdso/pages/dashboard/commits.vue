@@ -18,6 +18,7 @@ import ajax from "@/assets/js/ajax.js";
 import mutations from "@/assets/js/mutations.js";
 import { pathCommits, Url } from "@/assets/js/urls.js";
 import { dateFormatter, truncate } from "@/assets/js/utils.js";
+import { mapMutations } from "vuex";
 export default {
   layout: "dashboard",
   data() {
@@ -46,10 +47,12 @@ export default {
     });
   },
   methods: {
+    ...mapMutations({
+      setRevision: mutations.git.setRevision
+    }),
     clickCommit(commit) {
-      this.$router.push(
-        this.$routes.dashboard.git.files(commit.branchname, commit.sha1)
-      );
+      this.setRevision(commit.sha1);
+      this.$router.push(this.$routes.dashboard.files());
     },
     fetchCommits() {
       const project = this.$store.state.projects.project;

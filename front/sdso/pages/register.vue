@@ -42,7 +42,7 @@ export default {
       };
       ajax.post(url.base, data, config).then(response => {
         if (response.data.ok) {
-          this.$router.push(this.$routes.dashboard.git.commits);
+          this.$router.push(this.$routes.dashboard.commits);
         }
       });
     }
