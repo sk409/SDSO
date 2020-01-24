@@ -14,9 +14,11 @@ export const pathFiles = "files/";
 export const pathLogin = "login";
 export const pathProjects = "projects";
 export const pathRegister = "register";
+export const pathScans = "scans";
 export const pathTestResults = "test_results";
 export const pathTests = "tests/";
 export const pathUser = "user";
+export const pathVulnerabilities = "vulnerabilities";
 
 export class Url {
   constructor(path) {

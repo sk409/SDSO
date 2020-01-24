@@ -18,6 +18,8 @@ func main() {
 		entrypointRecord()
 	case "request":
 		entrypointRequest()
+	case "setup":
+		entrypointSetup()
 	case "scan":
 		entrypointScan()
 	case "upload":

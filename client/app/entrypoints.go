@@ -183,6 +183,13 @@ func entrypointRequestSend() {
 	}
 }
 
+func entrypointSetup() {
+	directories := []string{directoryApp, directoryAuth, directoryCA, directoryRequests, directoryVulnerabilities}
+	for _, directory := range directories {
+		os.Mkdir(directory, 0755)
+	}
+}
+
 func entrypointScan() {
 	commitSHA1, err := command("git", "rev-parse", "HEAD")
 	if err != nil {

@@ -2,12 +2,7 @@
   <div>
     <v-navigation-drawer v-model="drawer" app>
       <v-list>
-        <v-list-item
-          v-for="navItem in navItems"
-          :key="navItem.title"
-          :to="navItem.route"
-          router
-        >
+        <v-list-item v-for="navItem in navItems" :key="navItem.title" :to="navItem.route" router>
           <v-list-item-action>
             <v-icon>{{ navItem.icon }}</v-icon>
           </v-list-item-action>
@@ -99,9 +94,9 @@ export default {
           route: this.$routes.dashboard.tests
         },
         {
-          title: "脆弱性",
+          title: "セキュリティ",
           icon: "mdi-security",
-          route: ""
+          route: this.$routes.dashboard.dast
         },
         {
           title: "アカウント情報",

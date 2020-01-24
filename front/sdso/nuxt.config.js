@@ -8,8 +8,7 @@ export default {
   head: {
     titleTemplate: "%s - " + process.env.npm_package_name,
     title: process.env.npm_package_name || "",
-    meta: [
-      {
+    meta: [{
         charset: "utf-8"
       },
       {
@@ -22,20 +21,16 @@ export default {
         content: process.env.npm_package_description || ""
       }
     ],
-    link: [
-      {
-        rel: "icon",
-        type: "image/x-icon",
-        href: "/favicon.ico"
-      }
-    ],
-    script: [
-      {
+    link: [{
+      rel: "icon",
+      type: "image/x-icon",
+      href: "/favicon.ico"
+    }],
+    script: [{
         src: "https://cdnjs.cloudflare.com/ajax/libs/ace/1.2.0/ace.js"
       },
       {
-        src:
-          "https://cdnjs.cloudflare.com/ajax/libs/ace/1.2.0/ext-language_tools.js"
+        src: "https://cdnjs.cloudflare.com/ajax/libs/ace/1.2.0/ext-language_tools.js"
       }
     ]
   },
@@ -52,7 +47,7 @@ export default {
   /*
    ** Plugins to load before mounting the App
    */
-  plugins: ["@/plugins/routes.js", "@/plugins/user.js"],
+  plugins: ["@/plugins/filters.js", "@/plugins/routes.js", "@/plugins/user.js"],
   /*
    ** Nuxt.js dev-modules
    */

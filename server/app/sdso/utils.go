@@ -14,17 +14,39 @@ import (
 	"github.com/sk409/gotype"
 )
 
-func convert(data interface{}) (map[string]interface{}, error) {
+type printable interface {
+	String() string
+}
+
+// func contains(sequence interface{}, value interface{}) (bool, error) {
+// 	if !gotype.IsSlice(sequence) {
+// 		return false, errInvalidType
+// 	}
+// 	st := reflect.TypeOf(sequence)
+// 	sv := reflect.ValueOf(sequence)
+// 	vt := reflect.TypeOf(value)
+// 	if st.Elem().Kind() == vt.Kind() {
+// 		return false, errInvalidType
+// 	}
+// 	for i := 0; i < st.Len(); i++ {
+// 		if reflect.DeepEqual(value, sv.Index(i)) {
+// 			return true, nil
+// 		}
+// 	}
+// 	return false, nil
+// }
+
+func convert(data interface{}) (interface{}, error) {
 	if !gotype.IsStruct(data) && !gotype.IsPointer(data) {
 		return nil, errInvalidType
 	}
-	m := make(map[string]interface{})
 	rt := reflect.TypeOf(data)
 	rv := reflect.ValueOf(data)
 	if gotype.IsPointer(data) {
 		rt = rt.Elem()
 		rv = rv.Elem()
 	}
+	m := make(map[string]interface{})
 	for index := 0; index < rv.NumField(); index++ {
 		ft := rt.Field(index)
 		fv := rv.Field(index)
@@ -32,7 +54,14 @@ func convert(data interface{}) (map[string]interface{}, error) {
 			m[ft.Name] = fv.Interface()
 		}
 	}
-	return m, nil
+	if len(m) != 0 {
+		return m, nil
+	}
+	p, ok := data.(printable)
+	if ok {
+		return p.String(), nil
+	}
+	return nil, nil
 }
 
 func emptyAny(values ...interface{}) bool {

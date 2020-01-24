@@ -11,39 +11,6 @@ type facade interface {
 	public() interface{}
 }
 
-func (t test) public() interface{} {
-	m, err := convert(t)
-	if err != nil {
-		return t
-	}
-	results := []testResult{}
-	_, err = find(map[string]interface{}{"test_id": t.ID}, &results)
-	if err != nil {
-		return t
-	}
-	rp := make([]interface{}, len(results))
-	for index, result := range results {
-		var i interface{} = result
-		rp[index] = i.(facade).public()
-	}
-	m["results"] = rp
-	return m
-}
-
-func (t testResult) public() interface{} {
-	m, err := convert(t)
-	if err != nil {
-		return t
-	}
-	ts := testStatus{}
-	_, err = first(map[string]interface{}{"id": t.TestStatusID}, &ts)
-	if err != nil {
-		return t
-	}
-	m["status"] = ts
-	return m
-}
-
 func public(data interface{}) (interface{}, error) {
 	rt := reflect.TypeOf(data)
 	rv := reflect.ValueOf(data)

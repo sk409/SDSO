@@ -1,19 +1,21 @@
 <template>
   <div>
     <v-subheader>コミット一覧</v-subheader>
-    <v-divider class="mb-5"></v-divider>
-    <GitToolbar
-      :hide-revision="true"
-      @change-branchname="fetchCommits()"
-    ></GitToolbar>
-    <v-data-table
-      :headers="tableHeaders"
-      :items="commits"
-      :items-per-page="20"
-      no-data-text="まだコミットされていません"
-      @click:row="clickCommit"
-    >
-    </v-data-table>
+    <v-divider class="mb-3"></v-divider>
+    <GitToolbar :hide-revision="true" @change-branchname="fetchCommits()"></GitToolbar>
+    <v-row justify="center">
+      <v-col cols="11">
+        <v-card class="mb-4">
+          <v-data-table
+            :headers="tableHeaders"
+            :items="commits"
+            :items-per-page="20"
+            no-data-text="まだコミットされていません"
+            @click:row="clickCommit"
+          ></v-data-table>
+        </v-card>
+      </v-col>
+    </v-row>
   </div>
 </template>
 

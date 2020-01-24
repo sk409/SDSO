@@ -1,15 +1,16 @@
 <template>
-  <v-row justify="end">
-    <v-col cols="3">
+  <div class="d-flex justify-end">
+    <div class="mr-3">
       <v-select
         :items="branchnames"
+        hide-details
         no-data-text="ブランチがありません"
         placeholder="ブランチを選択してください"
         :value="branchname"
         @input="changeBranchname"
       ></v-select>
-    </v-col>
-    <v-col v-show="!hideRevision" cols="3" class="mr-3">
+    </div>
+    <div class="mr-3">
       <v-badge color="green" content="new" inline :value="newRevision">
         <v-select
           :items="revisions"
@@ -20,8 +21,8 @@
           @input="changeRevision"
         ></v-select>
       </v-badge>
-    </v-col>
-  </v-row>
+    </div>
+  </div>
 </template>
 
 <script>
@@ -81,9 +82,6 @@ export default {
   },
   watch: {
     newRevision(newValue, oldValue) {
-      console.log("WATCH");
-      console.log(newValue);
-      console.log(oldValue);
       if (newValue === true && oldValue === false) {
         this.fetchCommits();
       }

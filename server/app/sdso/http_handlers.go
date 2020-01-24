@@ -611,13 +611,47 @@ func (s *scansHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *scansHandler) fetch(w http.ResponseWriter, r *http.Request) {
+	projectname := r.URL.Query().Get("projectname")
+	revision := r.URL.Query().Get("revision")
+	username := r.URL.Query().Get("username")
+	if emptyAny(projectname, revision, username) {
+		respond(w, http.StatusBadRequest)
+		return
+	}
+	u := user{}
+	statusCode, err := first(map[string]interface{}{"name": username}, &u)
+	if err != nil {
+		respondError(w, statusCode, err)
+		return
+	}
+	p := project{}
+	statusCode, err = first(map[string]interface{}{"name": projectname, "user_id": u.ID}, &p)
+	if err != nil {
+		respondError(w, statusCode, err)
+		return
+	}
 	scans := []scan{}
-	err := fetch(r, &scans)
+	statusCode, err = find(map[string]interface{}{"project_id": p.ID}, &scans)
+	if err != nil {
+		respondJSON(w, http.StatusOK, []scan{})
+		return
+	}
+	revisionsByte, err := gitRepositories.RevList(filepath.Join(username, projectname), revision)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
 		return
 	}
-	respondJSON(w, http.StatusOK, scans)
+	revisions := strings.Split(string(revisionsByte), "\n")
+	response := []scan{}
+	for _, scan := range scans {
+		for _, revision := range revisions {
+			if scan.CommitSHA1 == revision {
+				response = append(response, scan)
+				break
+			}
+		}
+	}
+	respondJSON(w, http.StatusOK, response)
 }
 
 func (s *scansHandler) store(w http.ResponseWriter, r *http.Request) {
@@ -664,9 +698,6 @@ func (t *testsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		case base:
 			t.fetch(w, r)
 			return
-		// case path.Join(base, "branch"):
-		// 	t.branch(w, r)
-		// 	return
 		case base + "socket":
 			t.socket(w, r)
 			return
@@ -701,65 +732,23 @@ func (t *testsHandler) fetch(w http.ResponseWriter, r *http.Request) {
 		respondJSON(w, http.StatusOK, []test{})
 		return
 	}
-	commitSHA1sByte, err := gitRepositories.RevList(filepath.Join(username, projectname), revision)
+	revisionsByte, err := gitRepositories.RevList(filepath.Join(username, projectname), revision)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
 		return
 	}
-	commitSHA1s := strings.Split(string(commitSHA1sByte), "\n")
+	revisions := strings.Split(string(revisionsByte), "\n")
 	response := []test{}
 	for _, test := range tests {
-		for _, commitSHA1 := range commitSHA1s {
-			if test.CommitSHA1 == commitSHA1 {
+		for _, revision := range revisions {
+			if test.CommitSHA1 == revision {
 				response = append(response, test)
+				break
 			}
 		}
 	}
 	respondJSON(w, http.StatusOK, response)
-	// tests := []test{}
-	// err := fetch(r, &tests)
-	// if err != nil {
-	// 	respondError(w, http.StatusInternalServerError, err)
-	// 	return
-	// }
-	// respondJSON(w, http.StatusOK, tests)
 }
-
-// func (t *testsHandler) branch(w http.ResponseWriter, r *http.Request) {
-// 	userName := r.URL.Query().Get("userName")
-// 	projectName := r.URL.Query().Get("projectName")
-// 	projectID := r.URL.Query().Get("projectID")
-// 	branchName := r.URL.Query().Get("branchName")
-// 	if emptyAny(userName, projectName, projectID, branchName) {
-// 		respond(w, http.StatusBadRequest)
-// 		return
-// 	}
-// 	tests := []test{}
-// 	db.Where("project_id = ?", projectID).Find(&tests)
-// 	if db.Error != nil {
-// 		respondError(w, http.StatusInternalServerError, db.Error)
-// 		return
-// 	}
-// 	if len(tests) == 0 {
-// 		respondJSON(w, http.StatusOK, []test{})
-// 		return
-// 	}
-// 	commitSHA1sByte, err := gitRepositories.RevList(filepath.Join(userName, projectName), branchName)
-// 	if err != nil {
-// 		respondError(w, http.StatusInternalServerError, err)
-// 		return
-// 	}
-// 	commitSHA1s := strings.Split(string(commitSHA1sByte), "\n")
-// 	response := []test{}
-// 	for _, test := range tests {
-// 		for _, commitSHA1 := range commitSHA1s {
-// 			if test.CommitSHA1 == commitSHA1 {
-// 				response = append(response, test)
-// 			}
-// 		}
-// 	}
-// 	respondJSON(w, http.StatusOK, response)
-// }
 
 func (t *testsHandler) socket(w http.ResponseWriter, r *http.Request) {
 	u, err := authenticatedUser(r)

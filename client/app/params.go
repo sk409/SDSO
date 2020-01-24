@@ -1,7 +1,6 @@
 package main
 
 import (
-	"os"
 	"path/filepath"
 )
 
@@ -33,10 +32,6 @@ func init() {
 	directoryAuth = filepath.Join(directoryApp, "auth")
 	directoryRequests = filepath.Join(directoryApp, "requests")
 	directoryVulnerabilities = filepath.Join(directoryApp, "vulnerabilities")
-	directories := []string{directoryAuth, directoryCA, directoryRequests, directoryVulnerabilities}
-	for _, directory := range directories {
-		os.Mkdir(directory, 0755)
-	}
 	filepathConfig = filepath.Join(projectDirectory, "config.json")
 	filepathUser = filepath.Join(directoryAuth, "user")
 }

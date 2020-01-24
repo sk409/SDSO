@@ -62,6 +62,30 @@ type scan struct {
 	ProjectID  uint       `gorm:"not null"`
 }
 
+func (s scan) public() interface{} {
+	i, err := convert(s)
+	if err != nil {
+		return s
+	}
+	m := i.(map[string]interface{})
+	vulnerabilities := []vulnerability{}
+	_, err = find(map[string]interface{}{"scan_id": s.ID}, &vulnerabilities)
+	if err != nil {
+		m["vulnerabilities"] = []vulnerability{}
+		return m
+	}
+	vp := make([]interface{}, len(vulnerabilities))
+	for index, v := range vulnerabilities {
+		p, err := public(v)
+		if err != nil {
+			continue
+		}
+		vp[index] = p
+	}
+	m["vulnerabilities"] = vp
+	return m
+}
+
 type test struct {
 	ID         uint `gorm:"primary_key"`
 	CreatedAt  time.Time
@@ -71,6 +95,25 @@ type test struct {
 	Branchname string     `gorm:"type:varchar(256); not null;"`
 	CommitSHA1 string     `gorm:"type:char(40);not null;unique"`
 	ProjectID  uint       `gorm:"not null"`
+}
+
+func (t test) public() interface{} {
+	i, err := convert(t)
+	if err != nil {
+		return t
+	}
+	m := i.(map[string]interface{})
+	results := []testResult{}
+	_, err = find(map[string]interface{}{"test_id": t.ID}, &results)
+	if err != nil {
+		return t
+	}
+	rp := make([]interface{}, len(results))
+	for index, result := range results {
+		rp[index] = result.public()
+	}
+	m["results"] = rp
+	return m
 }
 
 type testStatus struct {
@@ -91,6 +134,21 @@ type testResult struct {
 	TestID       uint       `gorm:"not null"`
 	TestStatusID uint       `gorm:"not null"`
 	CompletedAt  *time.Time
+}
+
+func (t testResult) public() interface{} {
+	i, err := convert(t)
+	if err != nil {
+		return t
+	}
+	m := i.(map[string]interface{})
+	ts := testStatus{}
+	_, err = first(map[string]interface{}{"id": t.TestStatusID}, &ts)
+	if err != nil {
+		return t
+	}
+	m["status"] = ts
+	return m
 }
 
 type user struct {

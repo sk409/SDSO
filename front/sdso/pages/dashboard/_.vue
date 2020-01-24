@@ -6,8 +6,8 @@
       @change-revision="changeRevision"
     ></GitToolbar>
     <div v-if="file" id="editor"></div>
-    <v-row v-else justify="center" class="h-100">
-      <v-col cols="11 h-100">
+    <v-row v-else justify="center">
+      <v-col cols="11">
         <v-card class="mb-4">
           <v-card-text>
             <v-simple-table>
@@ -19,9 +19,7 @@
                     @click="clickFileItem(fileItem)"
                   >
                     <td>
-                      <v-icon v-if="fileItem.isDirectory"
-                        >mdi-folder-outline</v-icon
-                      >
+                      <v-icon v-if="fileItem.isDirectory">mdi-folder-outline</v-icon>
                       <v-icon v-else>mdi-file-document-box-outline</v-icon>
                       <span class="ml-3">{{ fileItem.name }}</span>
                     </td>
@@ -167,8 +165,5 @@ export default {
 #editor {
   width: 100%;
   height: 85%;
-}
-.toolbar {
-  height: 15%;
 }
 </style>

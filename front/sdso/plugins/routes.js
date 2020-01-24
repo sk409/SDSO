@@ -4,13 +4,14 @@ Vue.prototype.$routes = {
   dashboard: {
     base: "/dashboard",
     commits: "/dashboard/commits",
+    dast: "/dashboard/dast",
     files(path, file) {
       if (!path) {
         path = "";
       }
       return "/dashboard/" + path + "?file=" + !!file;
     },
-    tests: "/dashboard/tests"
+    tests: "/dashboard/tests",
   },
   login: {
     base: "/login"

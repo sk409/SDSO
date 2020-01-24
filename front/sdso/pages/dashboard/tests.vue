@@ -1,18 +1,17 @@
 <template>
   <div>
     <v-subheader>テスト結果一覧</v-subheader>
-    <v-divider class="mb-5"></v-divider>
-    <GitToolbar
-      :new-revision="newRevision"
-      @change-revision="fetchTests"
-    ></GitToolbar>
+    <v-divider class="mb-3"></v-divider>
+    <GitToolbar :new-revision="newRevision" @change-revision="fetchTests"></GitToolbar>
     <v-container>
       <v-row justify="center">
         <v-col cols="10">
           <v-card v-for="test in tests" :key="test.id" class="mb-8">
-            <v-card-title :class="test.class" class="white--text">{{
+            <v-card-title :class="test.class" class="white--text">
+              {{
               test.text
-            }}</v-card-title>
+              }}
+            </v-card-title>
             <v-card-text>
               <v-expansion-panels flat multiple :accordian="false">
                 <v-expansion-panel
@@ -21,9 +20,11 @@
                   :class="result.class"
                   class="my-3"
                 >
-                  <v-expansion-panel-header class="body-1">{{
+                  <v-expansion-panel-header class="body-1">
+                    {{
                     result.command
-                  }}</v-expansion-panel-header>
+                    }}
+                  </v-expansion-panel-header>
                   <v-expansion-panel-content>
                     <pre class="black white--text pa-2 console-output">{{
                       result.output

@@ -162,9 +162,9 @@ func main() {
 			log.Println(err.Error())
 			continue
 		}
-		log.Println("BEFORE DO")
+		// log.Println("BEFORE DO")
 		response, err := client.Do(request)
-		log.Println("AFTER DO")
+		// log.Println("AFTER DO")
 		if err != nil {
 			log.Println(err.Error())
 			continue
