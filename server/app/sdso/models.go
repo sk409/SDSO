@@ -103,16 +103,30 @@ func (t test) public() interface{} {
 		return t
 	}
 	m := i.(map[string]interface{})
-	results := []testResult{}
-	_, err = find(map[string]interface{}{"test_id": t.ID}, &results)
+	testResults := []testResult{}
+	_, err = find(map[string]interface{}{"test_id": t.ID}, &testResults)
 	if err != nil {
 		return t
 	}
-	rp := make([]interface{}, len(results))
-	for index, result := range results {
-		rp[index] = result.public()
+	rp := make([]interface{}, len(testResults))
+	statusText := testResultSuccessText
+	if t.Steps != len(testResults) {
+		statusText = testResultRunningText
 	}
+	for index, testResult := range testResults {
+		if statusText == testResultSuccessText {
+			status := testStatus{}
+			_, err = first(map[string]interface{}{"id": testResult.TestStatusID}, &status)
+			if err != nil {
+				continue
+			}
+			statusText = status.Text
+		}
+		rp[index] = testResult.public()
+	}
+	m["color"] = testResultColors[statusText]
 	m["results"] = rp
+	m["status"] = statusText
 	return m
 }
 
@@ -147,7 +161,8 @@ func (t testResult) public() interface{} {
 	if err != nil {
 		return t
 	}
-	m["status"] = ts
+	m["color"] = testResultColors[ts.Text]
+	m["status"] = ts.Text
 	return m
 }
 

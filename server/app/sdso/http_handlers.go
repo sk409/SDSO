@@ -701,12 +701,39 @@ func (t *testsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		case base + "socket":
 			t.socket(w, r)
 			return
+		case base + "revision":
+			t.revision(w, r)
+			return
 		}
 	}
 	respond(w, http.StatusNotFound)
 }
 
 func (t *testsHandler) fetch(w http.ResponseWriter, r *http.Request) {
+	tests := []test{}
+	err := fetch(r, &tests)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
+	respondJSON(w, http.StatusOK, tests)
+}
+
+func (t *testsHandler) socket(w http.ResponseWriter, r *http.Request) {
+	u, err := authenticatedUser(r)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
+	socket, err := websocketUpgrader.Upgrade(w, r, nil)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
+	websocketsTest[u.ID] = socket
+}
+
+func (t *testsHandler) revision(w http.ResponseWriter, r *http.Request) {
 	username := r.URL.Query().Get("username")
 	projectname := r.URL.Query().Get("projectname")
 	revision := r.URL.Query().Get("revision")
@@ -748,20 +775,6 @@ func (t *testsHandler) fetch(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	respondJSON(w, http.StatusOK, response)
-}
-
-func (t *testsHandler) socket(w http.ResponseWriter, r *http.Request) {
-	u, err := authenticatedUser(r)
-	if err != nil {
-		respondError(w, http.StatusInternalServerError, err)
-		return
-	}
-	socket, err := websocketUpgrader.Upgrade(w, r, nil)
-	if err != nil {
-		respondError(w, http.StatusInternalServerError, err)
-		return
-	}
-	websocketsTest[u.ID] = socket
 }
 
 type testResultsHandler struct {

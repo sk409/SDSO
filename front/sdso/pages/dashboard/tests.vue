@@ -7,7 +7,7 @@
       :new-revision.sync="newRevision"
       @change-revision="fetchTests"
     ></GitToolbar>
-    <!-- <v-row justify="center">
+    <v-row justify="center">
       <v-col cols="11">
         <v-card class="mb-4">
           <v-simple-table>
@@ -20,10 +20,14 @@
               </tr>
             </thead>
             <tbody>
-              <tr v-for="test in tests" :key="test.id">
+              <tr
+                v-for="test in tests"
+                :key="test.id"
+                @click="$router.push($routes.tests.show(test.id))"
+              >
                 <td>
-                  <v-chip color="rgb(107, 197, 143)" text-color="white">
-                    {{ test.text }}
+                  <v-chip :color="test.color" small text-color="white">
+                    {{ test.status }}
                   </v-chip>
                 </td>
                 <td>{{ test.branchname }}</td>
@@ -34,37 +38,7 @@
           </v-simple-table>
         </v-card>
       </v-col>
-    </v-row> -->
-    <v-container>
-      <v-row justify="center">
-        <v-col cols="10">
-          <v-card v-for="test in tests" :key="test.id" class="mb-8">
-            <v-card-title :class="test.class" class="white--text">
-              {{ test.text }}
-            </v-card-title>
-            <v-card-text>
-              <v-expansion-panels flat multiple :accordian="false">
-                <v-expansion-panel
-                  v-for="result in test.results"
-                  :key="result.id"
-                  :class="result.class"
-                  class="my-3"
-                >
-                  <v-expansion-panel-header class="body-1">
-                    {{ result.command }}
-                  </v-expansion-panel-header>
-                  <v-expansion-panel-content>
-                    <pre class="black white--text pa-2 console-output">{{
-                      result.output
-                    }}</pre>
-                  </v-expansion-panel-content>
-                </v-expansion-panel>
-              </v-expansion-panels>
-            </v-card-text>
-          </v-card>
-        </v-col>
-      </v-row>
-    </v-container>
+    </v-row>
   </div>
 </template>
 
@@ -111,59 +85,59 @@ export default {
         projectname: project.name,
         revision
       };
-      ajax.get(url.base, data).then(response => {
-        this.tests = response.data.map(test => this.newTest(test));
+      ajax.get(url.revision, data).then(response => {
+        this.tests = response.data;
       });
     },
-    newTest(test) {
-      const t = {};
-      const classAndText = this.testClassAndText(test);
-      t.class = classAndText.class;
-      t.text = classAndText.text;
-      test.results = test.results.map(testResult =>
-        this.newTestResult(testResult)
-      );
-      return Object.assign(t, test);
-    },
-    newTestResult(testResult) {
-      const t = {};
-      t.class = this.resultClass(testResult);
-      return Object.assign(t, testResult);
-    },
-    testClassAndText(test) {
-      const running = test.results.some(
-        result => result.status.text === "running"
-      );
-      if (running || test.steps != test.results.length) {
-        return {
-          class: "test-running",
-          text: "RUNNING"
-        };
-      }
-      const failed = test.results.some(
-        result => result.status.text === "failed"
-      );
-      if (failed) {
-        return {
-          class: "test-failed",
-          text: "FAILED"
-        };
-      }
-      return {
-        class: "test-success",
-        text: "SUCCESS"
-      };
-    },
-    resultClass(result) {
-      switch (result.status.text) {
-        case "running":
-          return "test-label-running";
-        case "failed":
-          return "test-label-failed";
-        case "success":
-          return "test-label-success";
-      }
-    },
+    // newTest(test) {
+    //   const t = {};
+    //   const classAndText = this.testClassAndText(test);
+    //   t.class = classAndText.class;
+    //   t.text = classAndText.text;
+    //   test.results = test.results.map(testResult =>
+    //     this.newTestResult(testResult)
+    //   );
+    //   return Object.assign(t, test);
+    // },
+    // newTestResult(testResult) {
+    //   const t = {};
+    //   t.class = this.resultClass(testResult);
+    //   return Object.assign(t, testResult);
+    // },
+    // testClassAndText(test) {
+    //   const running = test.results.some(
+    //     result => result.status.text === "running"
+    //   );
+    //   if (running || test.steps != test.results.length) {
+    //     return {
+    //       class: "test-running",
+    //       text: "RUNNING"
+    //     };
+    //   }
+    //   const failed = test.results.some(
+    //     result => result.status.text === "failed"
+    //   );
+    //   if (failed) {
+    //     return {
+    //       class: "test-failed",
+    //       text: "FAILED"
+    //     };
+    //   }
+    //   return {
+    //     class: "test-success",
+    //     text: "SUCCESS"
+    //   };
+    // },
+    // resultClass(result) {
+    //   switch (result.status.text) {
+    //     case "running":
+    //       return "test-label-running";
+    //     case "failed":
+    //       return "test-label-failed";
+    //     case "success":
+    //       return "test-label-success";
+    //   }
+    // },
     setupSocket() {
       if (!WebSocket) {
         alert("WebSocketに対応していないブラウザです。");
@@ -218,24 +192,25 @@ export default {
   width: 600px;
   overflow-x: scroll;
 }
-.test-label-running {
-  border-left: 5px solid rgb(130, 209, 226);
-}
 
 .test-label-failed {
   border-left: 5px solid rgb(220, 102, 97);
+}
+
+.test-label-running {
+  border-left: 5px solid rgb(130, 209, 226);
 }
 
 .test-label-success {
   border-left: 5px solid rgb(107, 197, 143);
 }
 
-.test-running {
-  background: rgb(130, 209, 226);
-}
-
 .test-failed {
   background: rgb(220, 102, 97);
+}
+
+.test-running {
+  background: rgb(130, 209, 226);
 }
 
 .test-success {

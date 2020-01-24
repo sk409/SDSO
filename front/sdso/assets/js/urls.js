@@ -28,6 +28,9 @@ export class Url {
         this.text = this.base + "text";
         break;
       case pathTests:
+        this.revision = this.base + "revision";
+        this.socket = socket(path);
+        break;
       case pathTestResults:
         this.socket = socket(path);
         break;

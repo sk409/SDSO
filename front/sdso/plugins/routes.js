@@ -11,7 +11,7 @@ Vue.prototype.$routes = {
       }
       return "/dashboard/" + path + "?file=" + !!file;
     },
-    tests: "/dashboard/tests",
+    tests: "/dashboard/tests"
   },
   login: {
     base: "/login"
@@ -21,6 +21,11 @@ Vue.prototype.$routes = {
   },
   register: {
     base: "/register"
+  },
+  tests: {
+    show(id) {
+      return "/tests/" + id;
+    }
   },
   vulnerabilities: {
     show(id) {
