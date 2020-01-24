@@ -28,6 +28,7 @@
               :items="projectnames"
               no-data-text="プロジェクトがありません"
               placeholder="プロジェクトを選択してください"
+              class="project-select"
               @input="selectProjectname"
             ></v-select>
           </v-col>
@@ -80,6 +81,11 @@ export default {
       drawer: false,
       menuItems: [
         {
+          title: "チーム作成",
+          icon: "mdi-account-supervisor-outline",
+          route: ""
+        },
+        {
           title: "プロジェクト作成",
           icon: "mdi-apps",
           route: this.$routes.projects.create
@@ -104,6 +110,11 @@ export default {
         {
           title: "ミーティング",
           icon: "mdi-message-outline",
+          route: ""
+        },
+        {
+          title: "設定",
+          icon: "mdi-settings-outline",
           route: ""
         }
       ],
@@ -151,3 +162,9 @@ export default {
   }
 };
 </script>
+
+<style>
+.project-select {
+  width: 200px;
+}
+</style>

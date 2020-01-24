@@ -7,6 +7,7 @@
         no-data-text="ブランチがありません"
         placeholder="ブランチを選択してください"
         :value="branchname"
+        class="git-select"
         @input="changeBranchname"
       ></v-select>
     </div>
@@ -18,6 +19,7 @@
           no-data-text="コミットがありません"
           placeholder="コミットを選択してください"
           :value="revision"
+          class="git-select"
           @input="changeRevision"
         ></v-select>
       </v-badge>
@@ -150,3 +152,9 @@ export default {
   }
 };
 </script>
+
+<style>
+.git-select {
+  width: 200px;
+}
+</style>
