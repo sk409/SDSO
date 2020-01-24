@@ -1,7 +1,7 @@
 <template>
   <div>
     <v-subheader>テスト結果一覧</v-subheader>
-    <v-divider class="mb-3"></v-divider>
+    <v-divider class="mb-1"></v-divider>
     <GitToolbar
       class="mb-3"
       :new-revision.sync="newRevision"
@@ -47,8 +47,8 @@ import ajax from "@/assets/js/ajax.js";
 import GitToolbar from "@/components/GitToolbar.vue";
 import mutations from "@/assets/js/mutations.js";
 import { pathTestResults, pathTests, Url } from "@/assets/js/urls.js";
-let socketTest = null;
-let socketTestResult = null;
+
+let socket = null;
 export default {
   layout: "dashboard",
   components: {
@@ -89,64 +89,15 @@ export default {
         this.tests = response.data;
       });
     },
-    // newTest(test) {
-    //   const t = {};
-    //   const classAndText = this.testClassAndText(test);
-    //   t.class = classAndText.class;
-    //   t.text = classAndText.text;
-    //   test.results = test.results.map(testResult =>
-    //     this.newTestResult(testResult)
-    //   );
-    //   return Object.assign(t, test);
-    // },
-    // newTestResult(testResult) {
-    //   const t = {};
-    //   t.class = this.resultClass(testResult);
-    //   return Object.assign(t, testResult);
-    // },
-    // testClassAndText(test) {
-    //   const running = test.results.some(
-    //     result => result.status.text === "running"
-    //   );
-    //   if (running || test.steps != test.results.length) {
-    //     return {
-    //       class: "test-running",
-    //       text: "RUNNING"
-    //     };
-    //   }
-    //   const failed = test.results.some(
-    //     result => result.status.text === "failed"
-    //   );
-    //   if (failed) {
-    //     return {
-    //       class: "test-failed",
-    //       text: "FAILED"
-    //     };
-    //   }
-    //   return {
-    //     class: "test-success",
-    //     text: "SUCCESS"
-    //   };
-    // },
-    // resultClass(result) {
-    //   switch (result.status.text) {
-    //     case "running":
-    //       return "test-label-running";
-    //     case "failed":
-    //       return "test-label-failed";
-    //     case "success":
-    //       return "test-label-success";
-    //   }
-    // },
     setupSocket() {
       if (!WebSocket) {
         alert("WebSocketに対応していないブラウザです。");
         return;
       }
       const that = this;
-      const urlTests = new Url(pathTests);
-      socketTest = new WebSocket(urlTests.socket);
-      socketTest.onmessage = function(e) {
+      const url = new Url(pathTests);
+      socket = new WebSocket(url.socket);
+      socket.onmessage = function(e) {
         const branchname = that.$store.state.git.branchname;
         if (!branchname) {
           return;
@@ -155,65 +106,15 @@ export default {
         if (branchname !== test.branchname) {
           return;
         }
-        that.newRevision = true;
-      };
-      const urlTestResults = new Url(pathTestResults);
-      socketTestResult = new WebSocket(urlTestResults.socket);
-      socketTestResult.onmessage = function(e) {
-        const testResult = that.newTestResult(JSON.parse(e.data));
-        // TODO: gocase
-        const testIndex = that.tests.findIndex(
-          test => test.id === testResult.testID
-        );
+        const index = that.tests.findIndex(t => t.id === test.id);
         const notFound = -1;
-        if (testIndex === notFound) {
-          return;
-        }
-        const test = that.tests[testIndex];
-        const testResultIndex = test.results.findIndex(
-          tr => tr.id === testResult.id
-        );
-        if (testResultIndex === notFound) {
-          test.results.push(testResult);
+        if (index === notFound) {
+          that.newRevision = true;
         } else {
-          that.$set(test.results, testResultIndex, testResult);
+          that.$set(that.tests, index, test);
         }
-        const testClassAndText = that.testClassAndText(test);
-        test.text = testClassAndText.text;
-        test.class = testClassAndText.class;
       };
     }
   }
 };
 </script>
-
-<style>
-.console-output {
-  width: 600px;
-  overflow-x: scroll;
-}
-
-.test-label-failed {
-  border-left: 5px solid rgb(220, 102, 97);
-}
-
-.test-label-running {
-  border-left: 5px solid rgb(130, 209, 226);
-}
-
-.test-label-success {
-  border-left: 5px solid rgb(107, 197, 143);
-}
-
-.test-failed {
-  background: rgb(220, 102, 97);
-}
-
-.test-running {
-  background: rgb(130, 209, 226);
-}
-
-.test-success {
-  background: rgb(107, 197, 143);
-}
-</style>

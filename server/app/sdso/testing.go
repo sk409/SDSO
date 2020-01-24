@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -132,20 +131,20 @@ func runTest(userName, projectName, clonePath, branchName, commitSHA1 string) (b
 		downCommand.Dir = testPath
 		downCommand.Run()
 	}()
-	test := test{
+	t := test{
 		Steps:      len(config.Jobs.Build.Steps),
 		Branchname: branchName,
 		CommitSHA1: commitSHA1,
 		ProjectID:  project.ID,
 	}
-	db.Save(&test)
+	db.Save(&t)
 	if db.Error != nil {
 		// log.Print(db.Error)
 		return false, db.Error
 	}
 	socketTest, exist := websocketsTest[user.ID]
 	if exist {
-		p, err := public(test.public())
+		p, err := public(t.public())
 		jsonBytes, err := json.Marshal(p)
 		if err == nil {
 			socketTest.WriteMessage(websocket.TextMessage, jsonBytes)
@@ -159,17 +158,20 @@ func runTest(userName, projectName, clonePath, branchName, commitSHA1 string) (b
 				valueString := value.(string)
 				if keyString == "run" {
 					sendToClient := func(testResult *testResult) {
-						socket, exist := websocketsTestResult[user.ID]
-						if !exist {
-							return
-						}
-						p, err := public(testResult.public())
+						// 新しく作り直さないとフロントの日付がおかしくなる
+						te := test{}
+						//
+						db.Where("id = ?", t.ID).First(&te)
+						p, err := public(te.public())
 						if err != nil {
 							return
 						}
 						jsonBytes, err := json.Marshal(p)
 						if err != nil {
-							// log.Println(err)
+							return
+						}
+						socket, ok := websocketsTest[user.ID]
+						if !ok {
 							return
 						}
 						socket.WriteMessage(websocket.TextMessage, []byte(jsonBytes))
@@ -195,7 +197,7 @@ func runTest(userName, projectName, clonePath, branchName, commitSHA1 string) (b
 					db.Where("text = 'running'").First(&testStatusRunning)
 					testResult := testResult{
 						Command:      valueString,
-						TestID:       test.ID,
+						TestID:       t.ID,
 						TestStatusID: testStatusRunning.ID,
 					}
 					db.Save(&testResult)
@@ -204,7 +206,6 @@ func runTest(userName, projectName, clonePath, branchName, commitSHA1 string) (b
 						return false, db.Error
 					}
 					sendToClient(&testResult)
-					log.Println("ID = ", testResult.ID)
 					args := []string{"exec", "-T", serviceNames[0]}
 					args = append(args, strings.Split(valueString, " ")...)
 					execCommand := exec.Command("docker-compose", args...)

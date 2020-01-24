@@ -2,29 +2,31 @@
   <v-container v-if="vulnerability" class="mt-4">
     <div class="title">脆弱性の詳細</div>
     <v-divider class="mb-7"></v-divider>
-    <v-card>
-      <v-tabs v-model="tabActive">
+    <v-card class="pb-5">
+      <v-tabs v-model="tabActive" class="mb-3">
         <v-tab v-for="tab in tabs" :key="tab" :href="`#${tab}`">
           {{ tab }}
         </v-tab>
       </v-tabs>
-      <v-tabs-items v-model="tabActive" class="pa-3">
+      <v-tabs-items v-model="tabActive" class="mx-5">
         <v-tab-item value="詳細情報">
-          <div v-for="m in metadata" :key="m.text" class="mb-5 d-flex">
+          <div v-for="m in metadata" :key="m.text" class="mb-2 d-flex">
             <span class="d-inline-block vulnerability-label">{{ m.text }}</span>
             <div><span class="mr-3">:</span>{{ vulnerability[m.value] }}</div>
           </div>
-          <div class="mb-5">
-            <div class="mb-2">リクエスト</div>
-            <pre class="pa-3 blue-grey darken-4 white--text">{{
-              vulnerability.request
-            }}</pre>
+          <div class="mb-2">
+            <div class="mb-1">リクエスト</div>
+            <pre
+              class="pa-3 blue-grey darken-4 white--text w-100 overflow-x-auto"
+              >{{ vulnerability.request }}</pre
+            >
           </div>
           <div>
-            <div class="mb-2">レスポンス</div>
-            <pre class="pa-3 blue-grey darken-4 white--text">{{
-              vulnerability.response
-            }}</pre>
+            <div class="mb-1">レスポンス</div>
+            <pre
+              class="pa-3 blue-grey darken-4 white--text w-100 overflow-x-auto"
+              >{{ vulnerability.response }}</pre
+            >
           </div>
         </v-tab-item>
       </v-tabs-items>

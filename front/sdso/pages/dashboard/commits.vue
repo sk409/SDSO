@@ -1,7 +1,7 @@
 <template>
   <div>
     <v-subheader>コミット一覧</v-subheader>
-    <v-divider class="mb-3"></v-divider>
+    <v-divider class="mb-1"></v-divider>
     <GitToolbar
       class="mb-3"
       :hide-revision="true"

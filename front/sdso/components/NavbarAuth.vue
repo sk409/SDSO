@@ -100,6 +100,11 @@ export default {
           title: "セキュリティ",
           icon: "mdi-security",
           route: this.$routes.dashboard.dast
+        },
+        {
+          title: "ミーティング",
+          icon: "mdi-message-outline",
+          route: ""
         }
       ],
       projectname: "",

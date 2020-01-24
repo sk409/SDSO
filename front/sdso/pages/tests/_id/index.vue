@@ -4,16 +4,16 @@
     <v-divider class="mb-5"></v-divider>
     <div class="mb-5">
       <v-chip :color="test.color" text-color="white" class="title">
-        {{ test.status }}
+        {{ test.status.toUpperCase() }}
       </v-chip>
     </div>
-    <v-card class="pb-6">
+    <v-card class="pb-5">
       <v-tabs v-model="tabActive" class="mb-3">
         <v-tab v-for="tab in tabs" :key="tab" :href="`#${tab}`">
           {{ tab }}
         </v-tab>
       </v-tabs>
-      <v-tabs-items v-model="tabActive" class="mx-3">
+      <v-tabs-items v-model="tabActive" class="mx-5">
         <v-tab-item value="コマンド">
           <v-expansion-panels flat multiple :accordian="false">
             <v-expansion-panel
@@ -27,9 +27,10 @@
                 {{ result.command }}
               </v-expansion-panel-header>
               <v-expansion-panel-content>
-                <pre class="black white--text pa-2 console-output">{{
-                  result.output
-                }}</pre>
+                <pre
+                  class="pa-3 blue-grey darken-4 white--text overflow-x-auto"
+                  >{{ result.output }}</pre
+                >
               </v-expansion-panel-content>
             </v-expansion-panel>
           </v-expansion-panels>
@@ -42,6 +43,8 @@
 <script>
 import ajax from "@/assets/js/ajax.js";
 import { pathTests, Url } from "@/assets/js/urls.js";
+
+let socket = null;
 export default {
   layout: "auth",
   data() {
@@ -52,6 +55,7 @@ export default {
     };
   },
   created() {
+    this.setupSocket();
     const url = new Url(pathTests);
     const data = {
       id: this.$route.params.id
@@ -59,6 +63,24 @@ export default {
     ajax.get(url.base, data).then(response => {
       this.test = response.data[0];
     });
+  },
+  methods: {
+    setupSocket() {
+      if (!WebSocket) {
+        alert("WebSocketに対応していないブラウザです。");
+        return;
+      }
+      const that = this;
+      const url = new Url(pathTests);
+      socket = new WebSocket(url.socket);
+      socket.onmessage = function(e) {
+        const test = JSON.parse(e.data);
+        if (that.test.id !== test.id) {
+          return;
+        }
+        that.test = test;
+      };
+    }
   }
 };
 </script>

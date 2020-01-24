@@ -1,7 +1,7 @@
 <template>
   <div class="h-100">
     <v-subheader>ファイル一覧</v-subheader>
-    <v-divider class="mb-3"></v-divider>
+    <v-divider class="mb-1"></v-divider>
     <GitToolbar
       class="mb-3"
       @change-branchname="changeBranchname"

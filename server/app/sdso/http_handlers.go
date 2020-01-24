@@ -750,7 +750,7 @@ func (t *testsHandler) revision(w http.ResponseWriter, r *http.Request) {
 	p := project{}
 	statusCode, err = first(map[string]interface{}{"name": projectname, "user_id": u.ID}, &p)
 	tests := []test{}
-	db.Where("project_id = ?", p.ID).Find(&tests)
+	db.Where("project_id = ?", p.ID).Order("created_at DESC").Find(&tests)
 	if db.Error != nil {
 		respondError(w, statusCode, db.Error)
 		return

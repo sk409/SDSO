@@ -118,9 +118,9 @@ export default {
   },
   mounted() {
     let maxHeight = this.$refs.content.clientHeight;
-    if (this.$refs.navbar.$el.clientHeight === 0) {
-      maxHeight += this.navbarHeight;
-    }
+    // if (this.$refs.navbar.$el.clientHeight === 0) {
+    //   maxHeight += this.navbarHeight;
+    // }
     this.mainStyle = {
       "max-height": maxHeight + "px"
     };

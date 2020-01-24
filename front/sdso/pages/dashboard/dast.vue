@@ -1,7 +1,7 @@
 <template>
   <div>
     <v-subheader>動的テスト結果一覧</v-subheader>
-    <v-divider class="mb-3"></v-divider>
+    <v-divider class="mb-1"></v-divider>
     <GitToolbar class="mb-3" @change-revision="fetchScans"></GitToolbar>
     <v-row justify="center">
       <v-col cols="11">
