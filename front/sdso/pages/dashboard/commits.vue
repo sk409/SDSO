@@ -2,17 +2,36 @@
   <div>
     <v-subheader>コミット一覧</v-subheader>
     <v-divider class="mb-3"></v-divider>
-    <GitToolbar :hide-revision="true" @change-branchname="fetchCommits()"></GitToolbar>
+    <GitToolbar
+      class="mb-3"
+      :hide-revision="true"
+      @change-branchname="fetchCommits()"
+    ></GitToolbar>
     <v-row justify="center">
       <v-col cols="11">
         <v-card class="mb-4">
-          <v-data-table
-            :headers="tableHeaders"
-            :items="commits"
-            :items-per-page="20"
-            no-data-text="まだコミットされていません"
-            @click:row="clickCommit"
-          ></v-data-table>
+          <v-simple-table>
+            <template>
+              <thead>
+                <tr>
+                  <th>SHA1</th>
+                  <th>コミットメッセージ</th>
+                  <th>日付</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr
+                  v-for="commit in commits"
+                  :key="commit.sha1"
+                  @click="clickCommit(commit)"
+                >
+                  <td>{{ commit.sha1 }}</td>
+                  <td>{{ commit.message | truncate(15) }}</td>
+                  <td>{{ commit.date | dateDefault }}</td>
+                </tr>
+              </tbody>
+            </template>
+          </v-simple-table>
         </v-card>
       </v-col>
     </v-row>
@@ -34,11 +53,11 @@ export default {
   data() {
     return {
       commits: [],
-      tableHeaders: [
-        { text: "SHA1", value: "sha1" },
-        { text: "コミットメッセージ", value: "message" },
-        { text: "日付", value: "date" }
-      ],
+      // tableHeaders: [
+      //   { text: "SHA1", value: "sha1" },
+      //   { text: "コミットメッセージ", value: "message" },
+      //   { text: "日付", value: "date" }
+      // ],
       user: null
     };
   },
@@ -74,10 +93,10 @@ export default {
       };
       ajax.get(url.base, data).then(response => {
         this.commits = response.data;
-        this.commits.forEach(commit => {
-          commit.date = dateFormatter.default(commit.date);
-          commit.message = truncate(commit.message, 15);
-        });
+        // this.commits.forEach(commit => {
+        //   commit.date = dateFormatter.default(commit.date);
+        //   commit.message = truncate(commit.message, 15);
+        // });
       });
     }
   }

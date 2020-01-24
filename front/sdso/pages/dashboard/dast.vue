@@ -19,6 +19,9 @@
               <tr
                 v-for="vulnerability in vulnerabilities"
                 :key="vulnerability.id"
+                @click="
+                  $router.push($routes.vulnerabilities.show(vulnerability.id))
+                "
               >
                 <td>{{ vulnerability.path }}</td>
                 <td>{{ vulnerability.name }}</td>

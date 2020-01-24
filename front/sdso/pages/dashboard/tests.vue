@@ -2,15 +2,45 @@
   <div>
     <v-subheader>テスト結果一覧</v-subheader>
     <v-divider class="mb-3"></v-divider>
-    <GitToolbar :new-revision="newRevision" @change-revision="fetchTests"></GitToolbar>
+    <GitToolbar
+      class="mb-3"
+      :new-revision.sync="newRevision"
+      @change-revision="fetchTests"
+    ></GitToolbar>
+    <!-- <v-row justify="center">
+      <v-col cols="11">
+        <v-card class="mb-4">
+          <v-simple-table>
+            <thead>
+              <tr>
+                <th>ステータス</th>
+                <th>ブランチ</th>
+                <th>SHA1</th>
+                <th>実施日</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="test in tests" :key="test.id">
+                <td>
+                  <v-chip color="rgb(107, 197, 143)" text-color="white">
+                    {{ test.text }}
+                  </v-chip>
+                </td>
+                <td>{{ test.branchname }}</td>
+                <td>{{ test.commitSHA1.substr(0, 5) }}</td>
+                <td>{{ test.createdAt | dateDefault }}</td>
+              </tr>
+            </tbody>
+          </v-simple-table>
+        </v-card>
+      </v-col>
+    </v-row> -->
     <v-container>
       <v-row justify="center">
         <v-col cols="10">
           <v-card v-for="test in tests" :key="test.id" class="mb-8">
             <v-card-title :class="test.class" class="white--text">
-              {{
-              test.text
-              }}
+              {{ test.text }}
             </v-card-title>
             <v-card-text>
               <v-expansion-panels flat multiple :accordian="false">
@@ -21,9 +51,7 @@
                   class="my-3"
                 >
                   <v-expansion-panel-header class="body-1">
-                    {{
-                    result.command
-                    }}
+                    {{ result.command }}
                   </v-expansion-panel-header>
                   <v-expansion-panel-content>
                     <pre class="black white--text pa-2 console-output">{{

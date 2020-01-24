@@ -67,8 +67,9 @@ export default {
   created() {
     unsubscribe = this.$store.subscribe((mutation, state) => {
       if (mutation.type === mutations.projects.setProject) {
-        this.fetchBranches();
-        this.fetchCommits();
+        this.fetchBranches(() => {
+          this.changeBranchname("master");
+        });
       }
     });
     this.$fetchUser().then(response => {
@@ -92,7 +93,7 @@ export default {
       setBranchname: mutations.git.setBranchname,
       setRevision: mutations.git.setRevision
     }),
-    fetchBranches() {
+    fetchBranches(completion) {
       const project = this.$store.state.projects.project;
       if (!project) {
         return;
@@ -104,6 +105,9 @@ export default {
       };
       ajax.get(url.base, data).then(response => {
         this.branchnames = response.data;
+        if (completion) {
+          completion();
+        }
       });
     },
     fetchCommits(completion) {
@@ -139,6 +143,7 @@ export default {
       this.$emit("change-branchname", branchname);
     },
     changeRevision(revision) {
+      this.$emit("update:newRevision", false);
       this.setRevision(revision);
       this.$emit("change-revision", revision);
     }

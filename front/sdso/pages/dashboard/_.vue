@@ -1,7 +1,9 @@
 <template>
   <div class="h-100">
+    <v-subheader>ファイル一覧</v-subheader>
+    <v-divider class="mb-3"></v-divider>
     <GitToolbar
-      class="toolbar"
+      class="mb-3"
       @change-branchname="changeBranchname"
       @change-revision="changeRevision"
     ></GitToolbar>
@@ -19,7 +21,9 @@
                     @click="clickFileItem(fileItem)"
                   >
                     <td>
-                      <v-icon v-if="fileItem.isDirectory">mdi-folder-outline</v-icon>
+                      <v-icon v-if="fileItem.isDirectory"
+                        >mdi-folder-outline</v-icon
+                      >
                       <v-icon v-else>mdi-file-document-box-outline</v-icon>
                       <span class="ml-3">{{ fileItem.name }}</span>
                     </td>

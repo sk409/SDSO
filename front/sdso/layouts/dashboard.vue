@@ -1,12 +1,6 @@
 <template>
   <v-app light>
-    <NavbarAuth
-      ref="navbar"
-      :active-project-name="activeProjectName"
-      :projects="projects"
-      :height="navbarHeight"
-      @select-projectname="selectProjectname"
-    ></NavbarAuth>
+    <NavbarAuth ref="navbar" :height="navbarHeight"></NavbarAuth>
     <v-content class="white black--text h-100">
       <div ref="content" class="d-flex h-100">
         <div class="h-100 sidemenu">
@@ -64,11 +58,7 @@
 </template>
 
 <script>
-import ajax from "@/assets/js/ajax.js";
-import mutations from "@/assets/js/mutations.js";
 import NavbarAuth from "@/components/NavbarAuth.vue";
-import { mapMutations } from "vuex";
-import { pathProjects, Url } from "@/assets/js/urls.js";
 export default {
   middleware: "auth",
   components: {
@@ -111,34 +101,20 @@ export default {
       },
       mainStyle: {},
       navbarHeight: 64,
-      projects: [],
       sidemenuType: "git",
       user: null
     };
   },
   computed: {
-    activeProjectName() {
-      const project = this.$store.state.projects.project;
-      return project ? project.name : "";
-    },
     sidemenuItems() {
       return this.allSidemenuItems[this.sidemenuType];
     }
   },
   created() {
     this.$nuxt.$on("setSidemenuType", this.setSidemenuType);
-    this.$fetchUser()
-      .then(response => {
-        this.user = response.data;
-        const url = new Url(pathProjects);
-        const data = {
-          userId: this.user.id
-        };
-        return ajax.get(url.base, data);
-      })
-      .then(response => {
-        this.projects = response.data;
-      });
+    this.$fetchUser().then(response => {
+      this.user = response.data;
+    });
   },
   mounted() {
     let maxHeight = this.$refs.content.clientHeight;
@@ -148,23 +124,9 @@ export default {
     this.mainStyle = {
       "max-height": maxHeight + "px"
     };
-    console.log(this.mainStyle);
+    // console.log(this.mainStyle);
   },
   methods: {
-    ...mapMutations({
-      setProject: mutations.projects.setProject
-    }),
-    selectProjectname(projectname) {
-      const url = new Url(pathProjects);
-      const data = {
-        name: projectname,
-        userId: this.user.id
-      };
-      ajax.get(url.base, data).then(response => {
-        const project = response.data[0];
-        this.setProject(project);
-      });
-    },
     setSidemenuType(sidemenuType) {
       this.sidemenuType = sidemenuType;
     }

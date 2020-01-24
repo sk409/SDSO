@@ -21,5 +21,10 @@ Vue.prototype.$routes = {
   },
   register: {
     base: "/register"
+  },
+  vulnerabilities: {
+    show(id) {
+      return "/vulnerabilities/" + id;
+    }
   }
 };

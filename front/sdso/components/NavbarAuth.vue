@@ -2,7 +2,12 @@
   <div>
     <v-navigation-drawer v-model="drawer" app>
       <v-list>
-        <v-list-item v-for="navItem in navItems" :key="navItem.title" :to="navItem.route" router>
+        <v-list-item
+          v-for="navItem in navItems"
+          :key="navItem.title"
+          :to="navItem.route"
+          router
+        >
           <v-list-item-action>
             <v-icon>{{ navItem.icon }}</v-icon>
           </v-list-item-action>
@@ -18,11 +23,11 @@
         <v-row align="center">
           <v-col cols="4">
             <v-select
+              v-model="projectname"
               hide-details
               :items="projectnames"
               no-data-text="プロジェクトがありません"
-              :value="activeProjectName"
-              label="プロジェクトを選択してください"
+              placeholder="プロジェクトを選択してください"
               @input="selectProjectname"
             ></v-select>
           </v-col>
@@ -57,19 +62,17 @@
 </template>
 
 <script>
+import ajax from "@/assets/js/ajax.js";
+import mutations from "@/assets/js/mutations.js";
+import { mapMutations } from "vuex";
+import { pathProjects, Url } from "@/assets/js/urls.js";
+
+let user = null;
 export default {
   props: {
-    activeProjectName: {
-      type: String,
-      default: ""
-    },
     height: {
       type: Number,
       default: 64
-    },
-    projects: {
-      type: Array,
-      default: () => []
     }
   },
   data() {
@@ -97,13 +100,10 @@ export default {
           title: "セキュリティ",
           icon: "mdi-security",
           route: this.$routes.dashboard.dast
-        },
-        {
-          title: "アカウント情報",
-          icon: "mdi-account-badge-horizontal",
-          route: ""
         }
-      ]
+      ],
+      projectname: "",
+      projects: []
     };
   },
   computed: {
@@ -111,9 +111,37 @@ export default {
       return this.projects.map(project => project.name);
     }
   },
+  created() {
+    const project = this.$store.state.projects.project;
+    if (project) {
+      this.projectname = project.name;
+    }
+    this.$fetchUser().then(response => {
+      user = response.data;
+      this.fetchProjects();
+    });
+  },
   methods: {
+    ...mapMutations({
+      setProject: mutations.projects.setProject
+    }),
     selectProjectname(projectname) {
-      this.$emit("select-projectname", projectname);
+      const project = this.projects.find(
+        project => project.name === projectname
+      );
+      if (!project) {
+        return;
+      }
+      this.setProject(project);
+    },
+    fetchProjects() {
+      const url = new Url(pathProjects);
+      const data = {
+        userId: user.id
+      };
+      ajax.get(url.base, data).then(response => {
+        this.projects = response.data;
+      });
     }
   }
 };
