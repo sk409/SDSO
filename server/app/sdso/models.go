@@ -8,9 +8,8 @@ type branchProtectionRule struct {
 	ID         uint `gorm:"primary_key"`
 	CreatedAt  time.Time
 	UpdatedAt  time.Time
-	DeletedAt  *time.Time `sql:"index"`
-	BranchName string     `gorm:"type:varchar(128);not null"`
-	ProjectID  uint       `gorm:"not null"`
+	BranchName string `gorm:"type:varchar(128);not null"`
+	ProjectID  uint   `gorm:"not null"`
 }
 
 type build struct {
@@ -43,9 +42,8 @@ type project struct {
 	ID        uint `gorm:"primary_key"`
 	CreatedAt time.Time
 	UpdatedAt time.Time
-	DeletedAt *time.Time `sql:"index"`
-	Name      string     `gorm:"type:varchar(128);not null"`
-	UserID    uint       `gorm:"not null"`
+	Name      string `gorm:"type:varchar(128);not null"`
+	TeamID    uint   `gorm:"not null"`
 }
 
 type request struct {
@@ -56,10 +54,9 @@ type scan struct {
 	ID         uint `gorm:"primary_key"`
 	CreatedAt  time.Time
 	UpdatedAt  time.Time
-	DeletedAt  *time.Time `sql:"index"`
-	CommitSHA1 string     `gorm:"type:char(40);not null"`
-	UserID     uint       `gorm:"not null"`
-	ProjectID  uint       `gorm:"not null"`
+	CommitSHA1 string `gorm:"type:char(40);not null"`
+	UserID     uint   `gorm:"not null"`
+	ProjectID  uint   `gorm:"not null"`
 }
 
 func (s scan) public() interface{} {
@@ -69,7 +66,7 @@ func (s scan) public() interface{} {
 	}
 	m := i.(map[string]interface{})
 	vulnerabilities := []vulnerability{}
-	_, err = find(map[string]interface{}{"scan_id": s.ID}, &vulnerabilities)
+	err = find(map[string]interface{}{"scan_id": s.ID}, &vulnerabilities)
 	if err != nil {
 		m["vulnerabilities"] = []vulnerability{}
 		return m
@@ -86,15 +83,30 @@ func (s scan) public() interface{} {
 	return m
 }
 
+type team struct {
+	ID        uint `gorm:"primary_key"`
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	Name      string `gorm:"type:varchar(256);not null;unique;"`
+	Password  string `gorm:"type:char(60);not null;"`
+}
+
+type teamUser struct {
+	ID        uint `gorm:"primary_key"`
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	TeamID    uint `gorm:"not null"`
+	UserID    uint `gorm:"not null"`
+}
+
 type test struct {
 	ID         uint `gorm:"primary_key"`
 	CreatedAt  time.Time
 	UpdatedAt  time.Time
-	DeletedAt  *time.Time `sql:"index"`
-	Steps      int        `gorm:"not null"`
-	Branchname string     `gorm:"type:varchar(256); not null;"`
-	CommitSHA1 string     `gorm:"type:char(40);not null;unique"`
-	ProjectID  uint       `gorm:"not null"`
+	Steps      int    `gorm:"not null"`
+	Branchname string `gorm:"type:varchar(256); not null;"`
+	CommitSHA1 string `gorm:"type:char(40);not null;unique"`
+	ProjectID  uint   `gorm:"not null"`
 }
 
 func (t test) public() interface{} {
@@ -104,7 +116,7 @@ func (t test) public() interface{} {
 	}
 	m := i.(map[string]interface{})
 	testResults := []testResult{}
-	_, err = find(map[string]interface{}{"test_id": t.ID}, &testResults)
+	err = find(map[string]interface{}{"test_id": t.ID}, &testResults)
 	if err != nil {
 		return t
 	}
@@ -116,7 +128,7 @@ func (t test) public() interface{} {
 	for index, testResult := range testResults {
 		if statusText == testResultSuccessText {
 			status := testStatus{}
-			_, err = first(map[string]interface{}{"id": testResult.TestStatusID}, &status)
+			err = first(map[string]interface{}{"id": testResult.TestStatusID}, &status)
 			if err != nil {
 				continue
 			}
@@ -134,19 +146,17 @@ type testStatus struct {
 	ID        uint `gorm:"primary_key"`
 	CreatedAt time.Time
 	UpdatedAt time.Time
-	DeletedAt *time.Time `sql:"index"`
-	Text      string     `gorm:"type:varchar(7);unique"`
+	Text      string `gorm:"type:varchar(7);unique"`
 }
 
 type testResult struct {
 	ID           uint `gorm:"primary_key"`
 	CreatedAt    time.Time
 	UpdatedAt    time.Time
-	DeletedAt    *time.Time `sql:"index"`
-	Command      string     `gorm:"type:text;not null"`
-	Output       string     `gorm:"type:text;"`
-	TestID       uint       `gorm:"not null"`
-	TestStatusID uint       `gorm:"not null"`
+	Command      string `gorm:"type:text;not null"`
+	Output       string `gorm:"type:text;"`
+	TestID       uint   `gorm:"not null"`
+	TestStatusID uint   `gorm:"not null"`
 	CompletedAt  *time.Time
 }
 
@@ -157,7 +167,7 @@ func (t testResult) public() interface{} {
 	}
 	m := i.(map[string]interface{})
 	ts := testStatus{}
-	_, err = first(map[string]interface{}{"id": t.TestStatusID}, &ts)
+	err = first(map[string]interface{}{"id": t.TestStatusID}, &ts)
 	if err != nil {
 		return t
 	}
@@ -170,23 +180,21 @@ type user struct {
 	ID               uint `gorm:"primary_key"`
 	CreatedAt        time.Time
 	UpdatedAt        time.Time
-	DeletedAt        *time.Time `sql:"index"`
-	Name             string     `gorm:"type:varchar(32);not null;unique"`
-	Password         string     `gorm:"type:char(60);not null;"`
-	ProfileImagePath *string    `gorm:"type:varchar(256);unique"`
+	Name             string  `gorm:"type:varchar(32);not null;unique"`
+	Password         string  `gorm:"type:char(60);not null;"`
+	ProfileImagePath *string `gorm:"type:varchar(256);unique"`
 }
 
 type vulnerability struct {
 	ID          uint `gorm:"primary_key"`
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
-	DeletedAt   *time.Time `sql:"index"`
-	Name        string     `gorm:"type:varchar(32);not null"`
-	Description string     `gorm:"type:varchar(128);not null"`
-	Path        string     `gorm:"type:varchar(256);not null"`
-	Method      string     `gorm:"type:varchar(8);not null"`
-	Request     string     `gorm:"type:text;not null"`
-	Response    string     `gorm:"type:text;not null"`
-	ProjectID   uint       `gorm:"not null"`
-	ScanID      uint       `gorm:"not null"`
+	Name        string `gorm:"type:varchar(32);not null"`
+	Description string `gorm:"type:varchar(128);not null"`
+	Path        string `gorm:"type:varchar(256);not null"`
+	Method      string `gorm:"type:varchar(8);not null"`
+	Request     string `gorm:"type:text;not null"`
+	Response    string `gorm:"type:text;not null"`
+	ProjectID   uint   `gorm:"not null"`
+	ScanID      uint   `gorm:"not null"`
 }

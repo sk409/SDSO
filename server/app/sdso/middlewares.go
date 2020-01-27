@@ -1,6 +1,7 @@
 package main
 
 import (
+	"log"
 	"net/http"
 	"path"
 	"strings"
@@ -65,18 +66,19 @@ func gitBasicAuth(next http.Handler) http.Handler {
 			respond(w, http.StatusNotFound)
 			return
 		}
-		userName := components[1]
-		projectName := components[2]
-		if r.URL.Path == "/"+path.Join(userName, projectName, "git-receive-pack") {
-			u := user{}
-			statusCode, err := first(map[string]interface{}{"name": userName}, &u)
+		teamname := components[1]
+		projectname := components[2]
+		if r.URL.Path == "/"+path.Join(teamname, projectname, "git-receive-pack") {
+			t := team{}
+			err := first(map[string]interface{}{"name": teamname}, &t)
 			if err != nil {
-				respondError(w, statusCode, err)
+				respondError(w, http.StatusInternalServerError, err)
 				return
 			}
 			name, password, ok := r.BasicAuth()
-			err = bcrypt.CompareHashAndPassword([]byte(u.Password), []byte(password))
-			if !ok || u.Name != name || err != nil {
+			err = bcrypt.CompareHashAndPassword([]byte(t.Password), []byte(password))
+			log.Println(err)
+			if !ok || t.Name != name || err != nil {
 				w.Header().Set("WWW-Authenticate", `Basic realm="Please enter your username and password."`)
 				w.WriteHeader(http.StatusUnauthorized)
 				w.Write([]byte(http.StatusText(http.StatusUnauthorized)))

@@ -1,6 +1,6 @@
 <template>
   <v-app light>
-    <NavbarAuth ref="navbar" :height="navbarHeight"></NavbarAuth>
+    <NavbarProject></NavbarProject>
     <v-content class="white black--text h-100">
       <div ref="content" class="d-flex h-100">
         <div class="h-100 sidemenu">
@@ -20,10 +20,7 @@
             </v-list-item>
           </v-list>
         </div>
-        <div
-          :style="mainStyle"
-          class="w-100 h-100 overflow-x-hidden overflow-y-auto"
-        >
+        <div :style="mainStyle" class="w-100 h-100 overflow-x-hidden overflow-y-auto">
           <nuxt />
         </div>
       </div>
@@ -54,15 +51,23 @@
         </v-row>
       </v-container>-->
     </v-content>
+    <v-snackbar v-model="snackbar" :timeout="3000" top @input="clearNotification">
+      <span>{{this.$store.state.notifications.message}}</span>
+      <v-btn left icon @click="snackbar = false">
+        <v-icon>mdi-close</v-icon>
+      </v-btn>
+    </v-snackbar>
   </v-app>
 </template>
 
 <script>
-import NavbarAuth from "@/components/NavbarAuth.vue";
+import mutations from "@/assets/js/mutations.js";
+import NavbarProject from "@/components/NavbarProject.vue";
+import { mapMutations } from "vuex";
 export default {
   middleware: "auth",
   components: {
-    NavbarAuth
+    NavbarProject
   },
   data() {
     return {
@@ -100,8 +105,8 @@ export default {
         ]
       },
       mainStyle: {},
-      navbarHeight: 64,
       sidemenuType: "git",
+      snackbar: false,
       user: null
     };
   },
@@ -111,6 +116,7 @@ export default {
     }
   },
   created() {
+    this.snackbar = this.$store.state.notifications.message !== "";
     this.$nuxt.$on("setSidemenuType", this.setSidemenuType);
     this.$fetchUser().then(response => {
       this.user = response.data;
@@ -127,6 +133,12 @@ export default {
     // console.log(this.mainStyle);
   },
   methods: {
+    ...mapMutations({
+      setNotificationMessage: mutations.notifications.setMessage
+    }),
+    clearNotification() {
+      this.setNotificationMessage("");
+    },
     setSidemenuType(sidemenuType) {
       this.sidemenuType = sidemenuType;
     }

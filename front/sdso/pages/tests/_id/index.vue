@@ -45,6 +45,9 @@ import ajax from "@/assets/js/ajax.js";
 import { pathTests, Url } from "@/assets/js/urls.js";
 
 let socket = null;
+const statusLoading = "statusLoading";
+const statusPermissionError = "statusPermissionError";
+const statusOK = "statusOK";
 export default {
   layout: "auth",
   data() {
@@ -56,12 +59,14 @@ export default {
   },
   created() {
     this.setupSocket();
-    const url = new Url(pathTests);
-    const data = {
-      id: this.$route.params.id
-    };
-    ajax.get(url.base, data).then(response => {
-      this.test = response.data[0];
+    this.$fetchUser().then(response => {
+      const url = new Url(pathTests);
+      const data = {
+        id: this.$route.params.id
+      };
+      ajax.get(url.base, data).then(response => {
+        this.test = response.data[0];
+      });
     });
   },
   methods: {

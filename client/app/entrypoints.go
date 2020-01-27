@@ -21,7 +21,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/sk409/gofile"
 
 	"golang.org/x/crypto/bcrypt"
 
@@ -29,12 +28,9 @@ import (
 )
 
 func entrypointInit() {
-	if !gofile.IsExist(projectDirectory) {
-		err := os.Mkdir(projectDirectory, 0755)
-		if err != nil {
-			return
-		}
-	}
+	os.Mkdir(directoryProject, 0755)
+	os.Mkdir(directoryRequests, 0755)
+	os.Mkdir(directoryVulnerabilities, 0755)
 	fs := flag.NewFlagSet(os.Args[0], flag.ExitOnError)
 	projectname := fs.String("project", "", "project name")
 	fs.Parse(os.Args[2:])

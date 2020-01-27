@@ -15,8 +15,18 @@ class Ajax {
 
   get(url, data, config) {
     url += "?"
-    for (const key in data) {
-      url += `${key}=${data[key]}&`
+    for (let key in data) {
+      const value = data[key];
+      if (Array.isArray(value)) {
+        if (!key.endsWith("[]")) {
+          key += "[]";
+        }
+        for (const item of value) {
+          url += `${key}=${item}&`
+        }
+      } else {
+        url += `${key}=${value}&`
+      }
     }
     return axios.get(url, config)
   }

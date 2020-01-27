@@ -6,10 +6,14 @@ import (
 	"errors"
 	"io"
 	"io/ioutil"
+	"log"
 	"net/http"
+	"os/exec"
 	"reflect"
 	"regexp"
+	"strconv"
 
+	"github.com/sk409/gocase"
 	"github.com/sk409/goconst"
 	"github.com/sk409/gotype"
 )
@@ -35,6 +39,12 @@ type printable interface {
 // 	}
 // 	return false, nil
 // }
+
+func command(directory, name string, args ...string) ([]byte, error) {
+	cmd := exec.Command(name, args...)
+	cmd.Dir = directory
+	return cmd.Output()
+}
 
 func convert(data interface{}) (interface{}, error) {
 	if !gotype.IsStruct(data) && !gotype.IsPointer(data) {
@@ -80,6 +90,21 @@ func emptyAny(values ...interface{}) bool {
 	return false
 }
 
+func find(query map[string]interface{}, model interface{}) error {
+	db.Where(query).Find(model)
+	return db.Error
+}
+
+func findByUniqueKey(uniqueKeys interface{}, model interface{}) error {
+	db.Where(uniqueKeys).Find(model)
+	return db.Error
+}
+
+func first(query map[string]interface{}, model interface{}) error {
+	db.Where(query).First(model)
+	return db.Error
+}
+
 func getBranchNameAndCommitSHA1(r *http.Request) (string, string, error) {
 	var body io.ReadCloser
 	var err error
@@ -109,4 +134,38 @@ func getBranchNameAndCommitSHA1(r *http.Request) (string, string, error) {
 	branchName = branchName[:len(branchName)-1]
 	//
 	return branchName, commitSHA1, nil
+}
+
+func save(query map[string]interface{}, model interface{}) error {
+	rv := reflect.ValueOf(model).Elem()
+	for key, value := range query {
+		fieldName := string(gocase.UpperCamelCase([]byte(key), true))
+		fv := rv.FieldByName(fieldName)
+		ft := fv.Type()
+		// vt := reflect.TypeOf(value)
+		log.Println(fieldName)
+		log.Println(reflect.TypeOf(value))
+		log.Println("======")
+		if ft.Kind() == reflect.String {
+			fv.SetString(value.(string))
+		} else if ft.Kind() == reflect.Uint {
+			var v interface{}
+			if gotype.IsString(value) {
+				s := value.(string)
+				var err error
+				v, err = strconv.ParseUint(s, 10, 64)
+				if err != nil {
+					return err
+				}
+			} else {
+				v = value
+			}
+			fv.SetUint(v.(uint64))
+		}
+	}
+	db.Save(model)
+	if db.Error != nil {
+		return db.Error
+	}
+	return nil
 }

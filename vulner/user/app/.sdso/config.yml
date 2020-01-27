@@ -3,7 +3,6 @@ jobs:
   build:
     docker:
       - image: node:8.9.0
-      - image: circleci/postgres:9.6-alpine
     steps:
       - run: npm install
       - run: npm test

@@ -1,6 +1,6 @@
 <template>
   <v-app light>
-    <NavbarAuth></NavbarAuth>
+    <NavbarAccount></NavbarAccount>
     <v-content class="white black--text">
       <nuxt />
     </v-content>
@@ -8,11 +8,11 @@
 </template>
 
 <script>
-import NavbarAuth from "@/components/NavbarAuth.vue";
+import NavbarAccount from "@/components/NavbarAccount.vue";
 export default {
   middleware: "auth",
   components: {
-    NavbarAuth
+    NavbarAccount
   }
 };
 </script>

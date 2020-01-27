@@ -20,7 +20,7 @@ func public(data interface{}) (interface{}, error) {
 		}
 		m := make(map[string]interface{})
 		for _, key := range rv.MapKeys() {
-			l := string(gocase.LowerCamelCase([]byte(key.String()), true))
+			l := string(gocase.LowerCamelCase([]byte(key.String()), false))
 			p, err := public(rv.MapIndex(key).Interface())
 			if err != nil {
 				return nil, err

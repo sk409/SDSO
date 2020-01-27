@@ -1,6 +1,7 @@
 import Vue from "vue";
 
 Vue.prototype.$routes = {
+  account: {},
   dashboard: {
     base: "/dashboard",
     commits: "/dashboard/commits",
@@ -11,6 +12,7 @@ Vue.prototype.$routes = {
       }
       return "/dashboard/" + path + "?file=" + !!file;
     },
+    members: "/dashboard/members",
     tests: "/dashboard/tests"
   },
   login: {
@@ -21,6 +23,9 @@ Vue.prototype.$routes = {
   },
   register: {
     base: "/register"
+  },
+  teams: {
+    create: "/teams/create"
   },
   tests: {
     show(id) {

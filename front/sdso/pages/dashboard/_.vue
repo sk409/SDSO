@@ -8,7 +8,7 @@
       @change-revision="changeRevision"
     ></GitToolbar>
     <div v-if="file" id="editor"></div>
-    <v-row v-else justify="center">
+    <v-row v-else-if="completion" justify="center">
       <v-col cols="11">
         <v-card class="mb-4">
           <v-card-text>
@@ -21,9 +21,7 @@
                     @click="clickFileItem(fileItem)"
                   >
                     <td>
-                      <v-icon v-if="fileItem.isDirectory"
-                        >mdi-folder-outline</v-icon
-                      >
+                      <v-icon v-if="fileItem.isDirectory">mdi-folder-outline</v-icon>
                       <v-icon v-else>mdi-file-document-box-outline</v-icon>
                       <span class="ml-3">{{ fileItem.name }}</span>
                     </td>
@@ -101,6 +99,10 @@ export default {
       );
     },
     fetchFiles() {
+      const team = this.$store.state.teams.team;
+      if (!team) {
+        return;
+      }
       const project = this.$store.state.projects.project;
       if (!project) {
         return;
@@ -112,10 +114,10 @@ export default {
       const path = this.$route.params.pathMatch;
       const url = new Url(pathFiles);
       const data = {
-        username: this.user.name,
+        teamname: team.name,
         projectname: project.name,
-        treeIsh: revision,
-        path: path
+        revision,
+        path
       };
       ajax.get(url.base, data).then(response => {
         const folders = response.data.filter(fileItem => fileItem.isDirectory);

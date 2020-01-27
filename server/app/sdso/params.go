@@ -11,15 +11,15 @@ import (
 )
 
 var (
-	cwd                  string
-	gitTmpRepositories   *gogit.Git
-	gitRepositories      *gogit.Git
-	gitTesting           *gogit.Git
-	gitServer            *gogit.HTTPServer
-	testResultColors     = map[string]string{}
-	websocketsTest       = map[uint]*websocket.Conn{}
-	websocketsTestResult = map[uint]*websocket.Conn{}
-	websocketUpgrader    = &websocket.Upgrader{
+	cwd                string
+	gitTmpRepositories *gogit.Git
+	gitRepositories    *gogit.Git
+	gitTesting         *gogit.Git
+	gitServer          *gogit.HTTPServer
+	pathRepositories   = ""
+	testResultColors   = map[string]string{}
+	websocketsTest     = map[uint]*websocket.Conn{}
+	websocketUpgrader  = &websocket.Upgrader{
 		ReadBufferSize:  socketBufferSize,
 		WriteBufferSize: socketBufferSize,
 		CheckOrigin: func(r *http.Request) bool {
@@ -52,10 +52,10 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
-	rootRepositoryPath := filepath.Join(cwd, "..", "repositories")
+	pathRepositories = filepath.Join(cwd, "..", "repositories")
 	gitTmpRepositories = gogit.NewGit(filepath.Join(cwd, "..", "tmp_repositories"), gitBinPath)
 	gitRepositories = gogit.NewGit(filepath.Join(cwd, "..", "repositories"), gitBinPath)
-	gitServer = gogit.NewHTTPServer(rootRepositoryPath, gitBinPath)
+	gitServer = gogit.NewHTTPServer(pathRepositories, gitBinPath)
 	testResultColors[testResultFailedText] = testResultFailedColor
 	testResultColors[testResultRunningText] = testResultRunningColor
 	testResultColors[testResultSuccessText] = testResultSuccessColor

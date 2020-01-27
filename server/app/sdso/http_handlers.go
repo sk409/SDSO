@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"os"
 	"path"
@@ -103,9 +104,9 @@ func (b *branchProtectionRulesHandler) fetch(w http.ResponseWriter, r *http.Requ
 
 func (b *branchProtectionRulesHandler) store(w http.ResponseWriter, r *http.Request) {
 	branchProtectionRule := branchProtectionRule{}
-	statusCode, err := store(r, &branchProtectionRule)
+	err := store(r, &branchProtectionRule)
 	if err != nil {
-		respondError(w, statusCode, err)
+		respondError(w, http.StatusInternalServerError, err)
 		return
 	}
 	respondJSON(w, http.StatusOK, branchProtectionRule)
@@ -213,11 +214,11 @@ func (f *filesHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (f *filesHandler) fetch(w http.ResponseWriter, r *http.Request) {
-	username := r.URL.Query().Get("username")
+	teamname := r.URL.Query().Get("teamname")
 	projectname := r.URL.Query().Get("projectname")
-	treeIsh := r.URL.Query().Get("treeIsh")
+	revision := r.URL.Query().Get("revision")
 	path := r.URL.Query().Get("path")
-	if emptyAny(username, projectname, treeIsh) {
+	if emptyAny(teamname, projectname, revision) {
 		respond(w, http.StatusBadRequest)
 		return
 	}
@@ -228,7 +229,7 @@ func (f *filesHandler) fetch(w http.ResponseWriter, r *http.Request) {
 		}
 		args = append(args, path)
 	}
-	output, err := gitRepositories.LsTree(filepath.Join(username, projectname), treeIsh, args...)
+	output, err := gitRepositories.LsTree(filepath.Join(teamname, projectname), revision, args...)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
 		return
@@ -319,29 +320,34 @@ func (g *gitHandler) refs(w http.ResponseWriter, r *http.Request) {
 	gitServer.ServeHTTP(w, r)
 }
 
-func (g *gitHandler) receivePack(w http.ResponseWriter, r *http.Request, userName, projectName string) {
-	user := user{}
-	db.Where("name = ?", userName).First(&user)
-	if db.Error != nil {
-		w.WriteHeader(http.StatusInternalServerError)
+func (g *gitHandler) receivePack(w http.ResponseWriter, r *http.Request, teamname, projectname string) {
+	t := team{}
+	// db.Where("name = ?", userName).First(&user)
+	err := first(map[string]interface{}{"name": teamname}, &t)
+	log.Println(t)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
 		return
 	}
-	if user.ID == 0 {
-		w.WriteHeader(http.StatusBadRequest)
+	if t.ID == 0 {
+		respondError(w, http.StatusInternalServerError, errBadRequest)
 		return
 	}
-	project := project{}
-	db.Where("name = ? AND user_id = ?", projectName, user.ID).First(&project)
-	if db.Error != nil {
-		w.WriteHeader(http.StatusInternalServerError)
+	// project := project{}
+	//db.Where("name = ? AND user_id = ?", projectName, user.ID).First(&project)
+	p := project{}
+	err = first(map[string]interface{}{"name": projectname, "team_id": t.ID}, &p)
+	log.Println(p)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
 		return
 	}
-	if project.ID == 0 {
-		w.WriteHeader(http.StatusBadRequest)
+	if p.ID == 0 {
+		respondError(w, http.StatusInternalServerError, errBadRequest)
 		return
 	}
 	branchProtectionRules := []branchProtectionRule{}
-	db.Where("project_id = ?", project.ID).Find(&branchProtectionRules)
+	db.Where("project_id = ?", p.ID).Find(&branchProtectionRules)
 	branchName, commitSHA1, err := getBranchNameAndCommitSHA1(r)
 	if err != nil {
 		return
@@ -365,8 +371,8 @@ func (g *gitHandler) receivePack(w http.ResponseWriter, r *http.Request, userNam
 			return
 		}
 		r.Body = ioutil.NopCloser(bytes.NewBuffer(bodyBytes))
-		repositoryPath := filepath.Join(gitRepositories.RootDirectoryPath, userName, projectName)
-		tmpRepositoryPath := filepath.Join(gitTmpRepositories.RootDirectoryPath, userName, projectName)
+		repositoryPath := filepath.Join(gitRepositories.RootDirectoryPath, teamname, projectname)
+		tmpRepositoryPath := filepath.Join(gitTmpRepositories.RootDirectoryPath, teamname, projectname)
 		err = os.RemoveAll(tmpRepositoryPath)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
@@ -377,18 +383,18 @@ func (g *gitHandler) receivePack(w http.ResponseWriter, r *http.Request, userNam
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-		defer os.RemoveAll(filepath.Join(gitTmpRepositories.RootDirectoryPath, userName))
+		defer os.RemoveAll(filepath.Join(gitTmpRepositories.RootDirectoryPath, teamname))
 		err = gofile.Copy(repositoryPath, tmpRepositoryPath)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-		err = gitTmpRepositories.RPC(filepath.Join(userName, projectName), gogit.RPCReceivePack, r)
+		err = gitTmpRepositories.RPC(filepath.Join(teamname, projectname), gogit.RPCReceivePack, r)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-		succeeded, err := runTest(userName, projectName, tmpRepositoryPath, branchName, commitSHA1)
+		succeeded, err := runTest(teamname, projectname, tmpRepositoryPath, branchName, commitSHA1)
 		if !succeeded || err != nil {
 			// log.Println("****************")
 			// log.Println(err)
@@ -402,8 +408,8 @@ func (g *gitHandler) receivePack(w http.ResponseWriter, r *http.Request, userNam
 		gitServer.ServeHTTP(w, r)
 	} else {
 		gitServer.ServeHTTP(w, r)
-		clonePath := filepath.Join(gitRepositories.RootDirectoryPath, userName, projectName)
-		go runTest(userName, projectName, clonePath, branchName, commitSHA1)
+		clonePath := filepath.Join(gitRepositories.RootDirectoryPath, teamname, projectname)
+		go runTest(teamname, projectname, clonePath, branchName, commitSHA1)
 	}
 }
 
@@ -473,10 +479,17 @@ type projectsHandler struct {
 }
 
 func (p *projectsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	base := "/projects/"
 	switch r.Method {
 	case http.MethodGet:
-		p.fetch(w, r)
-		return
+		switch r.URL.Path {
+		case base:
+			p.fetch(w, r)
+			return
+		case base + "ids":
+			p.ids(w, r)
+			return
+		}
 	case http.MethodPost:
 		p.store(w, r)
 		return
@@ -494,15 +507,83 @@ func (p *projectsHandler) fetch(w http.ResponseWriter, r *http.Request) {
 	respondJSON(w, http.StatusOK, projects)
 }
 
+func (p *projectsHandler) ids(w http.ResponseWriter, r *http.Request) {
+	r.ParseForm()
+	ids := r.Form["ids[]"]
+	if emptyAny(ids) {
+		respond(w, http.StatusBadRequest)
+		return
+	}
+	projects := []project{}
+	err := findByUniqueKey(ids, projects)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
+	respondJSON(w, http.StatusOK, projects)
+}
+
 func (p *projectsHandler) store(w http.ResponseWriter, r *http.Request) {
 	project := project{}
-	statusCode, err := store(r, &project)
+	err := store(r, &project)
 	if err != nil {
-		respondError(w, statusCode, err)
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
+	t := team{}
+	err = first(map[string]interface{}{"id": project.TeamID}, &t)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
+	repositoryPath := filepath.Join(pathRepositories, t.Name, project.Name)
+	err = os.MkdirAll(repositoryPath, 0755)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
+	_, err = command(repositoryPath, "git", "init", "--bare")
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
 		return
 	}
 	respondJSON(w, http.StatusOK, project)
 }
+
+// type projectUsersHandler struct {
+// }
+
+// func (p *projectUsersHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+// 	switch r.Method {
+// 	case http.MethodGet:
+// 		p.fetch(w, r)
+// 		return
+// 	case http.MethodPost:
+// 		p.store(w, r)
+// 		return
+// 	}
+// 	respond(w, http.StatusNotFound)
+// }
+
+// func (p *projectUsersHandler) fetch(w http.ResponseWriter, r *http.Request) {
+// 	projectUsers := []projectUser{}
+// 	err := fetch(r, &projectUsers)
+// 	if err != nil {
+// 		respondError(w, http.StatusInternalServerError, err)
+// 		return
+// 	}
+// 	respondJSON(w, http.StatusOK, projectUsers)
+// }
+
+// func (p *projectUsersHandler) store(w http.ResponseWriter, r *http.Request) {
+// 	projectUser := projectUser{}
+// 	statusCode, err := store(r, &projectUser)
+// 	if err != nil {
+// 		respondError(w, statusCode, err)
+// 		return
+// 	}
+// 	respondJSON(w, http.StatusOK, projectUser)
+// }
 
 type registerHandler struct {
 }
@@ -619,21 +700,21 @@ func (s *scansHandler) fetch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	u := user{}
-	statusCode, err := first(map[string]interface{}{"name": username}, &u)
+	err := first(map[string]interface{}{"name": username}, &u)
 	if err != nil {
-		respondError(w, statusCode, err)
+		respondError(w, http.StatusInternalServerError, err)
 		return
 	}
 	p := project{}
-	statusCode, err = first(map[string]interface{}{"name": projectname, "user_id": u.ID}, &p)
+	err = first(map[string]interface{}{"name": projectname, "user_id": u.ID}, &p)
 	if err != nil {
-		respondError(w, statusCode, err)
+		respondError(w, http.StatusInternalServerError, err)
 		return
 	}
 	scans := []scan{}
-	statusCode, err = find(map[string]interface{}{"project_id": p.ID}, &scans)
+	err = find(map[string]interface{}{"project_id": p.ID}, &scans)
 	if err != nil {
-		respondJSON(w, http.StatusOK, []scan{})
+		respondError(w, http.StatusInternalServerError, err)
 		return
 	}
 	revisionsByte, err := gitRepositories.RevList(filepath.Join(username, projectname), revision)
@@ -663,15 +744,15 @@ func (s *scansHandler) store(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	u := user{}
-	statusCode, err := first(map[string]interface{}{"name": username}, &u)
+	err := first(map[string]interface{}{"name": username}, &u)
 	if err != nil {
-		respondError(w, statusCode, err)
+		respondError(w, http.StatusInternalServerError, err)
 		return
 	}
 	p := project{}
-	statusCode, err = first(map[string]interface{}{"name": projectname, "user_id": u.ID}, &p)
+	err = first(map[string]interface{}{"name": projectname, "user_id": u.ID}, &p)
 	if err != nil {
-		respondError(w, statusCode, err)
+		respondError(w, http.StatusInternalServerError, err)
 		return
 	}
 	scan := scan{
@@ -685,6 +766,109 @@ func (s *scansHandler) store(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	respondJSON(w, http.StatusOK, scan)
+}
+
+type teamsHandler struct {
+}
+
+func (t *teamsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	base := "/teams/"
+	switch r.Method {
+	case http.MethodGet:
+		switch r.URL.Path {
+		case base:
+			t.fetch(w, r)
+			return
+		case base + "ids":
+			t.ids(w, r)
+			return
+		}
+	case http.MethodPost:
+		t.store(w, r)
+		return
+	}
+	respond(w, http.StatusNotFound)
+}
+
+func (t *teamsHandler) fetch(w http.ResponseWriter, r *http.Request) {
+	teams := []team{}
+	err := fetch(r, &teams)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
+	respondJSON(w, http.StatusOK, teams)
+}
+
+func (t *teamsHandler) ids(w http.ResponseWriter, r *http.Request) {
+	ids := r.URL.Query()["ids[]"]
+	if emptyAny(ids) {
+		respond(w, http.StatusBadRequest)
+		return
+	}
+	teams := []team{}
+	err := findByUniqueKey(ids, &teams)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
+	respondJSON(w, http.StatusOK, teams)
+}
+
+func (t *teamsHandler) store(w http.ResponseWriter, r *http.Request) {
+	name := r.PostFormValue("name")
+	password := r.PostFormValue("password")
+	if emptyAny(name, password) {
+		respond(w, http.StatusBadRequest)
+		return
+	}
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
+	team := team{}
+	err = save(map[string]interface{}{"name": name, "password": string(hashedPassword)}, &team)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
+	respondJSON(w, http.StatusOK, team)
+}
+
+type teamUsersHandler struct {
+}
+
+func (t *teamUsersHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodGet:
+		t.fetch(w, r)
+		return
+	case http.MethodPost:
+		t.store(w, r)
+		return
+	}
+	respond(w, http.StatusNotFound)
+}
+
+func (t *teamUsersHandler) fetch(w http.ResponseWriter, r *http.Request) {
+	teamUsers := []teamUser{}
+	err := fetch(r, &teamUsers)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
+	respondJSON(w, http.StatusOK, teamUsers)
+}
+
+func (t *teamUsersHandler) store(w http.ResponseWriter, r *http.Request) {
+	teamUser := teamUser{}
+	err := store(r, &teamUser)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
+	respondJSON(w, http.StatusOK, teamUser)
 }
 
 type testsHandler struct {
@@ -742,17 +926,17 @@ func (t *testsHandler) revision(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	u := user{}
-	statusCode, err := first(map[string]interface{}{"name": username}, &u)
+	err := first(map[string]interface{}{"name": username}, &u)
 	if err != nil {
-		respondError(w, statusCode, err)
+		respondError(w, http.StatusInternalServerError, err)
 		return
 	}
 	p := project{}
-	statusCode, err = first(map[string]interface{}{"name": projectname, "user_id": u.ID}, &p)
+	err = first(map[string]interface{}{"name": projectname, "user_id": u.ID}, &p)
 	tests := []test{}
 	db.Where("project_id = ?", p.ID).Order("created_at DESC").Find(&tests)
 	if db.Error != nil {
-		respondError(w, statusCode, db.Error)
+		respondError(w, http.StatusInternalServerError, db.Error)
 		return
 	}
 	if len(tests) == 0 {
@@ -781,17 +965,10 @@ type testResultsHandler struct {
 }
 
 func (t *testResultsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	base := "/test_results/"
 	switch r.Method {
 	case http.MethodGet:
-		switch r.URL.Path {
-		case base:
-			t.fetch(w, r)
-			return
-		case path.Join(base, "socket"):
-			t.socket(w, r)
-			return
-		}
+		t.fetch(w, r)
+		return
 	}
 	respond(w, http.StatusNotFound)
 }
@@ -804,20 +981,6 @@ func (t *testResultsHandler) fetch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	respondJSON(w, http.StatusOK, testResults)
-}
-
-func (t *testResultsHandler) socket(w http.ResponseWriter, r *http.Request) {
-	u, err := authenticatedUser(r)
-	if err != nil {
-		respondError(w, http.StatusInternalServerError, err)
-		return
-	}
-	socket, err := websocketUpgrader.Upgrade(w, r, nil)
-	if err != nil {
-		respondError(w, http.StatusInternalServerError, err)
-		return
-	}
-	websocketsTestResult[u.ID] = socket
 }
 
 type testStatusesHandler struct {
@@ -937,21 +1100,21 @@ func (v *vulnerabilitiesHandler) store(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	u := user{}
-	statusCode, err := first(map[string]interface{}{"name": username}, &u)
+	err := first(map[string]interface{}{"name": username}, &u)
 	if err != nil {
-		respondError(w, statusCode, err)
+		respondError(w, http.StatusInternalServerError, err)
 		return
 	}
 	p := project{}
-	statusCode, err = first(map[string]interface{}{"name": projectname, "user_id": u.ID}, &p)
+	err = first(map[string]interface{}{"name": projectname, "user_id": u.ID}, &p)
 	if err != nil {
-		respondError(w, statusCode, err)
+		respondError(w, http.StatusInternalServerError, err)
 		return
 	}
 	s := scan{}
-	statusCode, err = first(map[string]interface{}{"id": scanID}, &s)
+	err = first(map[string]interface{}{"id": scanID}, &s)
 	if err != nil {
-		respondError(w, statusCode, err)
+		respondError(w, http.StatusInternalServerError, err)
 	}
 	vulnerability := vulnerability{
 		Name:        name,

@@ -7,7 +7,7 @@
       :hide-revision="true"
       @change-branchname="fetchCommits()"
     ></GitToolbar>
-    <v-row justify="center">
+    <v-row justify="center" v-if="commits.length">
       <v-col cols="11">
         <v-card class="mb-4">
           <v-simple-table>

@@ -16,6 +16,7 @@
                 <th>ステータス</th>
                 <th>ブランチ</th>
                 <th>SHA1</th>
+                <th>ステップ</th>
                 <th>実施日</th>
               </tr>
             </thead>
@@ -32,6 +33,7 @@
                 </td>
                 <td>{{ test.branchname }}</td>
                 <td>{{ test.commitSHA1.substr(0, 5) }}</td>
+                <td>{{ test.results.length }}/{{ test.steps }}</td>
                 <td>{{ test.createdAt | dateDefault }}</td>
               </tr>
             </tbody>

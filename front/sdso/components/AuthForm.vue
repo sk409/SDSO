@@ -1,13 +1,10 @@
 <template>
   <div>
     <v-form>
-      <v-text-field
-        v-model="username"
-        :rules="usernameRules"
-        label="ユーザ名"
-      ></v-text-field>
+      <v-text-field v-model="username" :rules="usernameRules" label="ユーザ名"></v-text-field>
       <v-text-field
         v-model="password"
+        autocomplete
         :rules="passwordRules"
         type="password"
         label="パスワード"

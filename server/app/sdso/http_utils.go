@@ -5,7 +5,6 @@ import (
 	"log"
 	"net/http"
 	"reflect"
-	"strconv"
 	"strings"
 
 	"github.com/sk409/gotype"
@@ -37,31 +36,6 @@ func authenticatedUser(r *http.Request) (*user, error) {
 		return nil, err
 	}
 	return &u, nil
-}
-
-func find(query map[string]interface{}, model interface{}) (int, error) {
-	db.Where(query).Find(model)
-	if db.Error != nil {
-		return http.StatusInternalServerError, db.Error
-	}
-	rv := reflect.ValueOf(model).Elem()
-	if rv.Len() == 0 {
-		return http.StatusBadRequest, errNotExist
-	}
-	return 0, nil
-}
-
-func first(query map[string]interface{}, model interface{}) (int, error) {
-	db.Where(query).First(model)
-	if db.Error != nil {
-		return http.StatusInternalServerError, db.Error
-	}
-	rv := reflect.ValueOf(model).Elem()
-	id := rv.FieldByName("ID")
-	if id.Uint() == 0 {
-		return http.StatusBadRequest, errNotExist
-	}
-	return 0, nil
 }
 
 func fetch(r *http.Request, model interface{}) error {
@@ -157,29 +131,34 @@ func routeWithID(r *http.Request) (string, bool) {
 	return components[2], true
 }
 
-func store(r *http.Request, model interface{}) (int, error) {
+func store(r *http.Request, model interface{}) error {
 	err := r.ParseForm()
 	if err != nil {
-		return http.StatusInternalServerError, err
+		return err
 	}
-	rv := reflect.ValueOf(model).Elem()
+	query := make(map[string]interface{})
 	for key, value := range r.PostForm {
-		fieldName := string(gocase.UpperCamelCase([]byte(key), true))
-		fv := rv.FieldByName(fieldName)
-		ft := fv.Type()
-		if ft.Kind() == reflect.String {
-			fv.SetString(value[0])
-		} else if ft.Kind() == reflect.Uint {
-			u, err := strconv.ParseUint(value[0], 10, 64)
-			if err != nil {
-				return http.StatusBadRequest, errBadRequest
-			}
-			fv.SetUint(u)
-		}
+		query[key] = value[0]
 	}
-	db.Save(model)
-	if db.Error != nil {
-		return http.StatusInternalServerError, db.Error
-	}
-	return http.StatusOK, nil
+	return save(query, model)
+	// rv := reflect.ValueOf(model).Elem()
+	// for key, value := range r.PostForm {
+	// 	fieldName := string(gocase.UpperCamelCase([]byte(key), true))
+	// 	fv := rv.FieldByName(fieldName)
+	// 	ft := fv.Type()
+	// 	if ft.Kind() == reflect.String {
+	// 		fv.SetString(value[0])
+	// 	} else if ft.Kind() == reflect.Uint {
+	// 		u, err := strconv.ParseUint(value[0], 10, 64)
+	// 		if err != nil {
+	// 			return errBadRequest
+	// 		}
+	// 		fv.SetUint(u)
+	// 	}
+	// }
+	// db.Save(model)
+	// if db.Error != nil {
+	// 	return db.Error
+	// }
+	// return nil
 }

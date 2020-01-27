@@ -69,9 +69,14 @@ export default {
   created() {
     unsubscribe = this.$store.subscribe((mutation, state) => {
       if (mutation.type === mutations.projects.setProject) {
-        this.fetchBranches(() => {
-          this.changeBranchname("master");
-        });
+        if (state.projects.project) {
+          this.fetchBranches(() => {
+            this.changeBranchname("master");
+          });
+        } else {
+          this.changeBranchname("");
+          this.changeRevision("");
+        }
       }
     });
     this.$fetchUser().then(response => {
