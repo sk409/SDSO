@@ -48,8 +48,7 @@ export default {
   data() {
     return {
       branchnames: [],
-      commits: [],
-      user: null
+      commits: []
     };
   },
   computed: {
@@ -79,11 +78,8 @@ export default {
         }
       }
     });
-    this.$fetchUser().then(response => {
-      this.user = response.data;
-      this.fetchBranches();
-      this.fetchCommits();
-    });
+    this.fetchBranches();
+    this.fetchCommits();
   },
   destroyed() {
     unsubscribe();
@@ -101,13 +97,17 @@ export default {
       setRevision: mutations.git.setRevision
     }),
     fetchBranches(completion) {
+      const team = this.$store.state.teams.team;
+      if (!team) {
+        return;
+      }
       const project = this.$store.state.projects.project;
       if (!project) {
         return;
       }
       const url = new Url(pathBranches);
       const data = {
-        username: this.user.name,
+        teamname: team.name,
         projectname: project.name
       };
       ajax.get(url.base, data).then(response => {
@@ -118,6 +118,10 @@ export default {
       });
     },
     fetchCommits(completion) {
+      const team = this.$store.state.teams.team;
+      if (!team) {
+        return;
+      }
       const project = this.$store.state.projects.project;
       if (!project) {
         return;
@@ -127,7 +131,7 @@ export default {
       }
       const url = new Url(pathCommits);
       const data = {
-        username: this.user.name,
+        teamname: team.name,
         projectname: project.name,
         branchname: this.branchname
       };

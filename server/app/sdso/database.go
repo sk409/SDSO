@@ -40,7 +40,7 @@ func insertData() {
 			db.Save(&testStatus)
 		}
 	}
-	insertIfNotExist(testResultFailedText)
-	insertIfNotExist(testResultRunningText)
-	insertIfNotExist(testResultSuccessText)
+	insertIfNotExist(testStatusFailedText)
+	insertIfNotExist(testStatusRunningText)
+	insertIfNotExist(testStatusSuccessText)
 }

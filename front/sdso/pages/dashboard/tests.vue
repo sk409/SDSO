@@ -7,7 +7,7 @@
       :new-revision.sync="newRevision"
       @change-revision="fetchTests"
     ></GitToolbar>
-    <v-row justify="center">
+    <v-row v-if="tests.length !== 0" justify="center">
       <v-col cols="11">
         <v-card class="mb-4">
           <v-simple-table>
@@ -32,7 +32,7 @@
                   </v-chip>
                 </td>
                 <td>{{ test.branchname }}</td>
-                <td>{{ test.commitSHA1.substr(0, 5) }}</td>
+                <td>{{ test.commitSha1.substr(0, 5) }}</td>
                 <td>{{ test.results.length }}/{{ test.steps }}</td>
                 <td>{{ test.createdAt | dateDefault }}</td>
               </tr>
@@ -73,6 +73,10 @@ export default {
   },
   methods: {
     fetchTests() {
+      const team = this.$store.state.teams.team;
+      if (!team) {
+        return;
+      }
       const project = this.$store.state.projects.project;
       if (!project) {
         return;
@@ -83,7 +87,7 @@ export default {
       }
       const url = new Url(pathTests);
       const data = {
-        username: this.user.name,
+        teamname: team.name,
         projectname: project.name,
         revision
       };

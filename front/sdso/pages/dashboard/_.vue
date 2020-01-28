@@ -21,7 +21,9 @@
                     @click="clickFileItem(fileItem)"
                   >
                     <td>
-                      <v-icon v-if="fileItem.isDirectory">mdi-folder-outline</v-icon>
+                      <v-icon v-if="fileItem.isDirectory"
+                        >mdi-folder-outline</v-icon
+                      >
                       <v-icon v-else>mdi-file-document-box-outline</v-icon>
                       <span class="ml-3">{{ fileItem.name }}</span>
                     </td>
@@ -127,6 +129,10 @@ export default {
       });
     },
     fetchFileText() {
+      const team = this.$store.state.teams.team;
+      if (!team) {
+        return;
+      }
       const project = this.$store.state.projects.project;
       if (!project) {
         return;
@@ -138,7 +144,7 @@ export default {
       const path = this.$route.params.pathMatch;
       const url = new Url(pathFiles);
       const data = {
-        username: this.user.name,
+        teamname: team.name,
         projectname: project.name,
         revision,
         path

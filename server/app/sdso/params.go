@@ -17,7 +17,7 @@ var (
 	gitTesting         *gogit.Git
 	gitServer          *gogit.HTTPServer
 	pathRepositories   = ""
-	testResultColors   = map[string]string{}
+	testStatusColors   = map[string]string{}
 	websocketsTest     = map[uint]*websocket.Conn{}
 	websocketUpgrader  = &websocket.Upgrader{
 		ReadBufferSize:  socketBufferSize,
@@ -29,21 +29,21 @@ var (
 )
 
 const (
-	databaseHost           = "database"
-	gitBinPath             = "/usr/bin/git"
-	messageBufferSize      = 256
-	serverHostAndPort      = "0.0.0.0:8080"
-	serverScheme           = "http"
-	serverOrigin           = serverScheme + "://" + serverHostAndPort
-	socketBufferSize       = 1024
-	tableNameProjects      = "projects"
-	tableNameUsers         = "users"
-	testResultFailedColor  = "rgb(220, 102, 97)"
-	testResultFailedText   = "failed"
-	testResultRunningColor = "rgb(130, 209, 226)"
-	testResultRunningText  = "running"
-	testResultSuccessColor = "rgb(107, 197, 143)"
-	testResultSuccessText  = "success"
+	databaseHost      = "database"
+	gitBinPath        = "/usr/bin/git"
+	messageBufferSize = 256
+	serverHostAndPort = "0.0.0.0:8080"
+	serverScheme      = "http"
+	serverOrigin      = serverScheme + "://" + serverHostAndPort
+	socketBufferSize  = 1024
+	// tableNameProjects      = "projects"
+	// tableNameUsers         = "users"
+	testStatusFailedColor  = "rgb(220, 102, 97)"
+	testStatusFailedText   = "failed"
+	testStatusRunningColor = "rgb(130, 209, 226)"
+	testStatusRunningText  = "running"
+	testStatusSuccessColor = "rgb(107, 197, 143)"
+	testStatusSuccessText  = "success"
 )
 
 func init() {
@@ -56,7 +56,7 @@ func init() {
 	gitTmpRepositories = gogit.NewGit(filepath.Join(cwd, "..", "tmp_repositories"), gitBinPath)
 	gitRepositories = gogit.NewGit(filepath.Join(cwd, "..", "repositories"), gitBinPath)
 	gitServer = gogit.NewHTTPServer(pathRepositories, gitBinPath)
-	testResultColors[testResultFailedText] = testResultFailedColor
-	testResultColors[testResultRunningText] = testResultRunningColor
-	testResultColors[testResultSuccessText] = testResultSuccessColor
+	testStatusColors[testStatusFailedText] = testStatusFailedColor
+	testStatusColors[testStatusRunningText] = testStatusRunningColor
+	testStatusColors[testStatusSuccessText] = testStatusSuccessColor
 }

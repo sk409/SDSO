@@ -2,7 +2,12 @@
   <div>
     <v-navigation-drawer v-model="drawer" app>
       <v-list>
-        <v-list-item v-for="navItem in navItems" :key="navItem.title" :to="navItem.route" router>
+        <v-list-item
+          v-for="navItem in navItems"
+          :key="navItem.title"
+          :to="navItem.route"
+          router
+        >
           <v-list-item-action>
             <v-icon>{{ navItem.icon }}</v-icon>
           </v-list-item-action>
@@ -146,6 +151,10 @@ export default {
     }
   },
   created() {
+    const team = this.$store.state.teams.team;
+    if (team) {
+      this.teamname = team.name;
+    }
     const project = this.$store.state.projects.project;
     if (project) {
       this.projectname = project.name;
@@ -153,6 +162,7 @@ export default {
     this.$fetchUser().then(response => {
       user = response.data;
       this.fetchTeams();
+      this.fetchProjects();
     });
     unsubscribe = this.$store.subscribe(mutation => {
       if (mutation.type !== mutations.teams.setTeam) {
@@ -194,6 +204,9 @@ export default {
     },
     fetchProjects() {
       const team = this.$store.state.teams.team;
+      if (!team) {
+        return;
+      }
       const url = new Url(pathProjects);
       const data = {
         teamId: team.id

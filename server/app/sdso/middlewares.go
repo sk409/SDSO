@@ -1,7 +1,6 @@
 package main
 
 import (
-	"log"
 	"net/http"
 	"path"
 	"strings"
@@ -77,7 +76,6 @@ func gitBasicAuth(next http.Handler) http.Handler {
 			}
 			name, password, ok := r.BasicAuth()
 			err = bcrypt.CompareHashAndPassword([]byte(t.Password), []byte(password))
-			log.Println(err)
 			if !ok || t.Name != name || err != nil {
 				w.Header().Set("WWW-Authenticate", `Basic realm="Please enter your username and password."`)
 				w.WriteHeader(http.StatusUnauthorized)

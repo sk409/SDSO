@@ -120,13 +120,23 @@ func (t test) public() interface{} {
 	if err != nil {
 		return t
 	}
-	rp := make([]interface{}, len(testResults))
-	statusText := testResultSuccessText
+	statusText := testStatusSuccessText
 	if t.Steps != len(testResults) {
-		statusText = testResultRunningText
+		statusText = testStatusRunningText
 	}
+	for _, testResult := range testResults {
+		testStatus := testStatus{}
+		err = first(map[string]interface{}{"id": testResult.TestStatusID}, &testStatus)
+		if err != nil {
+			break
+		}
+		if testStatus.Text == testStatusFailedText {
+			statusText = testStatusFailedText
+		}
+	}
+	rp := make([]interface{}, len(testResults))
 	for index, testResult := range testResults {
-		if statusText == testResultSuccessText {
+		if statusText == testStatusSuccessText {
 			status := testStatus{}
 			err = first(map[string]interface{}{"id": testResult.TestStatusID}, &status)
 			if err != nil {
@@ -136,7 +146,7 @@ func (t test) public() interface{} {
 		}
 		rp[index] = testResult.public()
 	}
-	m["color"] = testResultColors[statusText]
+	m["color"] = testStatusColors[statusText]
 	m["results"] = rp
 	m["status"] = statusText
 	return m
@@ -171,7 +181,7 @@ func (t testResult) public() interface{} {
 	if err != nil {
 		return t
 	}
-	m["color"] = testResultColors[ts.Text]
+	m["color"] = testStatusColors[ts.Text]
 	m["status"] = ts.Text
 	return m
 }

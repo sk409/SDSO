@@ -3,7 +3,6 @@ package main
 import (
 	"bytes"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"os"
 	"path"
@@ -59,13 +58,13 @@ func (b *branchesHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (b *branchesHandler) fetch(w http.ResponseWriter, r *http.Request) {
-	username := r.URL.Query().Get("username")
+	teamname := r.URL.Query().Get("teamname")
 	projectname := r.URL.Query().Get("projectname")
-	if emptyAny(username, projectname) {
+	if emptyAny(teamname, projectname) {
 		respond(w, http.StatusBadRequest)
 		return
 	}
-	branches, err := gitRepositories.Branches(filepath.Join(username, projectname))
+	branches, err := gitRepositories.Branches(filepath.Join(teamname, projectname))
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
 		return
@@ -132,14 +131,14 @@ func (c *commitsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *commitsHandler) fetch(w http.ResponseWriter, r *http.Request) {
-	username := r.URL.Query().Get("username")
+	teamname := r.URL.Query().Get("teamname")
 	projectname := r.URL.Query().Get("projectname")
 	branchname := r.URL.Query().Get("branchname")
-	if emptyAny(username, projectname, branchname) {
+	if emptyAny(teamname, projectname, branchname) {
 		respond(w, http.StatusBadRequest)
 		return
 	}
-	commitsByte, err := gitRepositories.Log(filepath.Join(username, projectname), branchname, "--pretty=format:%h %cd %s")
+	commitsByte, err := gitRepositories.Log(filepath.Join(teamname, projectname), branchname, "--pretty=format:%h %cd %s")
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
 		return
@@ -258,15 +257,15 @@ func (f *filesHandler) fetch(w http.ResponseWriter, r *http.Request) {
 }
 
 func (f *filesHandler) text(w http.ResponseWriter, r *http.Request) {
-	username := r.URL.Query().Get("username")
+	teamname := r.URL.Query().Get("teamname")
 	projectname := r.URL.Query().Get("projectname")
 	revision := r.URL.Query().Get("revision")
 	path := r.URL.Query().Get("path")
-	if emptyAny(username, projectname, revision, path) {
+	if emptyAny(teamname, projectname, revision, path) {
 		respond(w, http.StatusBadRequest)
 		return
 	}
-	output, err := gitRepositories.LsTree(filepath.Join(username, projectname), revision, path)
+	output, err := gitRepositories.LsTree(filepath.Join(teamname, projectname), revision, path)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
 		return
@@ -278,7 +277,7 @@ func (f *filesHandler) text(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	sha1 := string(matches[1])
-	text, err := gitRepositories.CatFile(filepath.Join(username, projectname), sha1, "-p")
+	text, err := gitRepositories.CatFile(filepath.Join(teamname, projectname), sha1, "-p")
 	if err != nil {
 		respond(w, http.StatusInternalServerError)
 		return
@@ -322,9 +321,7 @@ func (g *gitHandler) refs(w http.ResponseWriter, r *http.Request) {
 
 func (g *gitHandler) receivePack(w http.ResponseWriter, r *http.Request, teamname, projectname string) {
 	t := team{}
-	// db.Where("name = ?", userName).First(&user)
 	err := first(map[string]interface{}{"name": teamname}, &t)
-	log.Println(t)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
 		return
@@ -333,11 +330,8 @@ func (g *gitHandler) receivePack(w http.ResponseWriter, r *http.Request, teamnam
 		respondError(w, http.StatusInternalServerError, errBadRequest)
 		return
 	}
-	// project := project{}
-	//db.Where("name = ? AND user_id = ?", projectName, user.ID).First(&project)
 	p := project{}
 	err = first(map[string]interface{}{"name": projectname, "team_id": t.ID}, &p)
-	log.Println(p)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
 		return
@@ -394,7 +388,8 @@ func (g *gitHandler) receivePack(w http.ResponseWriter, r *http.Request, teamnam
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-		succeeded, err := runTest(teamname, projectname, tmpRepositoryPath, branchName, commitSHA1)
+		tester := tester{}
+		succeeded, err := tester.run(teamname, projectname, tmpRepositoryPath, branchName, commitSHA1)
 		if !succeeded || err != nil {
 			// log.Println("****************")
 			// log.Println(err)
@@ -409,7 +404,8 @@ func (g *gitHandler) receivePack(w http.ResponseWriter, r *http.Request, teamnam
 	} else {
 		gitServer.ServeHTTP(w, r)
 		clonePath := filepath.Join(gitRepositories.RootDirectoryPath, teamname, projectname)
-		go runTest(teamname, projectname, clonePath, branchName, commitSHA1)
+		tester := tester{}
+		go tester.run(teamname, projectname, clonePath, branchName, commitSHA1)
 	}
 }
 
@@ -536,13 +532,12 @@ func (p *projectsHandler) store(w http.ResponseWriter, r *http.Request) {
 		respondError(w, http.StatusInternalServerError, err)
 		return
 	}
-	repositoryPath := filepath.Join(pathRepositories, t.Name, project.Name)
-	err = os.MkdirAll(repositoryPath, 0755)
+	err = os.MkdirAll(filepath.Join(pathRepositories, t.Name, project.Name), 0755)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
 		return
 	}
-	_, err = command(repositoryPath, "git", "init", "--bare")
+	err = gitRepositories.InitBare(filepath.Join(t.Name, project.Name))
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
 		return
@@ -918,21 +913,21 @@ func (t *testsHandler) socket(w http.ResponseWriter, r *http.Request) {
 }
 
 func (t *testsHandler) revision(w http.ResponseWriter, r *http.Request) {
-	username := r.URL.Query().Get("username")
+	teamname := r.URL.Query().Get("teamname")
 	projectname := r.URL.Query().Get("projectname")
 	revision := r.URL.Query().Get("revision")
-	if emptyAny(username, projectname, revision) {
+	if emptyAny(teamname, projectname, revision) {
 		respond(w, http.StatusBadRequest)
 		return
 	}
-	u := user{}
-	err := first(map[string]interface{}{"name": username}, &u)
+	team := team{}
+	err := first(map[string]interface{}{"name": teamname}, &team)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
 		return
 	}
 	p := project{}
-	err = first(map[string]interface{}{"name": projectname, "user_id": u.ID}, &p)
+	err = first(map[string]interface{}{"name": projectname, "team_id": team.ID}, &p)
 	tests := []test{}
 	db.Where("project_id = ?", p.ID).Order("created_at DESC").Find(&tests)
 	if db.Error != nil {
@@ -943,7 +938,7 @@ func (t *testsHandler) revision(w http.ResponseWriter, r *http.Request) {
 		respondJSON(w, http.StatusOK, []test{})
 		return
 	}
-	revisionsByte, err := gitRepositories.RevList(filepath.Join(username, projectname), revision)
+	revisionsByte, err := gitRepositories.RevList(filepath.Join(teamname, projectname), revision)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
 		return

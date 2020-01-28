@@ -52,21 +52,12 @@ export default {
   },
   data() {
     return {
-      commits: [],
-      // tableHeaders: [
-      //   { text: "SHA1", value: "sha1" },
-      //   { text: "コミットメッセージ", value: "message" },
-      //   { text: "日付", value: "date" }
-      // ],
-      user: null
+      commits: []
     };
   },
   created() {
     this.$nuxt.$emit("setSidemenuType", "git");
-    this.$fetchUser().then(response => {
-      this.user = response.data;
-      this.fetchCommits();
-    });
+    this.fetchCommits();
   },
   methods: {
     ...mapMutations({
@@ -77,6 +68,10 @@ export default {
       this.$router.push(this.$routes.dashboard.files());
     },
     fetchCommits() {
+      const team = this.$store.state.teams.team;
+      if (!team) {
+        return;
+      }
       const project = this.$store.state.projects.project;
       if (!project) {
         return;
@@ -87,16 +82,12 @@ export default {
       }
       const url = new Url(pathCommits);
       const data = {
-        username: this.user.name,
+        teamname: team.name,
         projectname: project.name,
         branchname
       };
       ajax.get(url.base, data).then(response => {
         this.commits = response.data;
-        // this.commits.forEach(commit => {
-        //   commit.date = dateFormatter.default(commit.date);
-        //   commit.message = truncate(commit.message, 15);
-        // });
       });
     }
   }

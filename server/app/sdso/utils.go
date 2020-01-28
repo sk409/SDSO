@@ -6,12 +6,12 @@ import (
 	"errors"
 	"io"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"os/exec"
 	"reflect"
 	"regexp"
 	"strconv"
+	"time"
 
 	"github.com/sk409/gocase"
 	"github.com/sk409/goconst"
@@ -21,24 +21,6 @@ import (
 type printable interface {
 	String() string
 }
-
-// func contains(sequence interface{}, value interface{}) (bool, error) {
-// 	if !gotype.IsSlice(sequence) {
-// 		return false, errInvalidType
-// 	}
-// 	st := reflect.TypeOf(sequence)
-// 	sv := reflect.ValueOf(sequence)
-// 	vt := reflect.TypeOf(value)
-// 	if st.Elem().Kind() == vt.Kind() {
-// 		return false, errInvalidType
-// 	}
-// 	for i := 0; i < st.Len(); i++ {
-// 		if reflect.DeepEqual(value, sv.Index(i)) {
-// 			return true, nil
-// 		}
-// 	}
-// 	return false, nil
-// }
 
 func command(directory, name string, args ...string) ([]byte, error) {
 	cmd := exec.Command(name, args...)
@@ -55,6 +37,10 @@ func convert(data interface{}) (interface{}, error) {
 	if gotype.IsPointer(data) {
 		rt = rt.Elem()
 		rv = rv.Elem()
+	}
+	if rt.Name() == "Time" {
+		t := data.(time.Time)
+		return t.Format(time.RFC3339Nano), nil
 	}
 	m := make(map[string]interface{})
 	for index := 0; index < rv.NumField(); index++ {
@@ -139,15 +125,15 @@ func getBranchNameAndCommitSHA1(r *http.Request) (string, string, error) {
 func save(query map[string]interface{}, model interface{}) error {
 	rv := reflect.ValueOf(model).Elem()
 	for key, value := range query {
-		fieldName := string(gocase.UpperCamelCase([]byte(key), true))
-		fv := rv.FieldByName(fieldName)
+		fieldname := string(gocase.UpperCamelCase([]byte(key), true))
+		fv := rv.FieldByName(fieldname)
 		ft := fv.Type()
-		// vt := reflect.TypeOf(value)
-		log.Println(fieldName)
-		log.Println(reflect.TypeOf(value))
-		log.Println("======")
 		if ft.Kind() == reflect.String {
 			fv.SetString(value.(string))
+		} else if ft.Kind() == reflect.Int {
+			if gotype.IsInt(value) {
+				fv.SetInt(int64(value.(int)))
+			}
 		} else if ft.Kind() == reflect.Uint {
 			var v interface{}
 			if gotype.IsString(value) {
@@ -157,6 +143,8 @@ func save(query map[string]interface{}, model interface{}) error {
 				if err != nil {
 					return err
 				}
+			} else if gotype.IsUint(value) {
+				v = uint64(value.(uint))
 			} else {
 				v = value
 			}

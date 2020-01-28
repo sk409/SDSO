@@ -23,77 +23,103 @@ import (
 	"github.com/sk409/gofile"
 )
 
-func runTest(userName, projectName, clonePath, branchName, commitSHA1 string) (bool, error) {
-	user := user{}
-	db.Where("name = ?", userName).First(&user)
-	if db.Error != nil {
-		return false, db.Error
-	}
-	project := project{}
-	db.Where("name = ? AND user_id = ?", projectName, user.ID).First(&project)
-	if db.Error != nil {
-		return false, db.Error
-	}
-	uuid, err := uuid.NewUUID()
-	if err != nil {
-		return false, err
-	}
-	testPath := filepath.Join(cwd, "..", "testing", uuid.String())
-	testAppPath := filepath.Join(testPath, "app")
-	err = os.MkdirAll(testAppPath, 0755)
-	if err != nil {
-		return false, err
-	}
-	defer os.RemoveAll(testPath)
-	git := gogit.NewGit(testAppPath, gitBinPath)
-	err = git.Clone(clonePath, ".", "-b", branchName)
-	if err != nil {
-		// log.Println(err)
-		return false, err
-	}
-	configFilePath := filepath.Join(testAppPath, ".sdso", "config.yml")
+type tester struct {
+}
+
+func (t *tester) checkout(clonePath, testPath, branchname string) error {
+	git := gogit.NewGit(testPath, gitBinPath)
+	err := git.Clone(clonePath, ".", "-b", branchname)
+	return err
+}
+
+func (t *tester) config(testPath string) (*config, error) {
+	configFilePath := filepath.Join(testPath, ".sdso", "config.yml")
 	if !gofile.IsExist(configFilePath) {
-		return true, nil
+		return nil, errNotExist
 	}
 	configFile, err := os.Open(configFilePath)
 	if err != nil {
-		// log.Println(err.Error())
-		return false, err
+		return nil, err
 	}
 	defer configFile.Close()
 	configFileBytes, err := ioutil.ReadAll(configFile)
 	if err != nil {
-		// log.Println(err.Error())
-		return false, err
+		return nil, err
 	}
-	config := config{}
-	err = yaml.Unmarshal(configFileBytes, &config)
+	c := config{}
+	err = yaml.Unmarshal(configFileBytes, &c)
 	if err != nil {
-		// log.Println(err.Error())
-		return false, err
+		return nil, err
 	}
+	return &c, nil
+}
+
+func (t *tester) execTestCommand(test test, testPath, primaryServicename, command string) error {
+	testStatusRunning := testStatus{}
+	err := first(map[string]interface{}{"text": testStatusRunningText}, &testStatusRunning)
+	if err != nil {
+		return err
+	}
+	testResult := testResult{
+		Command:      command,
+		TestID:       test.ID,
+		TestStatusID: testStatusRunning.ID,
+	}
+	db.Save(&testResult)
+	if db.Error != nil {
+		return err
+	}
+	t.sendTest(test)
+	args := []string{"exec", "-T", primaryServicename}
+	args = append(args, strings.Split(command, " ")...)
+	cmd := exec.Command("docker-compose", args...)
+	cmd.Dir = testPath
+	var output bytes.Buffer
+	cmd.Stderr = &output
+	cmd.Stdout = &output
+	failed := cmd.Run()
+	status := testStatusSuccessText
+	if failed != nil {
+		status = testStatusFailedText
+	}
+	testStatus := testStatus{}
+	err = first(map[string]interface{}{"text": status}, &testStatus)
+	if err != nil {
+		return err
+	}
+	now := time.Now()
+	testResult.Output = output.String()
+	testResult.TestStatusID = testStatus.ID
+	testResult.CompletedAt = &now
+	db.Save(&testResult)
+	if db.Error != nil {
+		return err
+	}
+	t.sendTest(test)
+	return failed
+}
+
+func (t *tester) makeDockerfiles( /*tmpPath???????*/ tmpPath string, c *config) ([]string, error) {
 	workDir := "/app"
-	serviceNames := []string{}
-	serviceNameRegex := regexp.MustCompile("(.+):.+")
-	for index, docker := range config.Jobs.Build.Docker {
+	servicenames := []string{}
+	servicenameRegex := regexp.MustCompile("(.+):.+")
+	for index, docker := range c.Jobs.Build.Docker {
 		isPrimary := index == 0
-		dockerDirectoryPath := testPath
-		matches := serviceNameRegex.FindStringSubmatch(docker.Image)
+		dockerDirectoryPath := tmpPath
+		matches := servicenameRegex.FindStringSubmatch(docker.Image)
 		imageNameComponents := strings.Split(matches[1], "/")
-		serviceName := imageNameComponents[len(imageNameComponents)-1]
-		serviceNames = append(serviceNames, serviceName)
+		servicename := imageNameComponents[len(imageNameComponents)-1]
+		servicenames = append(servicenames, servicename)
 		if !isPrimary {
-			dockerDirectoryPath = filepath.Join(testPath, serviceName)
-			err = os.Mkdir(dockerDirectoryPath, 0755)
+			dockerDirectoryPath = filepath.Join(tmpPath, servicename)
+			err := os.Mkdir(dockerDirectoryPath, 0755)
 			if err != nil {
-				// log.Println(err.Error())
-				return false, err
+				return nil, err
 			}
 		}
 		dockerfile, err := os.Create(filepath.Join(dockerDirectoryPath, "Dockerfile"))
 		if err != nil {
-			// log.Println(err.Error())
-			return false, err
+			return nil, err
 		}
 		defer dockerfile.Close()
 		dockerfileText := fmt.Sprintf("FROM %s\n", docker.Image)
@@ -103,27 +129,61 @@ func runTest(userName, projectName, clonePath, branchName, commitSHA1 string) (b
 		}
 		dockerfile.Write([]byte(dockerfileText))
 	}
-	dockerComposeText := "version: \"3.3\"\nservices:\n"
-	for index, serviceName := range serviceNames {
-		isPrimary := index == 0
-		dockerDirectoryPath := testPath
-		if !isPrimary {
-			dockerDirectoryPath = filepath.Join(testPath, serviceName)
-		}
-		dockerComposeText += "  " + serviceName + ":\n    build: " + dockerDirectoryPath + "\n" + "    tty: true\n"
-	}
-	dockercomposeFile, err := os.Create(filepath.Join(testPath, "docker-compose.yml"))
+	return servicenames, nil
+}
+
+func (t *tester) makeTestDirectory() (string, string, error) {
+	uuid, err := uuid.NewUUID()
 	if err != nil {
-		// log.Println(err.Error())
+		return "", "", err
+	}
+	tmpPath := filepath.Join(cwd, "..", "tmp", uuid.String())
+	testPath := filepath.Join(tmpPath, "app")
+	err = os.MkdirAll(testPath, 0755)
+	if err != nil {
+		return "", "", err
+	}
+	return tmpPath, testPath, nil
+}
+
+func (t *tester) project(teamname, projectname string) (*project, error) {
+	team := team{}
+	err := first(map[string]interface{}{"name": teamname}, &team)
+	if err != nil {
+		return nil, err
+	}
+	p := project{}
+	err = first(map[string]interface{}{"name": projectname, "team_id": team.ID}, &p)
+	if err != nil {
+		return nil, err
+	}
+	return &p, nil
+}
+
+func (t *tester) run(teamname, projectname, clonePath, branchname, commitSHA1 string) (bool, error) {
+	p, err := t.project(teamname, projectname)
+	if err != nil {
 		return false, err
 	}
-	defer dockercomposeFile.Close()
-	dockercomposeFile.Write([]byte(dockerComposeText))
-	upCommand := exec.Command("docker-compose", "up", "-d", "--build")
-	upCommand.Dir = testPath
-	err = upCommand.Run()
+	tmpPath, testPath, err := t.makeTestDirectory()
 	if err != nil {
-		// log.Println(err.Error())
+		return false, err
+	}
+	defer os.RemoveAll(tmpPath)
+	err = t.checkout(clonePath, testPath, branchname)
+	if err != nil {
+		return false, err
+	}
+	c, err := t.config(testPath)
+	if err != nil {
+		return false, err
+	}
+	servicenames, err := t.makeDockerfiles(tmpPath, c)
+	if err != nil {
+		return false, err
+	}
+	err = t.upDockerCompose(tmpPath, servicenames)
+	if err != nil {
 		return false, err
 	}
 	defer func() {
@@ -131,100 +191,104 @@ func runTest(userName, projectName, clonePath, branchName, commitSHA1 string) (b
 		downCommand.Dir = testPath
 		downCommand.Run()
 	}()
-	t := test{
-		Steps:      len(config.Jobs.Build.Steps),
-		Branchname: branchName,
-		CommitSHA1: commitSHA1,
-		ProjectID:  project.ID,
+	//************
+	// test := test{
+	// 	Steps:      len(c.Jobs.Build.Steps),
+	// 	Branchname: branchname,
+	// 	CommitSHA1: commitSHA1,
+	// 	ProjectID:  p.ID,
+	// }
+	// db.Save(&test)
+	// if db.Error != nil {
+	// 	return false, db.Error
+	// }
+	//************
+	test := test{}
+	err = save(map[string]interface{}{"Steps": len(c.Jobs.Build.Steps), "Branchname": branchname, "CommitSHA1": commitSHA1, "ProjectID": p.ID}, &test)
+	if err != nil {
+		return false, err
 	}
-	db.Save(&t)
-	if db.Error != nil {
-		// log.Print(db.Error)
-		return false, db.Error
+	//************
+	err = t.sendTest(test)
+	if err != nil {
+		return false, err
 	}
-	socketTest, exist := websocketsTest[user.ID]
-	if exist {
-		p, err := public(t.public())
-		jsonBytes, err := json.Marshal(p)
-		if err == nil {
-			socketTest.WriteMessage(websocket.TextMessage, jsonBytes)
-		}
-	}
-	for _, step := range config.Jobs.Build.Steps {
+	t.runSteps(test, c, testPath, servicenames[0])
+	return true, nil
+}
+
+func (t *tester) runSteps(test test, c *config, testPath, primaryServicename string) error {
+	for _, step := range c.Jobs.Build.Steps {
 		if gotype.IsMap(step) {
 			m := step.(map[interface{}]interface{})
 			for key, value := range m {
 				keyString := key.(string)
 				valueString := value.(string)
 				if keyString == "run" {
-					sendToClient := func(testResult *testResult) {
-						// 新しく作り直さないとフロントの日付がおかしくなる
-						te := test{}
-						//
-						db.Where("id = ?", t.ID).First(&te)
-						p, err := public(te.public())
-						if err != nil {
-							return
-						}
-						jsonBytes, err := json.Marshal(p)
-						if err != nil {
-							return
-						}
-						socket, ok := websocketsTest[user.ID]
-						if !ok {
-							return
-						}
-						socket.WriteMessage(websocket.TextMessage, []byte(jsonBytes))
-					}
-					compltedTestResult := func(status, output string, testResult *testResult) {
-						var testStatus testStatus
-						db.Where("text = ?", status).First(&testStatus)
-						if db.Error != nil {
-							// log.Println(db.Error)
-							return
-						}
-						now := time.Now()
-						testResult.Output = output
-						testResult.TestStatusID = testStatus.ID
-						testResult.CompletedAt = &now
-						db.Save(&testResult)
-						if db.Error != nil {
-							// log.Println(db.Error)
-							return
-						}
-					}
-					var testStatusRunning testStatus
-					db.Where("text = 'running'").First(&testStatusRunning)
-					testResult := testResult{
-						Command:      valueString,
-						TestID:       t.ID,
-						TestStatusID: testStatusRunning.ID,
-					}
-					db.Save(&testResult)
-					if db.Error != nil {
-						// log.Println(db.Error)
-						return false, db.Error
-					}
-					sendToClient(&testResult)
-					args := []string{"exec", "-T", serviceNames[0]}
-					args = append(args, strings.Split(valueString, " ")...)
-					execCommand := exec.Command("docker-compose", args...)
-					execCommand.Dir = testPath
-					var output bytes.Buffer
-					execCommand.Stderr = &output
-					execCommand.Stdout = &output
-					err = execCommand.Run()
+					err := t.execTestCommand(test, testPath, primaryServicename, valueString)
 					if err != nil {
-						// log.Println(err.Error())
-						compltedTestResult("failed", output.String(), &testResult)
-						sendToClient(&testResult)
-						return false, nil
+						return err
 					}
-					compltedTestResult("success", output.String(), &testResult)
-					sendToClient(&testResult)
 				}
 			}
 		}
 	}
-	return true, nil
+	return nil
+}
+
+func (t *tester) sendTest(test test) error {
+	pub, err := public(test.public())
+	testBytes, err := json.Marshal(pub)
+	if err != nil {
+		return err
+	}
+	p := project{}
+	err = first(map[string]interface{}{"id": test.ProjectID}, &p)
+	if err != nil {
+		return err
+	}
+	team := team{}
+	err = first(map[string]interface{}{"id": p.TeamID}, &team)
+	if err != nil {
+		return err
+	}
+	teamUsers := []teamUser{}
+	err = find(map[string]interface{}{"team_id": team.ID}, &teamUsers)
+	if err != nil {
+		return err
+	}
+	for _, teamUser := range teamUsers {
+		u := user{}
+		err = first(map[string]interface{}{"id": teamUser.UserID}, &u)
+		if err != nil {
+			continue
+		}
+		socket, exist := websocketsTest[u.ID]
+		if !exist {
+			continue
+		}
+		socket.WriteMessage(websocket.TextMessage, testBytes)
+	}
+	return nil
+}
+
+func (t *tester) upDockerCompose(tmpPath string, servicenames []string) error {
+	dockerComposeText := "version: \"3.3\"\nservices:\n"
+	for index, servicename := range servicenames {
+		isPrimary := index == 0
+		dockerDirectoryPath := tmpPath
+		if !isPrimary {
+			dockerDirectoryPath = filepath.Join(tmpPath, servicename)
+		}
+		dockerComposeText += "  " + servicename + ":\n    build: " + dockerDirectoryPath + "\n" + "    tty: true\n"
+	}
+	dockerComposeFile, err := os.Create(filepath.Join(tmpPath, "docker-compose.yml"))
+	if err != nil {
+		return err
+	}
+	defer dockerComposeFile.Close()
+	dockerComposeFile.Write([]byte(dockerComposeText))
+	upCommand := exec.Command("docker-compose", "up", "-d", "--build")
+	upCommand.Dir = tmpPath
+	return upCommand.Run()
 }
