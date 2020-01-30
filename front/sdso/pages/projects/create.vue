@@ -52,8 +52,10 @@
 import ajax from "@/assets/js/ajax.js";
 import FormCard from "@/components/FormCard.vue";
 import mutations from "@/assets/js/mutations.js";
+import roles from "@/assets/js/roles.js";
 import {
   pathProjects,
+  pathProjectUsers,
   pathTeams,
   pathTeamUsers,
   Url
@@ -129,10 +131,22 @@ export default {
         teamId: this.team.id
       };
       this.creating = true;
-      ajax.post(url.base, data).then(response => {
-        this.setNotificationMessage(`${this.projectname}を作成しました`);
-        this.$router.push(this.$routes.dashboard.commits);
-      });
+      ajax
+        .post(url.base, data)
+        .then(response => {
+          const project = response.data;
+          const url = new Url(pathProjectUsers);
+          const data = {
+            projectId: project.id,
+            role: roles.project.manager,
+            userId: user.id
+          };
+          return ajax.post(url.base, data);
+        })
+        .then(response => {
+          this.setNotificationMessage(`${this.projectname}を作成しました`);
+          this.$router.push(this.$routes.dashboard.commits);
+        });
     },
     selectTeamname(teamname) {
       this.team = this.teams.find(team => team.name === teamname);

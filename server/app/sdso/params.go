@@ -16,7 +16,10 @@ var (
 	gitRepositories    *gogit.Git
 	gitTesting         *gogit.Git
 	gitServer          *gogit.HTTPServer
-	pathRepositories   = ""
+	pathNoImage        string
+	pathPublic         string
+	pathPubilcImages   string
+	pathRepositories   string
 	testStatusColors   = map[string]string{}
 	websocketsTest     = map[uint]*websocket.Conn{}
 	websocketUpgrader  = &websocket.Upgrader{
@@ -29,15 +32,15 @@ var (
 )
 
 const (
-	databaseHost      = "database"
-	gitBinPath        = "/usr/bin/git"
-	messageBufferSize = 256
-	serverHostAndPort = "0.0.0.0:8080"
-	serverScheme      = "http"
-	serverOrigin      = serverScheme + "://" + serverHostAndPort
-	socketBufferSize  = 1024
-	// tableNameProjects      = "projects"
-	// tableNameUsers         = "users"
+	databaseHost           = "database"
+	gitBinPath             = "/usr/bin/git"
+	messageBufferSize      = 256
+	roleProjectUserManager = "manager"
+	roleProjectUserMember  = "member"
+	serverHostAndPort      = "0.0.0.0:8080"
+	serverScheme           = "http"
+	serverOrigin           = serverScheme + "://" + serverHostAndPort
+	socketBufferSize       = 1024
 	testStatusFailedColor  = "rgb(220, 102, 97)"
 	testStatusFailedText   = "failed"
 	testStatusRunningColor = "rgb(130, 209, 226)"
@@ -52,6 +55,9 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
+	pathPublic = "public"
+	pathPubilcImages = filepath.Join(pathPublic, "images")
+	pathNoImage = filepath.Join(pathPubilcImages, "noimage.png")
 	pathRepositories = filepath.Join(cwd, "..", "repositories")
 	gitTmpRepositories = gogit.NewGit(filepath.Join(cwd, "..", "tmp_repositories"), gitBinPath)
 	gitRepositories = gogit.NewGit(filepath.Join(cwd, "..", "repositories"), gitBinPath)

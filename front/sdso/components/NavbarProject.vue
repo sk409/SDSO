@@ -121,7 +121,7 @@ export default {
           route: this.$routes.dashboard.dast
         },
         {
-          title: "メンバー",
+          title: "メンバ",
           icon: "mdi-account-multiple-outline",
           route: this.$routes.dashboard.members
         },
@@ -192,6 +192,9 @@ export default {
           return teamIds;
         })
         .then(teamIds => {
+          if (teamIds.length === 0) {
+            return;
+          }
           const url = new Url(pathTeams);
           const data = {
             ids: teamIds

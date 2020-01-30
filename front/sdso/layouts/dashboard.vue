@@ -20,7 +20,10 @@
             </v-list-item>
           </v-list>
         </div>
-        <div :style="mainStyle" class="w-100 h-100 overflow-x-hidden overflow-y-auto">
+        <div
+          :style="mainStyle"
+          class="w-100 h-100 overflow-x-hidden overflow-y-auto"
+        >
           <nuxt />
         </div>
       </div>
@@ -51,8 +54,13 @@
         </v-row>
       </v-container>-->
     </v-content>
-    <v-snackbar v-model="snackbar" :timeout="3000" top @input="clearNotification">
-      <span>{{this.$store.state.notifications.message}}</span>
+    <v-snackbar
+      v-model="snackbar"
+      :timeout="3000"
+      top
+      @input="clearNotification"
+    >
+      <span>{{ this.$store.state.notifications.message }}</span>
       <v-btn left icon @click="snackbar = false">
         <v-icon>mdi-close</v-icon>
       </v-btn>
@@ -82,6 +90,13 @@ export default {
             title: "ファイル",
             icon: "mdi-file-outline",
             route: this.$routes.dashboard.files()
+          }
+        ],
+        members: [
+          {
+            title: "メンバ",
+            icon: "mdi-account-multiple-outline",
+            route: this.$routes.dashboard.members
           }
         ],
         security: [

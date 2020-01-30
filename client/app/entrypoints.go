@@ -32,12 +32,13 @@ func entrypointInit() {
 	os.Mkdir(directoryRequests, 0755)
 	os.Mkdir(directoryVulnerabilities, 0755)
 	fs := flag.NewFlagSet(os.Args[0], flag.ExitOnError)
+	teamname := fs.String("team", "", "team name")
 	projectname := fs.String("project", "", "project name")
 	fs.Parse(os.Args[2:])
-	if emptyAny(projectname) {
+	if emptyAny(teamname, projectname) {
 		return
 	}
-	c := config{Projectname: *projectname}
+	c := config{Teamname: *teamname, Projectname: *projectname}
 	saveJSON(filepathConfig, c)
 }
 
@@ -199,7 +200,7 @@ func entrypointScan() {
 	u := user{}
 	err = readJSON(filepathUser, &u)
 	s := scan{}
-	err = store(pathScans, map[string]interface{}{"commitSHA1": string(commitSHA1), "projectname": c.Projectname, "username": u.Name}, &s)
+	err = store(pathScans, map[string]interface{}{"commitSHA1": string(commitSHA1), "username": u.Name, "teamname": c.Teamname, "projectname": c.Projectname}, &s)
 	if err != nil {
 		return
 	}
@@ -257,11 +258,11 @@ func entrypointUpload() {
 	if err != nil {
 		return
 	}
-	u := user{}
-	err = readJSON(filepathUser, &u)
-	if err != nil {
-		return
-	}
+	// u := user{}
+	// err = readJSON(filepathUser, &u)
+	// if err != nil {
+	// 	return
+	// }
 	vulnerabilityFiles, err := ioutil.ReadDir(directoryVulnerabilities)
 	if err != nil {
 		return
@@ -284,7 +285,7 @@ func entrypointUpload() {
 			"request":     v.Request,
 			"response":    v.Response,
 			"scanID":      strconv.Itoa(int(v.ScanID)),
-			"username":    u.Name,
+			"teamname":    c.Teamname,
 			"projectname": c.Projectname,
 		}
 		err = store(pathVulnerabilities, data, &v)

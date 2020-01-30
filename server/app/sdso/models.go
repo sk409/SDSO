@@ -46,6 +46,26 @@ type project struct {
 	TeamID    uint   `gorm:"not null"`
 }
 
+type projectUser struct {
+	ID        uint `gorm:"primary_key"`
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	ProjectID uint `gorm:"not null"`
+	UserID    uint `gorm:"not null"`
+	RoleID    uint `gorm:"not null"`
+}
+
+func (_ *projectUser) TableName() string {
+	return "project_user"
+}
+
+type projectUserRole struct {
+	ID        uint `gorm:"primary_key"`
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	Role      string `gorm:"not null;unique"`
+}
+
 type request struct {
 	Text string `gorm:"type:text;not null"`
 }
@@ -98,6 +118,10 @@ type teamUser struct {
 	TeamID    uint `gorm:"not null"`
 	UserID    uint `gorm:"not null"`
 }
+
+// func (_ *teamUser) TableName() string {
+// 	return "team_user"
+// }
 
 type test struct {
 	ID         uint `gorm:"primary_key"`
@@ -190,9 +214,9 @@ type user struct {
 	ID               uint `gorm:"primary_key"`
 	CreatedAt        time.Time
 	UpdatedAt        time.Time
-	Name             string  `gorm:"type:varchar(32);not null;unique"`
-	Password         string  `gorm:"type:char(60);not null;"`
-	ProfileImagePath *string `gorm:"type:varchar(256);unique"`
+	Name             string `gorm:"type:varchar(32);not null;unique"`
+	Password         string `gorm:"type:char(60);not null;"`
+	ProfileImagePath string `gorm:"type:varchar(256);not null;unique"`
 }
 
 type vulnerability struct {

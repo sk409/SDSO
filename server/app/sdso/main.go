@@ -15,6 +15,7 @@ func main() {
 	http.Handle("/files/", cors(&filesHandler{}))
 	http.Handle("/login", cors(allowCredentials(allowHeaders([]string{goconst.HTTP_HEADER_CONTENT_TYPE, goconst.HTTP_HEADER_X_XSRF_TOKEN}, allowMethods([]string{http.MethodPost}, preflight(&loginHandler{}))))))
 	http.Handle("/logout", cors(allowCredentials(allowHeaders([]string{goconst.HTTP_HEADER_CONTENT_TYPE, goconst.HTTP_HEADER_X_XSRF_TOKEN}, allowMethods([]string{http.MethodPost}, preflight(&logoutHandler{}))))))
+	http.Handle("/project_users", cors(&projectUsersHandler{}))
 	http.Handle("/projects/", cors(&projectsHandler{}))
 	http.Handle("/register", cors(allowCredentials(allowHeaders([]string{goconst.HTTP_HEADER_CONTENT_TYPE, goconst.HTTP_HEADER_X_XSRF_TOKEN}, allowMethods([]string{http.MethodPost}, preflight(&registerHandler{}))))))
 	http.Handle("/repositories", cors(&repositoriesHandler{}))
@@ -25,7 +26,8 @@ func main() {
 	http.Handle("/test_results/", cors(&testResultsHandler{}))
 	http.Handle("/test_statuses", cors(&testStatusesHandler{}))
 	http.Handle("/user", cors(allowCredentials(allowHeaders([]string{goconst.HTTP_HEADER_CONTENT_TYPE, goconst.HTTP_HEADER_X_XSRF_TOKEN}, allowMethods([]string{http.MethodGet}, preflight(&userHandler{}))))))
-	http.Handle("/users", cors(&usersHandler{}))
+	http.Handle("/users/", cors(&usersHandler{}))
 	http.Handle("/vulnerabilities", cors(allowHeaders([]string{goconst.HTTP_HEADER_CONTENT_TYPE}, allowMethods([]string{http.MethodGet, http.MethodPost}, preflight(&vulnerabilitiesHandler{})))))
+	http.Handle("/public/", http.FileServer(http.Dir("./")))
 	http.ListenAndServe(serverHostAndPort, nil)
 }

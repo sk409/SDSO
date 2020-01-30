@@ -67,6 +67,10 @@ export default {
   },
   methods: {
     fetchScans() {
+      const team = this.$store.state.teams.team;
+      if (!team) {
+        return;
+      }
       const project = this.$store.state.projects.project;
       if (!project) {
         return;
@@ -79,6 +83,7 @@ export default {
       const data = {
         projectname: project.name,
         revision,
+        teamname: team.name,
         username: this.user.name
       };
       ajax.get(url.base, data).then(response => {

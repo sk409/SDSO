@@ -9,3 +9,11 @@
 .overflow-scroll {
   overflow: scroll;
 }
+
+.d-grid {
+  display: grid;
+}
+
+.columns-5 {
+  grid-template-columns: repeat(5, 20%);
+}
