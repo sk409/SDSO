@@ -64,7 +64,7 @@
                 </v-list-item>
               </v-list>
             </v-menu>
-            <v-btn icon small class="ml-3">
+            <v-btn icon small class="ml-3" @click="$router.push($routes.account.teams)">
               <v-icon>mdi-account</v-icon>
             </v-btn>
           </v-col>

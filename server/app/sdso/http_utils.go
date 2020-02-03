@@ -4,10 +4,7 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
-	"reflect"
 	"strings"
-
-	"github.com/sk409/gotype"
 
 	"github.com/sk409/gocase"
 
@@ -79,23 +76,19 @@ func respondError(w http.ResponseWriter, statusCode int, err error) {
 
 func respondJSON(w http.ResponseWriter, statusCode int, model interface{}) {
 	data := model
-	if gotype.IsSlice(data) {
-		ft := reflect.TypeOf((*facade)(nil)).Elem()
-		dt := reflect.TypeOf(data).Elem()
-		if dt.Implements(ft) {
-			dv := reflect.ValueOf(data)
-			s := make([]interface{}, dv.Len())
-			for i := 0; i < dv.Len(); i++ {
-				p := dv.Index(i).Interface().(facade).public()
-				s[i] = p
-			}
-			data = s
-		}
-	} else {
-		if f, ok := model.(facade); ok {
-			data = f.public()
-		}
-	}
+	// if gotype.IsSlice(data) {
+	// 	ft := reflect.TypeOf((*facade)(nil)).Elem()
+	// 	dt := reflect.TypeOf(data).Elem()
+	// 	if dt.Implements(ft) {
+	// 		dv := reflect.ValueOf(data)
+	// 		s := make([]interface{}, dv.Len())
+	// 		for i := 0; i < dv.Len(); i++ {
+	// 			p := dv.Index(i).Interface().(facade).public()
+	// 			s[i] = p
+	// 		}
+	// 		data = s
+	// 	}
+	// }
 	data, err := public(data)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)

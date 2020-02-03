@@ -25,6 +25,7 @@
 import ajax from "@/assets/js/ajax.js";
 import FormCard from "@/components/FormCard.vue";
 import mutations from "@/assets/js/mutations.js";
+import roles from "@/assets/js/roles.js";
 import { pathTeams, pathTeamUsers, Url } from "@/assets/js/urls.js";
 import { mapMutations } from "vuex";
 let user = null;
@@ -85,11 +86,14 @@ export default {
         const url = new Url(pathTeamUsers);
         const data = {
           teamId: team.id,
-          userId: user.id
+          userId: user.id,
+          role: roles.team.manager
         };
         ajax.post(url.base, data).then(response => {
           this.creating = false;
-          this.setNotificationMessage(`${this.teamname}を作成しました`);
+          this.setNotificationMessage(
+            `チーム「${this.teamname}」を作成しました`
+          );
           this.$router.push(this.$routes.dashboard.commits);
         });
       });

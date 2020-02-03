@@ -22,6 +22,7 @@ func main() {
 	http.Handle("/scans", cors(&scansHandler{}))
 	http.Handle("/teams/", cors(&teamsHandler{}))
 	http.Handle("/team_users", cors(&teamUsersHandler{}))
+	http.Handle("/team_user_invitation_requests", cors(&teamUserInvitationRequestsHandler{}))
 	http.Handle("/tests/", cors(&testsHandler{}))
 	http.Handle("/test_results/", cors(&testResultsHandler{}))
 	http.Handle("/test_statuses", cors(&testStatusesHandler{}))

@@ -42,11 +42,17 @@ func public(data interface{}) (interface{}, error) {
 		return s, nil
 	}
 	if gotype.IsStruct(data) {
-		c, err := convert(data)
-		if err != nil {
-			return nil, err
+		var i interface{}
+		if f, ok := data.(facade); ok {
+			i = f.public()
+		} else {
+			var err error
+			i, err = convert(data)
+			if err != nil {
+				return nil, err
+			}
 		}
-		p, err := public(c)
+		p, err := public(i)
 		if err != nil {
 			return nil, err
 		}

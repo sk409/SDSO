@@ -19,6 +19,7 @@ export const pathScans = "scans";
 export const pathTeams = "teams/";
 export const pathTeamUsers = "team_users";
 export const pathTestResults = "test_results";
+export const pathTeamUserInvitationRequests = "team_user_invitation_requests";
 export const pathTests = "tests/";
 export const pathUser = "user";
 export const pathUsers = "users/"
@@ -31,6 +32,8 @@ export class Url {
       case pathFiles:
         this.text = this.base + "text";
         break;
+      case pathProjects:
+        this.ids = this.base + "ids";
       case pathTeams:
         this.ids = this.base + "ids";
         break;

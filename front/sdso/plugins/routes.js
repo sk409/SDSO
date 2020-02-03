@@ -1,7 +1,11 @@
 import Vue from "vue";
 
 Vue.prototype.$routes = {
-  account: {},
+  account: {
+    notifications: "/account/notifications",
+    teams: "/account/teams",
+    settings: "/account/settings",
+  },
   dashboard: {
     base: "/dashboard",
     commits: "/dashboard/commits",
@@ -25,7 +29,13 @@ Vue.prototype.$routes = {
     base: "/register"
   },
   teams: {
-    create: "/teams/create"
+    create: "/teams/create",
+    members(id) {
+      return `/teams/${id}/members`;
+    },
+    settings(id) {
+      return `/teams/${id}/settings`;
+    }
   },
   tests: {
     show(id) {

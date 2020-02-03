@@ -37,6 +37,8 @@ const (
 	messageBufferSize      = 256
 	roleProjectUserManager = "manager"
 	roleProjectUserMember  = "member"
+	roleTeamUserManager    = "manager"
+	roleTeamUserMember     = "member"
 	serverHostAndPort      = "0.0.0.0:8080"
 	serverScheme           = "http"
 	serverOrigin           = serverScheme + "://" + serverHostAndPort

@@ -2,8 +2,8 @@
   <v-app light>
     <NavbarAccount></NavbarAccount>
     <v-content class="white black--text h-100">
-      <div ref="content" class="d-flex h-100">
-        <div class="h-100 sidemenu">
+      <MainView>
+        <template v-slot:sidemenu>
           <v-list class="pa-2">
             <v-list-item
               v-for="sidemenuItem in sidemenuItems"
@@ -19,50 +19,44 @@
               </v-list-item-content>
             </v-list-item>
           </v-list>
-        </div>
-        <div :style="mainStyle" class="w-100 h-100 overflow-x-hidden overflow-y-auto">
+        </template>
+        <template v-slot:content>
           <nuxt />
-        </div>
-      </div>
+        </template>
+      </MainView>
     </v-content>
   </v-app>
 </template>
 
 <script>
+import MainView from "@/components/MainView.vue";
 import NavbarAccount from "@/components/NavbarAccount.vue";
 export default {
   middleware: "auth",
   components: {
+    MainView,
     NavbarAccount
   },
   data() {
     return {
-      mainStyle: {},
       sidemenuItems: [
         {
           title: "チーム",
           icon: "mdi-account-multiple-outline",
-          route: this.$routes.dashboard.commits
+          route: this.$routes.account.teams
         },
         {
-          title: "アカウント情報",
-          icon: "mdi-file-outline",
-          route: this.$routes.dashboard.files()
+          title: "通知",
+          icon: "mdi-bell",
+          route: this.$routes.account.notifications
+        },
+        {
+          title: "設定",
+          icon: "mdi-account",
+          route: this.$routes.account.settings
         }
       ]
-    };
-  },
-  mounted() {
-    let maxHeight = this.$refs.content.clientHeight;
-    this.mainStyle = {
-      "max-height": maxHeight + "px"
     };
   }
 };
 </script>
-
-<style>
-.sidemenu {
-  border-right: 2px solid lightgrey;
-}
-</style>

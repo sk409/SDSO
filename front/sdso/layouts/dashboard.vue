@@ -2,8 +2,8 @@
   <v-app light>
     <NavbarProject></NavbarProject>
     <v-content class="white black--text h-100">
-      <div ref="content" class="d-flex h-100">
-        <div class="h-100 sidemenu">
+      <MainView>
+        <template v-slot:sidemenu>
           <v-list class="pa-2">
             <v-list-item
               v-for="sidemenuItem in sidemenuItems"
@@ -19,47 +19,13 @@
               </v-list-item-content>
             </v-list-item>
           </v-list>
-        </div>
-        <div
-          :style="mainStyle"
-          class="w-100 h-100 overflow-x-hidden overflow-y-auto"
-        >
+        </template>
+        <template v-slot:content>
           <nuxt />
-        </div>
-      </div>
-      <!-- <v-container fluid class="h-100">
-        <v-row class="h-100">
-          <v-col md="3" class="d-none d-md-block sidemenu pr-2">
-            <v-list>
-              <v-list-item
-                v-for="sidemenuItem in sidemenuItems"
-                :key="sidemenuItem.title"
-                :to="sidemenuItem.route"
-                router
-              >
-                <v-list-item-action>
-                  <v-icon>{{ sidemenuItem.icon }}</v-icon>
-                </v-list-item-action>
-                <v-list-item-content>
-                  <v-list-item-title>{{
-                    sidemenuItem.title
-                  }}</v-list-item-title>
-                </v-list-item-content>
-              </v-list-item>
-            </v-list>
-          </v-col>
-          <v-col cols="12" md="9">
-            <nuxt />
-          </v-col>
-        </v-row>
-      </v-container>-->
+        </template>
+      </MainView>
     </v-content>
-    <v-snackbar
-      v-model="snackbar"
-      :timeout="3000"
-      top
-      @input="clearNotification"
-    >
+    <v-snackbar v-model="snackbar" :timeout="3000" top @input="clearNotification">
       <span>{{ this.$store.state.notifications.message }}</span>
       <v-btn left icon @click="snackbar = false">
         <v-icon>mdi-close</v-icon>
@@ -70,11 +36,13 @@
 
 <script>
 import mutations from "@/assets/js/mutations.js";
+import MainView from "@/components/MainView.vue";
 import NavbarProject from "@/components/NavbarProject.vue";
 import { mapMutations } from "vuex";
 export default {
   middleware: "auth",
   components: {
+    MainView,
     NavbarProject
   },
   data() {
@@ -119,7 +87,6 @@ export default {
           }
         ]
       },
-      mainStyle: {},
       sidemenuType: "git",
       snackbar: false,
       user: null
@@ -136,16 +103,6 @@ export default {
     this.$fetchUser().then(response => {
       this.user = response.data;
     });
-  },
-  mounted() {
-    let maxHeight = this.$refs.content.clientHeight;
-    // if (this.$refs.navbar.$el.clientHeight === 0) {
-    //   maxHeight += this.navbarHeight;
-    // }
-    this.mainStyle = {
-      "max-height": maxHeight + "px"
-    };
-    // console.log(this.mainStyle);
   },
   methods: {
     ...mapMutations({

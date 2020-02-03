@@ -144,7 +144,9 @@ export default {
           return ajax.post(url.base, data);
         })
         .then(response => {
-          this.setNotificationMessage(`${this.projectname}を作成しました`);
+          this.setNotificationMessage(
+            `プロジェクト「${this.projectname}」を作成しました`
+          );
           this.$router.push(this.$routes.dashboard.commits);
         });
     },

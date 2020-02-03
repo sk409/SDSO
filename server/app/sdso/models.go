@@ -46,6 +46,33 @@ type project struct {
 	TeamID    uint   `gorm:"not null"`
 }
 
+func (p project) public() interface{} {
+	i, err := convert(p)
+	if err != nil {
+		return p
+	}
+	m, ok := i.(map[string]interface{})
+	if !ok {
+		return p
+	}
+	projectUsers := []projectUser{}
+	err = find(map[string]interface{}{"project_id": p.ID}, &projectUsers)
+	if err != nil {
+		return p
+	}
+	userIDs := make([]uint, len(projectUsers))
+	for index, projectUser := range projectUsers {
+		userIDs[index] = projectUser.UserID
+	}
+	users := []user{}
+	err = findByUniqueKey(userIDs, &users)
+	if err != nil {
+		return p
+	}
+	m["users"] = users
+	return m
+}
+
 type projectUser struct {
 	ID        uint `gorm:"primary_key"`
 	CreatedAt time.Time
@@ -111,17 +138,71 @@ type team struct {
 	Password  string `gorm:"type:char(60);not null;"`
 }
 
+func (t team) public() interface{} {
+	i, err := convert(t)
+	if err != nil {
+		return t
+	}
+	m, ok := i.(map[string]interface{})
+	if !ok {
+		return t
+	}
+	projects := []project{}
+	err = find(map[string]interface{}{"team_id": t.ID}, &projects)
+	if err != nil {
+		return t
+	}
+	m["projects"] = projects
+	return m
+}
+
 type teamUser struct {
 	ID        uint `gorm:"primary_key"`
 	CreatedAt time.Time
 	UpdatedAt time.Time
 	TeamID    uint `gorm:"not null"`
 	UserID    uint `gorm:"not null"`
+	RoleID    uint `gorm:"not null"`
 }
 
-// func (_ *teamUser) TableName() string {
-// 	return "team_user"
-// }
+func (_ *teamUser) TableName() string {
+	return "team_user"
+}
+
+func (t teamUser) public() interface{} {
+	i, err := convert(t)
+	if err != nil {
+		return t
+	}
+	m, ok := i.(map[string]interface{})
+	if !ok {
+		return t
+	}
+	teamUserRole := teamUserRole{}
+	err = first(map[string]interface{}{"id": t.RoleID}, &teamUserRole)
+	if err != nil {
+		return t
+	}
+	m["role"] = teamUserRole.Role
+	return m
+}
+
+type teamUserInvitationRequest struct {
+	ID        uint `gorm:"primary_key"`
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	Message   string `gorm:"type:varchar(512);"`
+	TeamID    uint   `gorm:"not null"`
+	UserID    uint   `gorm:"not null"`
+	RoleID    uint   `gorm:"not null"`
+}
+
+type teamUserRole struct {
+	ID        uint `gorm:"primary_key"`
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	Role      string `gorm:"not null;unique"`
+}
 
 type test struct {
 	ID         uint `gorm:"primary_key"`

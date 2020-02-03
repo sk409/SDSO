@@ -511,7 +511,7 @@ func (p *projectsHandler) ids(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	projects := []project{}
-	err := findByUniqueKey(ids, projects)
+	err := findByUniqueKey(ids, &projects)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
 		return
@@ -885,13 +885,61 @@ func (t *teamUsersHandler) fetch(w http.ResponseWriter, r *http.Request) {
 }
 
 func (t *teamUsersHandler) store(w http.ResponseWriter, r *http.Request) {
-	teamUser := teamUser{}
-	err := store(r, &teamUser)
+	teamID := r.PostFormValue("teamId")
+	role := r.PostFormValue("role")
+	userID := r.PostFormValue("userId")
+	if emptyAny(teamID, role, userID) {
+		respond(w, http.StatusBadRequest)
+		return
+	}
+	teamUserRole := teamUserRole{}
+	err := first(map[string]interface{}{"role": role}, &teamUserRole)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
 		return
 	}
-	respondJSON(w, http.StatusOK, teamUser)
+	teamUser := teamUser{}
+	err = save(map[string]interface{}{"teamID": teamID, "roleID": teamUserRole.ID, "userID": userID}, &teamUser)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
+	respondJSON(w, http.StatusInternalServerError, teamUser)
+}
+
+type teamUserInvitationRequestsHandler struct {
+}
+
+func (t *teamUserInvitationRequestsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodGet:
+		t.fetch(w, r)
+		return
+	case http.MethodPost:
+		t.store(w, r)
+		return
+	}
+	respond(w, http.StatusNotFound)
+}
+
+func (t *teamUserInvitationRequestsHandler) fetch(w http.ResponseWriter, r *http.Request) {
+	teamUserInvitationRequests := []teamUserInvitationRequest{}
+	err := fetch(r, &teamUserInvitationRequests)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
+	respondJSON(w, http.StatusOK, teamUserInvitationRequests)
+}
+
+func (t *teamUserInvitationRequestsHandler) store(w http.ResponseWriter, r *http.Request) {
+	teamUserInvitationRequest := teamUserInvitationRequest{}
+	err := store(r, &teamUserInvitationRequest)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
+	respondJSON(w, http.StatusOK, teamUserInvitationRequest)
 }
 
 type testsHandler struct {

@@ -20,7 +20,8 @@ func init() {
 	db.AutoMigrate(&user{}).AddUniqueIndex("idx_name_password", "name", "password")
 	db.AutoMigrate(&request{}, &testStatus{})
 	db.AutoMigrate(&team{})
-	db.AutoMigrate(&teamUser{}).AddForeignKey("team_id", "teams(id)", "CASCADE", "CASCADE").AddForeignKey("user_id", "users(id)", "CASCADE", "CASCADE")
+	db.AutoMigrate(&teamUserRole{})
+	db.AutoMigrate(&teamUser{}).AddForeignKey("team_id", "teams(id)", "CASCADE", "CASCADE").AddForeignKey("user_id", "users(id)", "CASCADE", "CASCADE").AddForeignKey("role_id", "team_user_roles(id)", "CASCADE", "CASCADE")
 	db.AutoMigrate(&project{}).AddForeignKey("team_id", "teams(id)", "CASCADE", "CASCADE").AddUniqueIndex("name_team_id_unique", "name", "team_id")
 	db.AutoMigrate(&scan{}).AddForeignKey("user_id", "users(id)", "CASCADE", "CASCADE").AddForeignKey("project_id", "projects(id)", "CASCADE", "CASCADE")
 	db.AutoMigrate(&test{}).AddForeignKey("project_id", "projects(id)", "CASCADE", "CASCADe")
@@ -29,6 +30,7 @@ func init() {
 	db.AutoMigrate(&branchProtectionRule{}).AddForeignKey("project_id", "projects(id)", "CASCADE", "CASCADE")
 	db.AutoMigrate(&projectUserRole{})
 	db.AutoMigrate(&projectUser{}).AddForeignKey("project_id", "projects(id)", "CASCADE", "CASCADE").AddForeignKey("user_id", "users(id)", "CASCADE", "CASCADE").AddForeignKey("role_id", "project_user_roles(id)", "CASCADE", "CASCADE")
+	db.AutoMigrate(&teamUserInvitationRequest{}).AddForeignKey("user_id", "users(id)", "CASCADE", "CASCADE").AddForeignKey("team_id", "teams(id)", "CASCADE", "CASCADE").AddUniqueIndex("user_id_team_id_unique", "user_id", "team_id").AddForeignKey("role_id", "team_user_roles(id)", "CASCADE", "CASCADE")
 	insertData()
 }
 
@@ -56,5 +58,11 @@ func insertData() {
 	})
 	insertIfNotExist(&projectUserRole{
 		Role: roleProjectUserMember,
+	})
+	insertIfNotExist(&teamUserRole{
+		Role: roleTeamUserManager,
+	})
+	insertIfNotExist(&teamUserRole{
+		Role: roleTeamUserMember,
 	})
 }
