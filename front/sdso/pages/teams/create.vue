@@ -3,13 +3,6 @@
     <template v-slot:form>
       <v-form ref="form">
         <v-text-field v-model="teamname" :rules="teamnameRules" label="名前"></v-text-field>
-        <v-text-field
-          v-model="password"
-          autocomplete
-          :rules="passwordRules"
-          type="password"
-          label="パスワード"
-        ></v-text-field>
       </v-form>
     </template>
     <template v-slot:buttons>
@@ -37,8 +30,6 @@ export default {
   data() {
     return {
       creating: false,
-      password: "",
-      passwordRules: [v => !!v || "パスワードを入力してください"],
       teamname: "",
       teamnameRules: [
         v => !!v || "チーム名を入力してください",
@@ -76,8 +67,7 @@ export default {
       }
       const url = new Url(pathTeams);
       const data = {
-        name: this.teamname,
-        password: this.password
+        name: this.teamname
       };
       this.creating = true;
       ajax.post(url.base, data).then(response => {

@@ -25,20 +25,12 @@
         </template>
       </MainView>
     </v-content>
-    <v-snackbar v-model="snackbar" :timeout="3000" top @input="clearNotification">
-      <span>{{ this.$store.state.notifications.message }}</span>
-      <v-btn left icon @click="snackbar = false">
-        <v-icon>mdi-close</v-icon>
-      </v-btn>
-    </v-snackbar>
   </v-app>
 </template>
 
 <script>
-import mutations from "@/assets/js/mutations.js";
 import MainView from "@/components/MainView.vue";
 import NavbarProject from "@/components/NavbarProject.vue";
-import { mapMutations } from "vuex";
 export default {
   middleware: "auth",
   components: {
@@ -88,7 +80,6 @@ export default {
         ]
       },
       sidemenuType: "git",
-      snackbar: false,
       user: null
     };
   },
@@ -98,19 +89,12 @@ export default {
     }
   },
   created() {
-    this.snackbar = this.$store.state.notifications.message !== "";
     this.$nuxt.$on("setSidemenuType", this.setSidemenuType);
     this.$fetchUser().then(response => {
       this.user = response.data;
     });
   },
   methods: {
-    ...mapMutations({
-      setNotificationMessage: mutations.notifications.setMessage
-    }),
-    clearNotification() {
-      this.setNotificationMessage("");
-    },
     setSidemenuType(sidemenuType) {
       this.sidemenuType = sidemenuType;
     }

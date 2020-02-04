@@ -52,7 +52,7 @@ export default {
         },
         {
           title: "設定",
-          icon: "mdi-account",
+          icon: "mdi-settings",
           route: this.$routes.account.settings
         }
       ]

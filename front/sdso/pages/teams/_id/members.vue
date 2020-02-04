@@ -1,37 +1,48 @@
 <template>
   <v-container v-if="user" fluid>
-    <v-subheader>メンバ一覧</v-subheader>
+    <v-subheader>チーム内のメンバ一覧</v-subheader>
     <v-divider></v-divider>
     <v-row>
-      <v-col cols="2" class="text-center">
-        <v-btn color="primary" :disabled="!manager" outlined @click="dialogs.invitation=true">ユーザを招待</v-btn>
-        <div v-if="!manager" class="red--text">権限がありません</div>
+      <v-col cols="3" class="text-center">
+        <v-btn
+          color="primary"
+          :disabled="!manager"
+          outlined
+          @click="dialogs.invitation = true"
+          >ユーザを招待</v-btn
+        >
+        <div v-if="!manager" class="red--text caption">権限がありません</div>
       </v-col>
     </v-row>
-    <v-simple-table>
-      <thead>
-        <tr>
-          <th></th>
-          <th>名前</th>
-          <th>権限</th>
-          <th>参加日</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr v-for="user in users" :key="user.id">
-          <td :style="{width: profileImageSize()}">
-            <v-avatar :size="profileImageSize()">
-              <v-img :src="$serverUrl(user.profileImagePath)"></v-img>
-            </v-avatar>
-          </td>
-          <td>{{user.name}}</td>
-          <td>{{user.role | role}}</td>
-          <td>{{user.joinedAt | dateDefault}}</td>
-        </tr>
-      </tbody>
-    </v-simple-table>
+    <v-card>
+      <v-simple-table>
+        <thead>
+          <tr>
+            <th></th>
+            <th>名前</th>
+            <th>権限</th>
+            <th>参加日</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="user in users" :key="user.id">
+            <td :style="{ width: profileImageSize() }">
+              <v-avatar :size="profileImageSize()">
+                <v-img :src="$serverUrl(user.profileImagePath)"></v-img>
+              </v-avatar>
+            </td>
+            <td>{{ user.name }}</td>
+            <td>{{ user.role.role | role }}</td>
+            <td>{{ user.joinedAt | dateDefault }}</td>
+          </tr>
+        </tbody>
+      </v-simple-table>
+    </v-card>
     <v-dialog v-model="dialogs.invitation">
-      <TeamUserInvitation :team="team" @cancel="dialogs.invitation=false"></TeamUserInvitation>
+      <TeamUserInvitation
+        :team="team"
+        @cancel="dialogs.invitation = false"
+      ></TeamUserInvitation>
     </v-dialog>
   </v-container>
 </template>

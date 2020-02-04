@@ -507,7 +507,7 @@ func (p *projectsHandler) ids(w http.ResponseWriter, r *http.Request) {
 	r.ParseForm()
 	ids := r.Form["ids[]"]
 	if emptyAny(ids) {
-		respond(w, http.StatusBadRequest)
+		respondJSON(w, http.StatusOK, []project{})
 		return
 	}
 	projects := []project{}
@@ -826,7 +826,7 @@ func (t *teamsHandler) fetch(w http.ResponseWriter, r *http.Request) {
 func (t *teamsHandler) ids(w http.ResponseWriter, r *http.Request) {
 	ids := r.URL.Query()["ids[]"]
 	if emptyAny(ids) {
-		respond(w, http.StatusBadRequest)
+		respondJSON(w, http.StatusOK, []team{})
 		return
 	}
 	teams := []team{}
@@ -839,19 +839,8 @@ func (t *teamsHandler) ids(w http.ResponseWriter, r *http.Request) {
 }
 
 func (t *teamsHandler) store(w http.ResponseWriter, r *http.Request) {
-	name := r.PostFormValue("name")
-	password := r.PostFormValue("password")
-	if emptyAny(name, password) {
-		respond(w, http.StatusBadRequest)
-		return
-	}
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
-	if err != nil {
-		respondError(w, http.StatusInternalServerError, err)
-		return
-	}
 	team := team{}
-	err = save(map[string]interface{}{"name": name, "password": string(hashedPassword)}, &team)
+	err := store(r, &team)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
 		return
@@ -907,6 +896,54 @@ func (t *teamUsersHandler) store(w http.ResponseWriter, r *http.Request) {
 	respondJSON(w, http.StatusInternalServerError, teamUser)
 }
 
+type teamUserInvitationRequestProjectsHandler struct {
+}
+
+func (t *teamUserInvitationRequestProjectsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodGet:
+		t.fetch(w, r)
+		return
+	case http.MethodPost:
+		t.store(w, r)
+		return
+	case http.MethodDelete:
+		t.destroy(w, r)
+		return
+	}
+	respond(w, http.StatusNotFound)
+}
+
+func (t *teamUserInvitationRequestProjectsHandler) fetch(w http.ResponseWriter, r *http.Request) {
+	teamUserInvitationRequests := []teamUserInvitationRequest{}
+	err := fetch(r, &teamUserInvitationRequests)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
+	respondJSON(w, http.StatusOK, teamUserInvitationRequests)
+}
+
+func (t *teamUserInvitationRequestProjectsHandler) store(w http.ResponseWriter, r *http.Request) {
+	teamUserInvitationRequestProject := teamUserInvitationRequestProject{}
+	err := store(r, &teamUserInvitationRequestProject)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
+	respondJSON(w, http.StatusOK, teamUserInvitationRequestProject)
+}
+
+func (t *teamUserInvitationRequestProjectsHandler) destroy(w http.ResponseWriter, r *http.Request) {
+	teamUserInvitationRequestProject := []teamUserInvitationRequestProject{}
+	err := destroy(r, &teamUserInvitationRequestProject)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
+	respondJSON(w, http.StatusOK, teamUserInvitationRequestProject)
+}
+
 type teamUserInvitationRequestsHandler struct {
 }
 
@@ -917,6 +954,9 @@ func (t *teamUserInvitationRequestsHandler) ServeHTTP(w http.ResponseWriter, r *
 		return
 	case http.MethodPost:
 		t.store(w, r)
+		return
+	case http.MethodDelete:
+		t.destroy(w, r)
 		return
 	}
 	respond(w, http.StatusNotFound)
@@ -933,8 +973,33 @@ func (t *teamUserInvitationRequestsHandler) fetch(w http.ResponseWriter, r *http
 }
 
 func (t *teamUserInvitationRequestsHandler) store(w http.ResponseWriter, r *http.Request) {
+	inviterUserID := r.PostFormValue("inviterUserId")
+	inviteeUserID := r.PostFormValue("inviteeUserId")
+	message := r.PostFormValue("message")
+	roleText := r.PostFormValue("role")
+	teamID := r.PostFormValue("teamId")
+	if emptyAny(inviterUserID, inviteeUserID, message, roleText, teamID) {
+		respond(w, http.StatusBadRequest)
+		return
+	}
+	role := teamUserRole{}
+	err := first(map[string]interface{}{"role": roleText}, &role)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
 	teamUserInvitationRequest := teamUserInvitationRequest{}
-	err := store(r, &teamUserInvitationRequest)
+	err = save(map[string]interface{}{"message": message, "teamID": teamID, "inviterUserID": inviterUserID, "inviteeUserID": inviteeUserID, "roleID": role.ID}, &teamUserInvitationRequest)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
+	respondJSON(w, http.StatusOK, teamUserInvitationRequest)
+}
+
+func (t *teamUserInvitationRequestsHandler) destroy(w http.ResponseWriter, r *http.Request) {
+	teamUserInvitationRequest := teamUserInvitationRequest{}
+	err := destroy(r, &teamUserInvitationRequest)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
 		return
@@ -1141,7 +1206,7 @@ func (u *usersHandler) fetch(w http.ResponseWriter, r *http.Request) {
 func (u *usersHandler) ids(w http.ResponseWriter, r *http.Request) {
 	ids := r.URL.Query()["ids[]"]
 	if emptyAny(ids) {
-		respond(w, http.StatusBadRequest)
+		respondJSON(w, http.StatusOK, []user{})
 		return
 	}
 	users := []user{}

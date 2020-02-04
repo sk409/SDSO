@@ -23,9 +23,13 @@
                 ></v-checkbox>
               </div>
               <div>
-                <div class="caption">{{role.caption}}</div>
+                <div class="caption">{{ role.caption }}</div>
                 <v-list>
-                  <v-list-item v-for="ability in role.ablities" :key="ability">{{ability}}</v-list-item>
+                  <v-list-item
+                    v-for="ability in role.ablities"
+                    :key="ability"
+                    >{{ ability }}</v-list-item
+                  >
                 </v-list>
               </div>
             </div>
@@ -48,18 +52,26 @@
               ></v-text-field>
             </v-col>
           </v-row>
+          <v-subheader>招待するユーザ({{ inviteeUsers.length }}人)</v-subheader>
           <v-row class="mt-0">
             <v-col cols="3">
               <v-list>
-                <v-list-item v-for="invitedUser in invitedUsers" :key="invitedUser.id">
+                <v-list-item
+                  v-for="inviteeUser in inviteeUsers"
+                  :key="inviteeUser.id"
+                >
                   <v-list-item-avatar>
-                    <v-img :src="$serverUrl(invitedUser.profileImagePath)"></v-img>
+                    <v-img
+                      :src="$serverUrl(inviteeUser.profileImagePath)"
+                    ></v-img>
                   </v-list-item-avatar>
                   <v-list-item-content>
-                    <v-list-item-title>{{invitedUser.name}}</v-list-item-title>
+                    <v-list-item-title>{{
+                      inviteeUser.name
+                    }}</v-list-item-title>
                   </v-list-item-content>
                   <v-list-item-action>
-                    <v-btn icon @click="removeUser(invitedUser.name)">
+                    <v-btn icon @click="removeUser(inviteeUser.name)">
                       <v-icon>mdi-delete</v-icon>
                     </v-btn>
                   </v-list-item-action>
@@ -67,26 +79,69 @@
               </v-list>
             </v-col>
           </v-row>
+          <v-row>
+            <v-col cols="6">
+              <v-select
+                :items="projectnames"
+                no-data-text="プロジェクトがありません"
+                label="参加させるプロジェクトを選択してください"
+                @input="selectProject"
+              ></v-select>
+            </v-col>
+          </v-row>
+          <v-subheader
+            >参加させるプロジェクト({{
+              selectedProjects.length
+            }}個)</v-subheader
+          >
+          <v-row>
+            <v-col cols="3">
+              <v-list>
+                <v-list-item
+                  v-for="selectedProject in selectedProjects"
+                  :key="selectedProject.id"
+                >
+                  <v-list-item-title>
+                    {{ selectedProject.name }}
+                  </v-list-item-title>
+                  <v-list-item-action>
+                    <v-icon>mdi-delete</v-icon>
+                  </v-list-item-action>
+                </v-list-item>
+              </v-list>
+            </v-col>
+          </v-row>
           <v-row class="mt-0">
             <v-col cols="6">
-              <v-textarea v-model="message" :rules="messageRules" label="メッセージ"></v-textarea>
+              <v-textarea
+                v-model="message"
+                :rules="messageRules"
+                label="メッセージ"
+              ></v-textarea>
             </v-col>
           </v-row>
           <div class="d-flex justify-end">
             <v-btn text @click="$emit('cancel')">キャセル</v-btn>
-            <v-btn text color="primary" @click="step=1">戻る</v-btn>
+            <v-btn text color="primary" @click="step = 1">戻る</v-btn>
             <v-btn text color="primary" @click="selectUsers">次へ</v-btn>
           </div>
         </v-stepper-content>
         <v-stepper-content step="3">
-          <v-subheader>以下のメンバを{{selectedRole.text}}として招待しました</v-subheader>
+          <v-subheader
+            >以下のメンバを{{
+              selectedRole.text
+            }}として招待しました</v-subheader
+          >
           <v-list>
-            <v-list-item v-for="invitedUser in invitedUsers" :key="invitedUser.id">
+            <v-list-item
+              v-for="inviteeUser in inviteeUsers"
+              :key="inviteeUser.id"
+            >
               <v-list-item-avatar>
-                <v-img :src="$serverUrl(invitedUser.profileImagePath)"></v-img>
+                <v-img :src="$serverUrl(inviteeUser.profileImagePath)"></v-img>
               </v-list-item-avatar>
               <v-list-item-content>
-                <v-list-item-title>{{invitedUser.name}}</v-list-item-title>
+                <v-list-item-title>{{ inviteeUser.name }}</v-list-item-title>
               </v-list-item-content>
             </v-list-item>
           </v-list>
@@ -103,7 +158,10 @@
 import ajax from "@/assets/js/ajax.js";
 import roles from "@/assets/js/roles.js";
 import {
+  pathProjects,
   pathTeamUserInvitationRequests,
+  pathTeamUserInvitationRequestProjects,
+  pathTeamUsers,
   pathUsers,
   Url
 } from "@/assets/js/urls.js";
@@ -118,7 +176,7 @@ export default {
   },
   data() {
     return {
-      invitedUsers: [],
+      inviteeUsers: [],
       message: "",
       messageRules: [
         v =>
@@ -154,14 +212,19 @@ export default {
           value: roles.team.member
         }
       ],
+      selectedProjects: [],
       step: 1,
       username: "",
       usernameError: false,
       usernameErrorMessages: [],
+      users: [],
       visible: false
     };
   },
   computed: {
+    projectnames() {
+      return this.projects.map(project => project.name);
+    },
     selectedRole() {
       return this.roles.find(role => role.checked);
     }
@@ -170,6 +233,15 @@ export default {
     this.$fetchUser().then(response => {
       user = response.data;
     });
+  },
+  watch: {
+    team: {
+      immediate: true,
+      handler() {
+        this.fetchProjects();
+        this.fetchUsers();
+      }
+    }
   },
   methods: {
     checkRole(role) {
@@ -184,9 +256,44 @@ export default {
     },
     close() {
       this.step = 1;
-      this.invitedUsers = [];
+      this.inviteeUsers = [];
       this.message = "";
       this.$emit("cancel");
+    },
+    fetchProjects() {
+      if (!this.team) {
+        return;
+      }
+      const url = new Url(pathProjects);
+      const data = {
+        teamId: this.team.id
+      };
+      ajax.get(url.base, data).then(response => {
+        this.projects = response.data;
+      });
+    },
+    fetchUsers() {
+      if (!this.team) {
+        return;
+      }
+      const url = new Url(pathTeamUsers);
+      const data = {
+        teamId: this.team.id
+      };
+      ajax
+        .get(url.base, data)
+        .then(response => {
+          const teamUsers = response.data;
+          const userIds = teamUsers.map(teamUser => teamUser.userId);
+          const url = new Url(pathUsers);
+          const data = {
+            ids: userIds
+          };
+          return ajax.get(url.ids, data);
+        })
+        .then(response => {
+          this.users = response.data;
+        });
     },
     inviteUser(e) {
       this.usernameError = false;
@@ -198,17 +305,35 @@ export default {
       };
       ajax.get(url.base, data).then(response => {
         if (response.data.length === 0) {
+          this.usernameError = true;
+          this.usernameErrorMessages = [`${username}は存在していません`];
+          return;
+        }
+        const inviteeUser = response.data[0];
+        const index = this.users.findIndex(user => user.id === inviteeUser.id);
+        const notFound = -1;
+        if (index !== notFound) {
+          this.usernameError = true;
+          this.usernameErrorMessages = [
+            `${username}は既にチームに参加しています`
+          ];
           return;
         }
         this.username = "";
-        this.invitedUsers.push(response.data[0]);
+        this.inviteeUsers.push(inviteeUser);
       });
     },
     removeUser(username) {
-      this.invitedUsers = this.invitedUsers.filter(invitedUser => {
-        return false;
-        return invitedUser.name !== username;
+      this.inviteeUsers = this.inviteeUsers.filter(inviteeUser => {
+        return inviteeUser.name !== username;
       });
+    },
+    selectProject(projectname) {
+      const project = this.projects.find(
+        project => project.name === projectname
+      );
+      this.selectedProjects.push(project);
+      this.projects = this.projects.filter(p => p.id !== project.id);
     },
     selectRole() {
       const selectedRole = this.roles.find(role => role.checked);
@@ -223,7 +348,7 @@ export default {
     },
     selectUsers() {
       let error = false;
-      if (this.invitedUsers.length === 0) {
+      if (this.inviteeUsers.length === 0) {
         error = true;
         this.usernameError = true;
         this.usernameErrorMessages = "ユーザを招待してください";
@@ -235,14 +360,25 @@ export default {
         return;
       }
       const url = new Url(pathTeamUserInvitationRequests);
-      for (const invitedUser of this.invitedUsers) {
+      for (const inviteeUser of this.inviteeUsers) {
         const data = {
           message: this.message,
+          role: this.selectedRole.value,
           teamId: this.team.id,
-          userId: user.id
+          inviterUserId: user.id,
+          inviteeUserId: inviteeUser.id
         };
-
-        ajax.post(url.base, data);
+        ajax.post(url.base, data).then(response => {
+          const teamUserInvitationRequest = response.data;
+          for (const project of this.selectedProjects) {
+            const url = new Url(pathTeamUserInvitationRequestProjects);
+            const data = {
+              teamUserInvitationRequestId: teamUserInvitationRequest.id,
+              projectId: project.id
+            };
+            ajax.post(url.base, data);
+          }
+        });
       }
       this.step = 3;
     }

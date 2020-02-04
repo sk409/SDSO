@@ -34,6 +34,10 @@ class Ajax {
   post(url, data, config) {
     return axios.post(url, this.makeBody(data, config), config);
   }
+
+  delete(url, data, config) {
+    return axios.delete(url, this.makeBody(data, config), config);
+  }
 }
 
 const ajax = new Ajax();

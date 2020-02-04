@@ -42,29 +42,12 @@
             ></v-select>
           </v-col>
           <v-col cols="1" offset="5" class="d-flex align-center">
-            <v-menu offset-y>
-              <template v-slot:activator="{ on }">
-                <v-btn icon small v-on="on">
-                  <v-icon>mdi-plus</v-icon>
-                </v-btn>
-              </template>
-              <v-list>
-                <v-list-item
-                  v-for="menuItem in menuItems"
-                  :key="menuItem.title"
-                  :to="menuItem.route"
-                  router
-                >
-                  <v-list-item-action>
-                    <v-icon>{{ menuItem.icon }}</v-icon>
-                  </v-list-item-action>
-                  <v-list-item-content>
-                    <v-list-item-title>{{ menuItem.title }}</v-list-item-title>
-                  </v-list-item-content>
-                </v-list-item>
-              </v-list>
-            </v-menu>
-            <v-btn icon small class="ml-3" @click="$router.push($routes.account.teams)">
+            <v-btn
+              icon
+              small
+              class="ml-3"
+              @click="$router.push($routes.account.teams)"
+            >
               <v-icon>mdi-account</v-icon>
             </v-btn>
           </v-col>
@@ -92,18 +75,6 @@ export default {
   data() {
     return {
       drawer: false,
-      menuItems: [
-        {
-          title: "チーム作成",
-          icon: "mdi-account-multiple-outline",
-          route: this.$routes.teams.create
-        },
-        {
-          title: "プロジェクト作成",
-          icon: "mdi-apps",
-          route: this.$routes.projects.create
-        }
-      ],
       navItems: [
         {
           title: "コード管理",

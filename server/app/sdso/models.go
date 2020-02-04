@@ -135,7 +135,6 @@ type team struct {
 	CreatedAt time.Time
 	UpdatedAt time.Time
 	Name      string `gorm:"type:varchar(256);not null;unique;"`
-	Password  string `gorm:"type:char(60);not null;"`
 }
 
 func (t team) public() interface{} {
@@ -153,6 +152,21 @@ func (t team) public() interface{} {
 		return t
 	}
 	m["projects"] = projects
+	teamUsers := []teamUser{}
+	err = find(map[string]interface{}{"team_id": t.ID}, &teamUsers)
+	if err != nil {
+		return t
+	}
+	users := make([]user, len(teamUsers))
+	for index, teamUser := range teamUsers {
+		u := user{}
+		err = first(map[string]interface{}{"id": teamUser.UserID}, &u)
+		if err != nil {
+			return t
+		}
+		users[index] = u
+	}
+	m["users"] = users
 	return m
 }
 
@@ -183,18 +197,75 @@ func (t teamUser) public() interface{} {
 	if err != nil {
 		return t
 	}
-	m["role"] = teamUserRole.Role
+	m["role"] = teamUserRole
 	return m
 }
 
 type teamUserInvitationRequest struct {
-	ID        uint `gorm:"primary_key"`
-	CreatedAt time.Time
-	UpdatedAt time.Time
-	Message   string `gorm:"type:varchar(512);"`
-	TeamID    uint   `gorm:"not null"`
-	UserID    uint   `gorm:"not null"`
-	RoleID    uint   `gorm:"not null"`
+	ID            uint `gorm:"primary_key"`
+	CreatedAt     time.Time
+	UpdatedAt     time.Time
+	Message       string `gorm:"type:varchar(512);"`
+	TeamID        uint   `gorm:"not null"`
+	InviterUserID uint   `gorm:"not null"`
+	InviteeUserID uint   `gorm:"not null"`
+	RoleID        uint   `gorm:"not null"`
+}
+
+func (t teamUserInvitationRequest) public() interface{} {
+	i, err := convert(t)
+	if err != nil {
+		return t
+	}
+	m, ok := i.(map[string]interface{})
+	if !ok {
+		return t
+	}
+	inviterUser := user{}
+	err = first(map[string]interface{}{"id": t.InviterUserID}, &inviterUser)
+	if err != nil {
+		return t
+	}
+	m["inviterUser"] = inviterUser
+	inviteeUser := user{}
+	err = first(map[string]interface{}{"id": t.InviteeUserID}, &inviteeUser)
+	if err != nil {
+		return t
+	}
+	m["inviteeUser"] = inviteeUser
+	r := teamUserRole{}
+	err = first(map[string]interface{}{"id": t.RoleID}, &r)
+	if err != nil {
+		return t
+	}
+	m["role"] = r
+	teamUserInvitationRequestProjects := []teamUserInvitationRequestProject{}
+	err = find(map[string]interface{}{"team_user_invitation_request_id": t.ID}, &teamUserInvitationRequestProjects)
+	if err != nil {
+		return t
+	}
+	projects := make([]project, len(teamUserInvitationRequestProjects))
+	for index, teamUserInvitationRequestProject := range teamUserInvitationRequestProjects {
+		p := project{}
+		err = first(map[string]interface{}{"id": teamUserInvitationRequestProject.ProjectID}, &p)
+		if err != nil {
+			return t
+		}
+		projects[index] = p
+	}
+	m["projects"] = projects
+	team := team{}
+	err = first(map[string]interface{}{"id": t.TeamID}, &team)
+	if err != nil {
+		return t
+	}
+	m["team"] = team
+	return m
+}
+
+type teamUserInvitationRequestProject struct {
+	TeamUserInvitationRequestID uint `gorm:"not null"`
+	ProjectID                   uint `gorm:"not null"`
 }
 
 type teamUserRole struct {
@@ -297,7 +368,7 @@ type user struct {
 	UpdatedAt        time.Time
 	Name             string `gorm:"type:varchar(32);not null;unique"`
 	Password         string `gorm:"type:char(60);not null;"`
-	ProfileImagePath string `gorm:"type:varchar(256);not null;unique"`
+	ProfileImagePath string `gorm:"type:varchar(256);not null;"`
 }
 
 type vulnerability struct {

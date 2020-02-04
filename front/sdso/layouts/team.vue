@@ -12,10 +12,10 @@
               router
             >
               <v-list-item-action>
-                <v-icon>{{sidemenuItem.icon}}</v-icon>
+                <v-icon>{{ sidemenuItem.icon }}</v-icon>
               </v-list-item-action>
               <v-list-item-content>
-                <v-list-item-title>{{sidemenuItem.title}}</v-list-item-title>
+                <v-list-item-title>{{ sidemenuItem.title }}</v-list-item-title>
               </v-list-item-content>
             </v-list-item>
           </v-list>
@@ -54,6 +54,11 @@ export default {
               title: "メンバ",
               icon: "mdi-account-multiple-outline",
               route: this.$routes.teams.members(this.team.id)
+            },
+            {
+              title: "プロジェクト",
+              icon: "mdi-apps",
+              route: this.$routes.teams.projects(this.team.id)
             },
             {
               title: "設定",

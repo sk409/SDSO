@@ -35,6 +35,16 @@ func authenticatedUser(r *http.Request) (*user, error) {
 	return &u, nil
 }
 
+func destroy(r *http.Request, model interface{}) error {
+	query := make(map[string]interface{})
+	for key, value := range r.URL.Query() {
+		s := string(gocase.SnakeCase([]byte(key)))
+		query[s] = value[0]
+	}
+	db.Delete(model, query)
+	return db.Error
+}
+
 func fetch(r *http.Request, model interface{}) error {
 	query := make(map[string]interface{})
 	for key, value := range r.URL.Query() {
@@ -76,19 +86,6 @@ func respondError(w http.ResponseWriter, statusCode int, err error) {
 
 func respondJSON(w http.ResponseWriter, statusCode int, model interface{}) {
 	data := model
-	// if gotype.IsSlice(data) {
-	// 	ft := reflect.TypeOf((*facade)(nil)).Elem()
-	// 	dt := reflect.TypeOf(data).Elem()
-	// 	if dt.Implements(ft) {
-	// 		dv := reflect.ValueOf(data)
-	// 		s := make([]interface{}, dv.Len())
-	// 		for i := 0; i < dv.Len(); i++ {
-	// 			p := dv.Index(i).Interface().(facade).public()
-	// 			s[i] = p
-	// 		}
-	// 		data = s
-	// 	}
-	// }
 	data, err := public(data)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)

@@ -10,42 +10,102 @@
       <v-col cols="8">
         <v-card>
           <v-card-text>
-            <v-row>
-              <v-col cols="2" class="subtitle-1">チーム名</v-col>
-              <v-col>{{teamUserInvitationRequest.team.name}}</v-col>
-            </v-row>
-            <v-row>
-              <v-col cols="2" class="subtitle-1">招待日</v-col>
-              <v-col>{{teamUserInvitationRequest.createdAt | dateDefault}}</v-col>
-            </v-row>
-            <v-row>
-              <v-col cols="2" class="subtitle-1">招待者</v-col>
-            </v-row>
-            <v-row align="center">
-              <v-col cols="3">
-                <v-img :src="$serverUrl(teamUserInvitationRequest.user.profileImagePath)"></v-img>
-              </v-col>
-              <v-col>{{teamUserInvitationRequest.user.name}}</v-col>
-            </v-row>
+            <div class="mb-5">
+              <div class="border-left subtitle-1 mb-2">
+                <span class="ml-3">チーム名</span>
+              </div>
+              <div class="body-1">
+                {{ teamUserInvitationRequest.team.name }}
+              </div>
+            </div>
+            <div class="mb-5">
+              <div class="border-left subtitle-1 mb-2">
+                <span class="ml-3">役割</span>
+              </div>
+              <div class="body-1">
+                {{ teamUserInvitationRequest.role.role | role }}
+              </div>
+            </div>
+            <div class="mb-5">
+              <div class="border-left subtitle-1 mb-2">
+                <span class="ml-3">メッセージ</span>
+              </div>
+              <pre class="body-1">{{ teamUserInvitationRequest.message }}</pre>
+            </div>
+            <div class="mb-5">
+              <div class="border-left subtitle-1 mb-2">
+                <span class="ml-3">招待者</span>
+              </div>
+              <div>
+                <v-avatar size="64">
+                  <v-img
+                    :src="
+                      $serverUrl(
+                        teamUserInvitationRequest.inviterUser.profileImagePath
+                      )
+                    "
+                  ></v-img>
+                </v-avatar>
+                <span class="ml-3">{{
+                  teamUserInvitationRequest.inviterUser.name
+                }}</span>
+              </div>
+            </div>
+            <div class="mb-5">
+              <div class="border-left subtitle-1 mb-2">
+                <span class="ml-3">参加するプロジェクト</span>
+              </div>
+              <v-list>
+                <v-list-item
+                  v-for="project in teamUserInvitationRequest.projects"
+                  :key="project.id"
+                >
+                  <span class="mr-3">・</span>{{ project.name }}
+                </v-list-item>
+              </v-list>
+            </div>
+            <div class="mb-5">
+              <div class="border-left subtitle-1 mb-2">
+                <span class="ml-3">招待日</span>
+              </div>
+              <div class="body-1">
+                {{ teamUserInvitationRequest.createdAt | dateDefault }}
+              </div>
+            </div>
           </v-card-text>
           <v-card-actions>
-            <v-btn color="error" text class="ml-auto">拒否</v-btn>
+            <v-btn color="error" large text class="ml-auto">拒否</v-btn>
             <v-btn
               color="primary"
+              large
               text
               class="mr-auto"
-              @click="joinTeam(teamUserInvitationRequest.role, teamUserInvitationRequest.teamId, teamUserInvitationRequest.userId)"
-            >参加</v-btn>
+              @click="
+                joinTeam(
+                  teamUserInvitationRequest.role.role,
+                  teamUserInvitationRequest.teamId,
+                  teamUserInvitationRequest.inviteeUserId
+                )
+              "
+              >参加</v-btn
+            >
           </v-card-actions>
         </v-card>
       </v-col>
     </v-row>
+    <v-snackbar v-model="snackbar" :timeout="2000" top>
+      <span>{{ notification }}</span>
+      <v-btn icon @click="snackbar = false">
+        <v-icon>mdi-close</v-icon>
+      </v-btn>
+    </v-snackbar>
   </v-container>
 </template>
 
 <script>
 import ajax from "@/assets/js/ajax.js";
 import {
+  pathProjectUsers,
   pathTeams,
   pathTeamUserInvitationRequests,
   pathTeamUsers,
@@ -57,6 +117,8 @@ export default {
   layout: "account",
   data() {
     return {
+      notification: "",
+      snackbar: false,
       teamUserInvitationRequests: []
     };
   },
@@ -70,49 +132,51 @@ export default {
     fetchTeamUserInvitationReuqests() {
       const url = new Url(pathTeamUserInvitationRequests);
       const data = {
-        userId: user.id
+        inviteeUserId: user.id
       };
       ajax.get(url.base, data).then(response => {
-        const teamUserInvitationRequests = response.data;
-        const teamIds = teamUserInvitationRequests.map(
-          teamUserInvitationRequest => teamUserInvitationRequest.teamId
-        );
-        const url = new Url(pathTeams);
-        const data = {
-          ids: teamIds
-        };
-        ajax.get(url.ids, data).then(response => {
-          const teams = response.data;
-          const userIds = teamUserInvitationRequests.map(
-            teamUserInvitationRequest => teamUserInvitationRequest.userId
-          );
-          const url = new Url(pathUsers);
-          const data = {
-            ids: userIds
-          };
-          ajax.get(url.ids, data).then(response => {
-            const users = response.data;
-            for (const index in teamUserInvitationRequests) {
-              teamUserInvitationRequests[index].team = teams.find(
-                team => team.id === teamUserInvitationRequests[index].teamId
-              );
-              teamUserInvitationRequests[index].user = users.find(
-                user => user.id === teamUserInvitationRequests[index].userId
-              );
-            }
-            this.teamUserInvitationRequests = teamUserInvitationRequests;
-          });
-        });
+        this.teamUserInvitationRequests = response.data;
       });
     },
-    joinTeam(role, teaId, userId) {
+    joinTeam(role, teamId, userId) {
       const url = new Url(pathTeamUsers);
       const data = {
         role,
         teamId,
         userId
       };
+      ajax.post(url.base, data).then(response => {
+        const teamUserInvitationRequest = this.teamUserInvitationRequests.find(
+          teamUserInvitationRequest =>
+            teamUserInvitationRequest.teamId === teamId
+        );
+        this.teamUserInvitationRequests = this.teamUserInvitationRequests.filter(
+          t => t.id !== teamUserInvitationRequest.id
+        );
+        this.snackbar = true;
+        this.notification = `チーム${teamUserInvitationRequest.team.name}に参加しました`;
+        for (const project of teamUserInvitationRequest.projects) {
+          const url = new Url(pathProjectUsers);
+          const data = {
+            projectId: project.id,
+            userId: user.id,
+            role: teamUserInvitationRequest.role.role
+          };
+          ajax.post(url.base, data);
+        }
+        const url = new Url(pathTeamUserInvitationRequests);
+        const data = {
+          id: teamUserInvitationRequest.id
+        };
+        ajax.delete(url.base, data);
+      });
     }
   }
 };
 </script>
+
+<style>
+.border-left {
+  border-left: 5px solid #3f51b5;
+}
+</style>

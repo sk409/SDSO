@@ -59,6 +59,12 @@ func cors(next http.Handler) http.Handler {
 }
 
 func gitBasicAuth(next http.Handler) http.Handler {
+	Unauthorized := func(w http.ResponseWriter) {
+		w.Header().Set("WWW-Authenticate", `Basic realm="Please enter your username and password."`)
+		w.WriteHeader(http.StatusUnauthorized)
+		w.Write([]byte(http.StatusText(http.StatusUnauthorized)))
+		w.Header().Set("Content-Type", "text/plain")
+	}
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		components := strings.Split(r.URL.Path, "/")
 		if len(components) < 3 {
@@ -74,13 +80,26 @@ func gitBasicAuth(next http.Handler) http.Handler {
 				respondError(w, http.StatusInternalServerError, err)
 				return
 			}
-			name, password, ok := r.BasicAuth()
-			err = bcrypt.CompareHashAndPassword([]byte(t.Password), []byte(password))
-			if !ok || t.Name != name || err != nil {
-				w.Header().Set("WWW-Authenticate", `Basic realm="Please enter your username and password."`)
-				w.WriteHeader(http.StatusUnauthorized)
-				w.Write([]byte(http.StatusText(http.StatusUnauthorized)))
-				w.Header().Set("Content-Type", "text/plain")
+			username, password, ok := r.BasicAuth()
+			u := user{}
+			err = first(map[string]interface{}{"name": username}, &u)
+			if err != nil {
+				respondError(w, http.StatusInternalServerError, err)
+				return
+			}
+			teamUser := teamUser{}
+			err = first(map[string]interface{}{"team_id": t.ID, "user_id": u.ID}, &teamUser)
+			if err != nil {
+				respondError(w, http.StatusInternalServerError, err)
+				return
+			}
+			if teamUser.ID == 0 {
+				Unauthorized(w)
+				return
+			}
+			err = bcrypt.CompareHashAndPassword([]byte(u.Password), []byte(password))
+			if !ok || err != nil {
+				Unauthorized(w)
 				return
 			}
 		}
