@@ -164,13 +164,13 @@ func (c *commitsHandler) fetch(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *commitsHandler) show(w http.ResponseWriter, r *http.Request, sha1 string) {
-	userName := r.URL.Query().Get("userName")
-	projectName := r.URL.Query().Get("projectName")
-	if emptyAny(userName, projectName) {
+	teamname := r.URL.Query().Get("teamname")
+	projectname := r.URL.Query().Get("projectname")
+	if emptyAny(teamname, projectname) {
 		respond(w, http.StatusBadRequest)
 		return
 	}
-	commits, err := gitRepositories.Log(filepath.Join(userName, projectName), "--pretty=oneline")
+	commits, err := gitRepositories.Log(filepath.Join(teamname, projectname), "--pretty=oneline")
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
 		return
@@ -184,7 +184,7 @@ func (c *commitsHandler) show(w http.ResponseWriter, r *http.Request, sha1 strin
 			break
 		}
 	}
-	diff, err := gitRepositories.Show(filepath.Join(userName, projectName), sha1)
+	diff, err := gitRepositories.Show(filepath.Join(teamname, projectname), sha1)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
 		return

@@ -2,7 +2,12 @@
   <div>
     <v-navigation-drawer v-model="drawer" app>
       <v-list>
-        <v-list-item v-for="navItem in navItems" :key="navItem.title" :to="navItem.route" router>
+        <v-list-item
+          v-for="navItem in navItems"
+          :key="navItem.title"
+          :to="navItem.route"
+          router
+        >
           <v-list-item-action>
             <v-icon>{{ navItem.icon }}</v-icon>
           </v-list-item-action>
@@ -17,7 +22,12 @@
       <v-container fluid>
         <v-row align="center">
           <v-col cols="1" offset="11" class="d-flex align-center">
-            <v-btn icon small class="ml-3" @click="$router.push($routes.account.teams)">
+            <v-btn
+              icon
+              small
+              class="ml-3"
+              @click="$router.push($routes.account.teams)"
+            >
               <v-icon>mdi-account</v-icon>
             </v-btn>
           </v-col>
@@ -36,7 +46,7 @@ export default {
         {
           title: "ダッシュボード",
           icon: "mdi-view-dashboard",
-          route: this.$routes.dashboard.commits
+          route: this.$routes.dashboard.commits.base
         },
         {
           title: "アカウント",

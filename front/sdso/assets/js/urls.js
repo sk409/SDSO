@@ -29,6 +29,10 @@ export const pathVulnerabilities = "vulnerabilities";
 export class Url {
   constructor(path) {
     this.base = process.env.serverOrigin + "/" + path;
+    this.show = (id) => {
+      const delimiter = this.base.endsWith("/") ? "" : "/";
+      return this.base + delimiter + id;
+    };
     switch (path) {
       case pathFiles:
         this.text = this.base + "text";

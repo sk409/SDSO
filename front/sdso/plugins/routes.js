@@ -8,7 +8,10 @@ Vue.prototype.$routes = {
   },
   dashboard: {
     base: "/dashboard",
-    commits: "/dashboard/commits",
+    commits: {
+      base: "/dashboard/commits",
+      show: "/dashboard/commits/show",
+    },
     dast: "/dashboard/dast",
     files(path, file) {
       if (!path) {

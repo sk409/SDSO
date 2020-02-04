@@ -79,7 +79,7 @@ export default {
         {
           title: "コード管理",
           icon: "mdi-source-branch",
-          route: this.$routes.dashboard.commits
+          route: this.$routes.dashboard.commits.base
         },
         {
           title: "テスト",

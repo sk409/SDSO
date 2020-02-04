@@ -44,7 +44,7 @@ export default {
           {
             title: "コミット",
             icon: "mdi-source-commit",
-            route: this.$routes.dashboard.commits
+            route: this.$routes.dashboard.commits.base
           },
           {
             title: "ファイル",

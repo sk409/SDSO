@@ -65,7 +65,7 @@ export default {
     }),
     clickCommit(commit) {
       this.setRevision(commit.sha1);
-      this.$router.push(this.$routes.dashboard.files());
+      this.$router.push(this.$routes.dashboard.commits.show);
     },
     fetchCommits() {
       const team = this.$store.state.teams.team;

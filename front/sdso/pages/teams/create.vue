@@ -2,7 +2,11 @@
   <FormCard title="チーム作成">
     <template v-slot:form>
       <v-form ref="form">
-        <v-text-field v-model="teamname" :rules="teamnameRules" label="名前"></v-text-field>
+        <v-text-field
+          v-model="teamname"
+          :rules="teamnameRules"
+          label="名前"
+        ></v-text-field>
       </v-form>
     </template>
     <template v-slot:buttons>
@@ -84,7 +88,7 @@ export default {
           this.setNotificationMessage(
             `チーム「${this.teamname}」を作成しました`
           );
-          this.$router.push(this.$routes.dashboard.commits);
+          this.$router.push(this.$routes.dashboard.commits.base);
         });
       });
     }
