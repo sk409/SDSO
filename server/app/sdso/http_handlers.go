@@ -34,15 +34,27 @@ func (a *authHandler) auth(w http.ResponseWriter, r *http.Request) {
 	}
 	sessionCookie, err := r.Cookie("sessionID")
 	if err != nil {
-		respondJSON(w, http.StatusOK, response(false))
+		_, err = respondJSON(w, http.StatusOK, response(false))
+		if err != nil {
+			respondError(w, http.StatusInternalServerError, err)
+			return
+		}
 		return
 	}
 	session, err := sessionManager.Provider.Get(sessionCookie.Value)
 	if session == nil || err != nil {
-		respondJSON(w, http.StatusOK, response(false))
+		_, err = respondJSON(w, http.StatusOK, response(false))
+		if err != nil {
+			respondError(w, http.StatusInternalServerError, err)
+			return
+		}
 		return
 	}
-	respondJSON(w, http.StatusOK, response(true))
+	_, err = respondJSON(w, http.StatusOK, response(true))
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
 }
 
 type branchesHandler struct {
@@ -73,7 +85,11 @@ func (b *branchesHandler) fetch(w http.ResponseWriter, r *http.Request) {
 	for _, branch := range branches {
 		branchnames = append(branchnames, string(branch))
 	}
-	respondJSON(w, http.StatusOK, branchnames)
+	_, err = respondJSON(w, http.StatusOK, branchnames)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
 }
 
 type branchProtectionRulesHandler struct {
@@ -98,7 +114,11 @@ func (b *branchProtectionRulesHandler) fetch(w http.ResponseWriter, r *http.Requ
 		respondError(w, http.StatusInternalServerError, err)
 		return
 	}
-	respondJSON(w, http.StatusOK, branchProtectionRules)
+	_, err = respondJSON(w, http.StatusOK, branchProtectionRules)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
 }
 
 func (b *branchProtectionRulesHandler) store(w http.ResponseWriter, r *http.Request) {
@@ -108,7 +128,11 @@ func (b *branchProtectionRulesHandler) store(w http.ResponseWriter, r *http.Requ
 		respondError(w, http.StatusInternalServerError, err)
 		return
 	}
-	respondJSON(w, http.StatusOK, branchProtectionRule)
+	_, err = respondJSON(w, http.StatusOK, branchProtectionRule)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
 }
 
 type commitsHandler struct {
@@ -140,7 +164,11 @@ func (c *commitsHandler) fetch(w http.ResponseWriter, r *http.Request) {
 	}
 	commitsByte, err := gitRepositories.Log(filepath.Join(teamname, projectname), branchname, "--pretty=format:%h %cd %s")
 	if err != nil {
-		respondJSON(w, http.StatusOK, []commit{})
+		_, err = respondJSON(w, http.StatusOK, []commit{})
+		if err != nil {
+			respondError(w, http.StatusInternalServerError, err)
+			return
+		}
 		return
 	}
 	lines := strings.Split(string(commitsByte), "\n")
@@ -160,7 +188,11 @@ func (c *commitsHandler) fetch(w http.ResponseWriter, r *http.Request) {
 			Message:    message,
 		})
 	}
-	respondJSON(w, http.StatusOK, commits)
+	_, err = respondJSON(w, http.StatusOK, commits)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
 }
 
 func (c *commitsHandler) show(w http.ResponseWriter, r *http.Request, sha1 string) {
@@ -190,7 +222,11 @@ func (c *commitsHandler) show(w http.ResponseWriter, r *http.Request, sha1 strin
 		return
 	}
 	commit.Diff = string(diff)
-	respondJSON(w, http.StatusOK, commit)
+	_, err = respondJSON(w, http.StatusOK, commit)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
 }
 
 type filesHandler struct {
@@ -253,7 +289,11 @@ func (f *filesHandler) fetch(w http.ResponseWriter, r *http.Request) {
 		file["isDirectory"] = kind == "tree"
 		files = append(files, file)
 	}
-	respondJSON(w, http.StatusOK, files)
+	_, err = respondJSON(w, http.StatusOK, files)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
 }
 
 func (f *filesHandler) text(w http.ResponseWriter, r *http.Request) {
@@ -437,7 +477,11 @@ func (l *loginHandler) login(w http.ResponseWriter, r *http.Request) {
 		"ok":   err == nil,
 		"user": u,
 	}
-	respondJSON(w, http.StatusOK, response)
+	_, err = respondJSON(w, http.StatusOK, response)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
 }
 
 type logoutHandler struct {
@@ -485,6 +529,9 @@ func (m *meetingsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		case base + "ids":
 			m.ids(w, r)
 			return
+		case base + "socket":
+			m.socket(w, r)
+			return
 		}
 	case http.MethodPost:
 		m.store(w, r)
@@ -500,13 +547,21 @@ func (m *meetingsHandler) fetch(w http.ResponseWriter, r *http.Request) {
 		respondError(w, http.StatusInternalServerError, err)
 		return
 	}
-	respondJSON(w, http.StatusOK, meetings)
+	_, err = respondJSON(w, http.StatusOK, meetings)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
 }
 
 func (m *meetingsHandler) ids(w http.ResponseWriter, r *http.Request) {
 	ids := r.URL.Query()["ids[]"]
 	if emptyAny(ids) {
-		respondJSON(w, http.StatusOK, []meeting{})
+		_, err := respondJSON(w, http.StatusOK, []meeting{})
+		if err != nil {
+			respondError(w, http.StatusInternalServerError, err)
+			return
+		}
 		return
 	}
 	meetings := []meeting{}
@@ -515,7 +570,25 @@ func (m *meetingsHandler) ids(w http.ResponseWriter, r *http.Request) {
 		respondError(w, http.StatusInternalServerError, err)
 		return
 	}
-	respondJSON(w, http.StatusOK, meetings)
+	_, err = respondJSON(w, http.StatusOK, meetings)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
+}
+
+func (m *meetingsHandler) socket(w http.ResponseWriter, r *http.Request) {
+	u, err := authenticatedUser(r)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
+	socket, err := websocketUpgrader.Upgrade(w, r, nil)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
+	websocketsMeeting[u.ID] = socket
 }
 
 func (m *meetingsHandler) store(w http.ResponseWriter, r *http.Request) {
@@ -525,7 +598,11 @@ func (m *meetingsHandler) store(w http.ResponseWriter, r *http.Request) {
 		respondError(w, http.StatusInternalServerError, err)
 		return
 	}
-	respondJSON(w, http.StatusOK, meeting)
+	_, err = respondJSON(w, http.StatusOK, meeting)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
 }
 
 type meetingMessagesHandler struct {
@@ -550,7 +627,11 @@ func (m *meetingMessagesHandler) fetch(w http.ResponseWriter, r *http.Request) {
 		respondError(w, http.StatusInternalServerError, err)
 		return
 	}
-	respondJSON(w, http.StatusOK, meetingMessages)
+	_, err = respondJSON(w, http.StatusOK, meetingMessages)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
 }
 
 func (m *meetingMessagesHandler) store(w http.ResponseWriter, r *http.Request) {
@@ -560,7 +641,28 @@ func (m *meetingMessagesHandler) store(w http.ResponseWriter, r *http.Request) {
 		respondError(w, http.StatusInternalServerError, err)
 		return
 	}
-	respondJSON(w, http.StatusOK, meetingMessage)
+	_, err = respondJSON(w, http.StatusOK, meetingMessage)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
+	meetingUsers := []meetingUser{}
+	err = find(map[string]interface{}{"meetingID": meetingMessage.MeetingID}, &meetingUsers)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
+	for _, meetingUser := range meetingUsers {
+		socket, ok := websocketsMeeting[meetingUser.UserID]
+		if !ok {
+			continue
+		}
+		p, err := public(meetingMessage)
+		if err != nil {
+			continue
+		}
+		socket.WriteJSON(p)
+	}
 }
 
 type meetingUsersHandler struct {
@@ -585,7 +687,11 @@ func (m *meetingUsersHandler) fetch(w http.ResponseWriter, r *http.Request) {
 		respondError(w, http.StatusInternalServerError, err)
 		return
 	}
-	respondJSON(w, http.StatusOK, meetingUsers)
+	_, err = respondJSON(w, http.StatusOK, meetingUsers)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
 }
 
 func (m *meetingUsersHandler) store(w http.ResponseWriter, r *http.Request) {
@@ -595,7 +701,11 @@ func (m *meetingUsersHandler) store(w http.ResponseWriter, r *http.Request) {
 		respondError(w, http.StatusInternalServerError, err)
 		return
 	}
-	respondJSON(w, http.StatusOK, meetingUser)
+	_, err = respondJSON(w, http.StatusOK, meetingUser)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
 }
 
 type projectsHandler struct {
@@ -627,14 +737,22 @@ func (p *projectsHandler) fetch(w http.ResponseWriter, r *http.Request) {
 		respondError(w, http.StatusInternalServerError, err)
 		return
 	}
-	respondJSON(w, http.StatusOK, projects)
+	_, err = respondJSON(w, http.StatusOK, projects)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
 }
 
 func (p *projectsHandler) ids(w http.ResponseWriter, r *http.Request) {
 	r.ParseForm()
 	ids := r.Form["ids[]"]
 	if emptyAny(ids) {
-		respondJSON(w, http.StatusOK, []project{})
+		_, err := respondJSON(w, http.StatusOK, []project{})
+		if err != nil {
+			respondError(w, http.StatusInternalServerError, err)
+			return
+		}
 		return
 	}
 	projects := []project{}
@@ -643,7 +761,11 @@ func (p *projectsHandler) ids(w http.ResponseWriter, r *http.Request) {
 		respondError(w, http.StatusInternalServerError, err)
 		return
 	}
-	respondJSON(w, http.StatusOK, projects)
+	_, err = respondJSON(w, http.StatusOK, projects)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
 }
 
 func (p *projectsHandler) store(w http.ResponseWriter, r *http.Request) {
@@ -669,7 +791,11 @@ func (p *projectsHandler) store(w http.ResponseWriter, r *http.Request) {
 		respondError(w, http.StatusInternalServerError, err)
 		return
 	}
-	respondJSON(w, http.StatusOK, project)
+	_, err = respondJSON(w, http.StatusOK, project)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
 }
 
 type registerHandler struct {
@@ -710,7 +836,11 @@ func (h *registerHandler) register(w http.ResponseWriter, r *http.Request) {
 	count := 0
 	db.Model(&user{}).Where("name = ?", u.Name).Count(&count)
 	if count != 0 {
-		respondJSON(w, http.StatusOK, response(nil, false))
+		_, err = respondJSON(w, http.StatusOK, response(nil, false))
+		if err != nil {
+			respondError(w, http.StatusInternalServerError, err)
+			return
+		}
 		return
 	}
 	db.Save(&u)
@@ -723,7 +853,11 @@ func (h *registerHandler) register(w http.ResponseWriter, r *http.Request) {
 		respondError(w, http.StatusInternalServerError, err)
 		return
 	}
-	respondJSON(w, http.StatusOK, response(&u, true))
+	_, err = respondJSON(w, http.StatusOK, response(&u, true))
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
 }
 
 type projectUsersHandler struct {
@@ -748,7 +882,11 @@ func (p *projectUsersHandler) fetch(w http.ResponseWriter, r *http.Request) {
 		respondError(w, http.StatusInternalServerError, err)
 		return
 	}
-	respondJSON(w, http.StatusOK, projectUsers)
+	_, err = respondJSON(w, http.StatusOK, projectUsers)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
 }
 
 func (p *projectUsersHandler) store(w http.ResponseWriter, r *http.Request) {
@@ -771,7 +909,11 @@ func (p *projectUsersHandler) store(w http.ResponseWriter, r *http.Request) {
 		respondError(w, http.StatusInternalServerError, err)
 		return
 	}
-	respondJSON(w, http.StatusInternalServerError, projectUser)
+	_, err = respondJSON(w, http.StatusInternalServerError, projectUser)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
 }
 
 type repositoriesHandler struct {
@@ -875,7 +1017,11 @@ func (s *scansHandler) fetch(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
-	respondJSON(w, http.StatusOK, response)
+	_, err = respondJSON(w, http.StatusOK, response)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
 }
 
 func (s *scansHandler) store(w http.ResponseWriter, r *http.Request) {
@@ -915,7 +1061,11 @@ func (s *scansHandler) store(w http.ResponseWriter, r *http.Request) {
 		respondError(w, http.StatusInternalServerError, db.Error)
 		return
 	}
-	respondJSON(w, http.StatusOK, scan)
+	_, err = respondJSON(w, http.StatusOK, scan)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
 }
 
 type teamsHandler struct {
@@ -947,13 +1097,21 @@ func (t *teamsHandler) fetch(w http.ResponseWriter, r *http.Request) {
 		respondError(w, http.StatusInternalServerError, err)
 		return
 	}
-	respondJSON(w, http.StatusOK, teams)
+	_, err = respondJSON(w, http.StatusOK, teams)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
 }
 
 func (t *teamsHandler) ids(w http.ResponseWriter, r *http.Request) {
 	ids := r.URL.Query()["ids[]"]
 	if emptyAny(ids) {
-		respondJSON(w, http.StatusOK, []team{})
+		_, err := respondJSON(w, http.StatusOK, []team{})
+		if err != nil {
+			respondError(w, http.StatusInternalServerError, err)
+			return
+		}
 		return
 	}
 	teams := []team{}
@@ -962,7 +1120,11 @@ func (t *teamsHandler) ids(w http.ResponseWriter, r *http.Request) {
 		respondError(w, http.StatusInternalServerError, err)
 		return
 	}
-	respondJSON(w, http.StatusOK, teams)
+	_, err = respondJSON(w, http.StatusOK, teams)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
 }
 
 func (t *teamsHandler) store(w http.ResponseWriter, r *http.Request) {
@@ -972,7 +1134,11 @@ func (t *teamsHandler) store(w http.ResponseWriter, r *http.Request) {
 		respondError(w, http.StatusInternalServerError, err)
 		return
 	}
-	respondJSON(w, http.StatusOK, team)
+	_, err = respondJSON(w, http.StatusOK, team)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
 }
 
 type teamUsersHandler struct {
@@ -997,7 +1163,11 @@ func (t *teamUsersHandler) fetch(w http.ResponseWriter, r *http.Request) {
 		respondError(w, http.StatusInternalServerError, err)
 		return
 	}
-	respondJSON(w, http.StatusOK, teamUsers)
+	_, err = respondJSON(w, http.StatusOK, teamUsers)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
 }
 
 func (t *teamUsersHandler) store(w http.ResponseWriter, r *http.Request) {
@@ -1020,7 +1190,11 @@ func (t *teamUsersHandler) store(w http.ResponseWriter, r *http.Request) {
 		respondError(w, http.StatusInternalServerError, err)
 		return
 	}
-	respondJSON(w, http.StatusInternalServerError, teamUser)
+	_, err = respondJSON(w, http.StatusInternalServerError, teamUser)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
 }
 
 type teamUserInvitationRequestProjectsHandler struct {
@@ -1048,7 +1222,11 @@ func (t *teamUserInvitationRequestProjectsHandler) fetch(w http.ResponseWriter, 
 		respondError(w, http.StatusInternalServerError, err)
 		return
 	}
-	respondJSON(w, http.StatusOK, teamUserInvitationRequests)
+	_, err = respondJSON(w, http.StatusOK, teamUserInvitationRequests)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
 }
 
 func (t *teamUserInvitationRequestProjectsHandler) store(w http.ResponseWriter, r *http.Request) {
@@ -1058,7 +1236,11 @@ func (t *teamUserInvitationRequestProjectsHandler) store(w http.ResponseWriter, 
 		respondError(w, http.StatusInternalServerError, err)
 		return
 	}
-	respondJSON(w, http.StatusOK, teamUserInvitationRequestProject)
+	_, err = respondJSON(w, http.StatusOK, teamUserInvitationRequestProject)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
 }
 
 func (t *teamUserInvitationRequestProjectsHandler) destroy(w http.ResponseWriter, r *http.Request) {
@@ -1068,7 +1250,11 @@ func (t *teamUserInvitationRequestProjectsHandler) destroy(w http.ResponseWriter
 		respondError(w, http.StatusInternalServerError, err)
 		return
 	}
-	respondJSON(w, http.StatusOK, teamUserInvitationRequestProject)
+	_, err = respondJSON(w, http.StatusOK, teamUserInvitationRequestProject)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
 }
 
 type teamUserInvitationRequestsHandler struct {
@@ -1096,7 +1282,11 @@ func (t *teamUserInvitationRequestsHandler) fetch(w http.ResponseWriter, r *http
 		respondError(w, http.StatusInternalServerError, err)
 		return
 	}
-	respondJSON(w, http.StatusOK, teamUserInvitationRequests)
+	_, err = respondJSON(w, http.StatusOK, teamUserInvitationRequests)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
 }
 
 func (t *teamUserInvitationRequestsHandler) store(w http.ResponseWriter, r *http.Request) {
@@ -1121,7 +1311,11 @@ func (t *teamUserInvitationRequestsHandler) store(w http.ResponseWriter, r *http
 		respondError(w, http.StatusInternalServerError, err)
 		return
 	}
-	respondJSON(w, http.StatusOK, teamUserInvitationRequest)
+	_, err = respondJSON(w, http.StatusOK, teamUserInvitationRequest)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
 }
 
 func (t *teamUserInvitationRequestsHandler) destroy(w http.ResponseWriter, r *http.Request) {
@@ -1131,7 +1325,11 @@ func (t *teamUserInvitationRequestsHandler) destroy(w http.ResponseWriter, r *ht
 		respondError(w, http.StatusInternalServerError, err)
 		return
 	}
-	respondJSON(w, http.StatusOK, teamUserInvitationRequest)
+	_, err = respondJSON(w, http.StatusOK, teamUserInvitationRequest)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
 }
 
 type testsHandler struct {
@@ -1163,7 +1361,11 @@ func (t *testsHandler) fetch(w http.ResponseWriter, r *http.Request) {
 		respondError(w, http.StatusInternalServerError, err)
 		return
 	}
-	respondJSON(w, http.StatusOK, tests)
+	_, err = respondJSON(w, http.StatusOK, tests)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
 }
 
 func (t *testsHandler) socket(w http.ResponseWriter, r *http.Request) {
@@ -1203,7 +1405,11 @@ func (t *testsHandler) revision(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if len(tests) == 0 {
-		respondJSON(w, http.StatusOK, []test{})
+		_, err = respondJSON(w, http.StatusOK, []test{})
+		if err != nil {
+			respondError(w, http.StatusInternalServerError, err)
+			return
+		}
 		return
 	}
 	revisionsByte, err := gitRepositories.RevList(filepath.Join(teamname, projectname), revision)
@@ -1221,7 +1427,11 @@ func (t *testsHandler) revision(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
-	respondJSON(w, http.StatusOK, response)
+	_, err = respondJSON(w, http.StatusOK, response)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
 }
 
 type testResultsHandler struct {
@@ -1243,7 +1453,11 @@ func (t *testResultsHandler) fetch(w http.ResponseWriter, r *http.Request) {
 		respondError(w, http.StatusInternalServerError, err)
 		return
 	}
-	respondJSON(w, http.StatusOK, testResults)
+	_, err = respondJSON(w, http.StatusOK, testResults)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
 }
 
 type testStatusesHandler struct {
@@ -1265,7 +1479,11 @@ func (t *testStatusesHandler) fetch(w http.ResponseWriter, r *http.Request) {
 		respondError(w, http.StatusInternalServerError, err)
 		return
 	}
-	respondJSON(w, http.StatusOK, testStatuses)
+	_, err = respondJSON(w, http.StatusOK, testStatuses)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
 }
 
 type userHandler struct {
@@ -1298,7 +1516,11 @@ func (u *userHandler) fetch(w http.ResponseWriter, r *http.Request) {
 	if db.Error != nil {
 		respondError(w, http.StatusInternalServerError, db.Error)
 	}
-	respondJSON(w, http.StatusOK, user)
+	_, err = respondJSON(w, http.StatusOK, user)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
 }
 
 type usersHandler struct {
@@ -1327,13 +1549,21 @@ func (u *usersHandler) fetch(w http.ResponseWriter, r *http.Request) {
 		respondError(w, http.StatusInternalServerError, err)
 		return
 	}
-	respondJSON(w, http.StatusOK, users)
+	_, err = respondJSON(w, http.StatusOK, users)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
 }
 
 func (u *usersHandler) ids(w http.ResponseWriter, r *http.Request) {
 	ids := r.URL.Query()["ids[]"]
 	if emptyAny(ids) {
-		respondJSON(w, http.StatusOK, []user{})
+		_, err := respondJSON(w, http.StatusOK, []user{})
+		if err != nil {
+			respondError(w, http.StatusInternalServerError, err)
+			return
+		}
 		return
 	}
 	users := []user{}
@@ -1342,7 +1572,11 @@ func (u *usersHandler) ids(w http.ResponseWriter, r *http.Request) {
 		respondError(w, http.StatusInternalServerError, err)
 		return
 	}
-	respondJSON(w, http.StatusOK, users)
+	_, err = respondJSON(w, http.StatusOK, users)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
 }
 
 type vulnerabilitiesHandler struct {
@@ -1367,7 +1601,11 @@ func (v *vulnerabilitiesHandler) fetch(w http.ResponseWriter, r *http.Request) {
 		respondError(w, http.StatusInternalServerError, err)
 		return
 	}
-	respondJSON(w, http.StatusOK, vulnerabilities)
+	_, err = respondJSON(w, http.StatusOK, vulnerabilities)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
 }
 
 func (v *vulnerabilitiesHandler) store(w http.ResponseWriter, r *http.Request) {
@@ -1416,5 +1654,9 @@ func (v *vulnerabilitiesHandler) store(w http.ResponseWriter, r *http.Request) {
 		respondError(w, http.StatusInternalServerError, db.Error)
 		return
 	}
-	respondJSON(w, http.StatusOK, vulnerability)
+	_, err = respondJSON(w, http.StatusOK, vulnerability)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
 }

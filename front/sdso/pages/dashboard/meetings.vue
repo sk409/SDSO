@@ -107,6 +107,7 @@ export default {
     };
   },
   created() {
+    this.setupScoket();
     this.$fetchUser().then(response => {
       user = response.data;
       this.fetchMeetings();
@@ -206,6 +207,23 @@ export default {
     selectMeeting(meeting) {
       this.selectedMeeting = meeting;
       this.fetchMessages();
+    },
+    setupScoket() {
+      const url = new Url(pathMeetings);
+      const socket = new WebSocket(url.socket);
+      socket.onmessage = e => {
+        if (!this.selectedMeeting) {
+          return;
+        }
+        const message = JSON.parse(e.data);
+        if (message.meetingId !== this.selectedMeeting.id) {
+          return;
+        }
+        if (message.user.id === user.id) {
+          return;
+        }
+        this.messages.push(message);
+      };
     }
   }
 };

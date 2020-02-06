@@ -21,6 +21,7 @@ var (
 	pathPubilcImages   string
 	pathRepositories   string
 	testStatusColors   = map[string]string{}
+	websocketsMeeting  = map[uint]*websocket.Conn{}
 	websocketsTest     = map[uint]*websocket.Conn{}
 	websocketUpgrader  = &websocket.Upgrader{
 		ReadBufferSize:  socketBufferSize,
