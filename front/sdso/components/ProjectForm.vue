@@ -36,7 +36,6 @@ import {
 import { mapMutations } from "vuex";
 let user = null;
 export default {
-  layout: "auth",
   props: {
     team: {
       validator: v => typeof v === "object" || v === null,

@@ -1,52 +1,72 @@
 <template>
-  <div>
-    <v-subheader>テスト結果一覧</v-subheader>
-    <v-divider class="mb-1"></v-divider>
-    <GitToolbar
-      class="mb-3"
-      :new-revision.sync="newRevision"
-      @change-revision="fetchTests"
-    ></GitToolbar>
-    <v-row v-if="tests.length !== 0" justify="center">
-      <v-col cols="11">
-        <v-card class="mb-4">
-          <v-simple-table>
-            <thead>
-              <tr>
-                <th>ステータス</th>
-                <th>ブランチ</th>
-                <th>SHA1</th>
-                <th>ステップ</th>
-                <th>実施日</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr
-                v-for="test in tests"
-                :key="test.id"
-                @click="$router.push($routes.tests.show(test.id))"
-              >
-                <td>
-                  <v-chip :color="test.color" small text-color="white">
-                    {{ test.status }}
-                  </v-chip>
-                </td>
-                <td>{{ test.branchname }}</td>
-                <td>{{ test.commitSha1.substr(0, 5) }}</td>
-                <td>{{ test.results.length }}/{{ test.steps }}</td>
-                <td>{{ test.createdAt | dateDefault }}</td>
-              </tr>
-            </tbody>
-          </v-simple-table>
-        </v-card>
-      </v-col>
-    </v-row>
-  </div>
+  <MainView>
+    <template v-slot:sidemenu>
+      <v-list class="pa-2">
+        <v-list-item
+          v-for="sidemenuItem in sidemenuItems"
+          :key="sidemenuItem.title"
+          :to="sidemenuItem.route"
+          router
+        >
+          <v-list-item-action>
+            <v-icon>{{ sidemenuItem.icon }}</v-icon>
+          </v-list-item-action>
+          <v-list-item-content>
+            <v-list-item-title>{{ sidemenuItem.title }}</v-list-item-title>
+          </v-list-item-content>
+        </v-list-item>
+      </v-list>
+    </template>
+    <template v-slot:content>
+      <v-subheader>テスト結果一覧</v-subheader>
+      <v-divider class="mb-1"></v-divider>
+      <GitToolbar
+        class="mb-3"
+        :new-revision.sync="newRevision"
+        @change-revision="fetchTests"
+      ></GitToolbar>
+      <v-row v-if="tests.length !== 0" justify="center">
+        <v-col cols="11">
+          <v-card class="mb-4">
+            <v-simple-table>
+              <thead>
+                <tr>
+                  <th>ステータス</th>
+                  <th>ブランチ</th>
+                  <th>SHA1</th>
+                  <th>ステップ</th>
+                  <th>実施日</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr
+                  v-for="test in tests"
+                  :key="test.id"
+                  @click="$router.push($routes.tests.show(test.id))"
+                >
+                  <td>
+                    <v-chip :color="test.color" small text-color="white">
+                      {{ test.status }}
+                    </v-chip>
+                  </td>
+                  <td>{{ test.branchname }}</td>
+                  <td>{{ test.commitSha1.substr(0, 5) }}</td>
+                  <td>{{ test.results.length }}/{{ test.steps }}</td>
+                  <td>{{ test.createdAt | dateDefault }}</td>
+                </tr>
+              </tbody>
+            </v-simple-table>
+          </v-card>
+        </v-col>
+      </v-row>
+    </template>
+  </MainView>
 </template>
 
 <script>
 import ajax from "@/assets/js/ajax.js";
 import GitToolbar from "@/components/GitToolbar.vue";
+import MainView from "@/components/MainView.vue";
 import mutations from "@/assets/js/mutations.js";
 import { pathTestResults, pathTests, Url } from "@/assets/js/urls.js";
 
@@ -54,17 +74,24 @@ let socket = null;
 export default {
   layout: "dashboard",
   components: {
-    GitToolbar
+    GitToolbar,
+    MainView
   },
   data() {
     return {
       newRevision: false,
+      sidemenuItems: [
+        {
+          title: "テスト結果",
+          icon: "mdi-test-tube",
+          route: this.$routes.dashboard.tests
+        }
+      ],
       tests: [],
       user: null
     };
   },
   created() {
-    this.$nuxt.$emit("setSidemenuType", "tests");
     this.setupSocket();
     this.$fetchUser().then(response => {
       this.user = response.data;

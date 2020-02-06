@@ -1,3 +1,14 @@
+export function truncate(str, length) {
+  if (str.length <= length) {
+    return str;
+  }
+  return str.substr(0, length) + "...";
+}
+
+export function count(sequence, target) {
+  return sequence.split(target).length - 1;
+}
+
 class DateFormatter {
   default (str) {
     const p = (n) => {
@@ -15,11 +26,3 @@ class DateFormatter {
   }
 }
 export const dateFormatter = new DateFormatter();
-
-
-export function truncate(str, length) {
-  if (str.length <= length) {
-    return str;
-  }
-  return str.substr(0, length) + "...";
-}

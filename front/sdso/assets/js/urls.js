@@ -12,6 +12,9 @@ export const pathBranches = "branches";
 export const pathCommits = "commits/";
 export const pathFiles = "files/";
 export const pathLogin = "login";
+export const pathMeetings = "meetings/";
+export const pathMeetingMessages = "meeting_messages";
+export const pathMeetingUsers = "meeting_users";
 export const pathProjects = "projects/";
 export const pathProjectUsers = "project_users";
 export const pathRegister = "register";
@@ -29,6 +32,7 @@ export const pathVulnerabilities = "vulnerabilities";
 export class Url {
   constructor(path) {
     this.base = process.env.serverOrigin + "/" + path;
+    this.ids = this.base + "ids";
     this.show = (id) => {
       const delimiter = this.base.endsWith("/") ? "" : "/";
       return this.base + delimiter + id;
@@ -37,20 +41,12 @@ export class Url {
       case pathFiles:
         this.text = this.base + "text";
         break;
-      case pathProjects:
-        this.ids = this.base + "ids";
-      case pathTeams:
-        this.ids = this.base + "ids";
-        break;
       case pathTests:
         this.revision = this.base + "revision";
         this.socket = socket(path);
         break;
       case pathTestResults:
         this.socket = socket(path);
-        break;
-      case pathUsers:
-        this.ids = this.base + "ids";
         break;
     }
   }

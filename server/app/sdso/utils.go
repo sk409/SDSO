@@ -77,7 +77,12 @@ func emptyAny(values ...interface{}) bool {
 }
 
 func find(query map[string]interface{}, model interface{}) error {
-	db.Where(query).Find(model)
+	q := map[string]interface{}{}
+	for key, value := range query {
+		s := string(gocase.SnakeCase([]byte(key)))
+		q[s] = value
+	}
+	db.Where(q).Find(model)
 	return db.Error
 }
 
@@ -128,6 +133,9 @@ func save(query map[string]interface{}, model interface{}) error {
 		fieldname := string(gocase.UpperCamelCase([]byte(key), true))
 		fv := rv.FieldByName(fieldname)
 		ft := fv.Type()
+		if ft.Kind() == reflect.Ptr {
+			ft = ft.Elem()
+		}
 		if ft.Kind() == reflect.String {
 			fv.SetString(value.(string))
 		} else if ft.Kind() == reflect.Int {
@@ -135,20 +143,24 @@ func save(query map[string]interface{}, model interface{}) error {
 				fv.SetInt(int64(value.(int)))
 			}
 		} else if ft.Kind() == reflect.Uint {
-			var v interface{}
+			var v uint
 			if gotype.IsString(value) {
 				s := value.(string)
-				var err error
-				v, err = strconv.ParseUint(s, 10, 64)
+				ui, err := strconv.ParseUint(s, 10, 64)
 				if err != nil {
 					return err
 				}
+				v = uint(ui)
 			} else if gotype.IsUint(value) {
-				v = uint64(value.(uint))
+				v = value.(uint)
 			} else {
-				v = value
+				continue
 			}
-			fv.SetUint(v.(uint64))
+			if fv.Kind() == reflect.Ptr {
+				fv.Set(reflect.ValueOf(&v))
+			} else {
+				fv.SetUint(uint64(v))
+			}
 		}
 	}
 	db.Save(model)

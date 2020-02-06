@@ -19,6 +19,7 @@ Vue.prototype.$routes = {
       }
       return "/dashboard/" + path + "?file=" + !!file;
     },
+    meetings: "/dashboard/meetings",
     members: "/dashboard/members",
     tests: "/dashboard/tests"
   },

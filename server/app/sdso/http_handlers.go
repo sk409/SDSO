@@ -471,6 +471,133 @@ func (l *logoutHandler) logout(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+type meetingsHandler struct {
+}
+
+func (m *meetingsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	base := "/meetings/"
+	switch r.Method {
+	case http.MethodGet:
+		switch r.URL.Path {
+		case base:
+			m.fetch(w, r)
+			return
+		case base + "ids":
+			m.ids(w, r)
+			return
+		}
+	case http.MethodPost:
+		m.store(w, r)
+		return
+	}
+	respond(w, http.StatusNotFound)
+}
+
+func (m *meetingsHandler) fetch(w http.ResponseWriter, r *http.Request) {
+	meetings := []meeting{}
+	err := fetch(r, &meetings)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
+	respondJSON(w, http.StatusOK, meetings)
+}
+
+func (m *meetingsHandler) ids(w http.ResponseWriter, r *http.Request) {
+	ids := r.URL.Query()["ids[]"]
+	if emptyAny(ids) {
+		respondJSON(w, http.StatusOK, []meeting{})
+		return
+	}
+	meetings := []meeting{}
+	err := findByUniqueKey(ids, &meetings)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
+	respondJSON(w, http.StatusOK, meetings)
+}
+
+func (m *meetingsHandler) store(w http.ResponseWriter, r *http.Request) {
+	meeting := meeting{}
+	err := store(r, &meeting)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
+	respondJSON(w, http.StatusOK, meeting)
+}
+
+type meetingMessagesHandler struct {
+}
+
+func (m *meetingMessagesHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodGet:
+		m.fetch(w, r)
+		return
+	case http.MethodPost:
+		m.store(w, r)
+		return
+	}
+	respond(w, http.StatusNotFound)
+}
+
+func (m *meetingMessagesHandler) fetch(w http.ResponseWriter, r *http.Request) {
+	meetingMessages := []meetingMessage{}
+	err := fetch(r, &meetingMessages)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
+	respondJSON(w, http.StatusOK, meetingMessages)
+}
+
+func (m *meetingMessagesHandler) store(w http.ResponseWriter, r *http.Request) {
+	meetingMessage := meetingMessage{}
+	err := store(r, &meetingMessage)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
+	respondJSON(w, http.StatusOK, meetingMessage)
+}
+
+type meetingUsersHandler struct {
+}
+
+func (m *meetingUsersHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodGet:
+		m.fetch(w, r)
+		return
+	case http.MethodPost:
+		m.store(w, r)
+		return
+	}
+	respond(w, http.StatusNotFound)
+}
+
+func (m *meetingUsersHandler) fetch(w http.ResponseWriter, r *http.Request) {
+	meetingUsers := []meetingUser{}
+	err := fetch(r, &meetingUsers)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
+	respondJSON(w, http.StatusOK, meetingUsers)
+}
+
+func (m *meetingUsersHandler) store(w http.ResponseWriter, r *http.Request) {
+	meetingUser := meetingUser{}
+	err := store(r, &meetingUser)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
+	respondJSON(w, http.StatusOK, meetingUser)
+}
+
 type projectsHandler struct {
 }
 
@@ -728,7 +855,7 @@ func (s *scansHandler) fetch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	scans := []scan{}
-	err = find(map[string]interface{}{"project_id": p.ID}, &scans)
+	err = find(map[string]interface{}{"projectId": p.ID}, &scans)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
 		return

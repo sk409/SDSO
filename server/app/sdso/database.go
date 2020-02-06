@@ -32,6 +32,10 @@ func init() {
 	db.AutoMigrate(&projectUser{}).AddForeignKey("project_id", "projects(id)", "CASCADE", "CASCADE").AddForeignKey("user_id", "users(id)", "CASCADE", "CASCADE").AddForeignKey("role_id", "project_user_roles(id)", "CASCADE", "CASCADE")
 	db.AutoMigrate(&teamUserInvitationRequest{}).AddForeignKey("inviter_user_id", "users(id)", "CASCADE", "CASCADE").AddForeignKey("invitee_user_id", "users(id)", "CASCADE", "CASCADE").AddForeignKey("team_id", "teams(id)", "CASCADE", "CASCADE").AddForeignKey("role_id", "team_user_roles(id)", "CASCADE", "CASCADE").AddUniqueIndex("team_id_invitee_user_id_unique", "team_id", "invitee_user_id")
 	db.AutoMigrate(&teamUserInvitationRequestProject{}).AddForeignKey("team_user_invitation_request_id", "team_user_invitation_requests(id)", "CASCADE", "CASCADE").AddForeignKey("project_id", "projects(id)", "CASCADE", "CASCADE")
+	db.AutoMigrate(&meeting{}).AddForeignKey("project_id", "projects(id)", "CASCADE", "CASCADE")
+	db.AutoMigrate(&meetingUser{}).AddForeignKey("meeting_id", "meetings(id)", "CASCADE", "CASCADE").AddForeignKey("user_id", "users(id)", "CASCADE", "CASCADE").AddUniqueIndex("meeting_id_user_id_unique", "meeting_id", "user_id")
+	db.AutoMigrate(&meetingMessage{}).AddForeignKey("meeting_id", "meetings(id)", "CASCADE", "CASCADE").AddForeignKey("user_id", "users(id)", "CASCADE", "CASCADE")
+	db.Model(&meetingMessage{}).AddForeignKey("parent_id", "meeting_messages(id)", "CASCADE", "SET NULL")
 	insertData()
 }
 

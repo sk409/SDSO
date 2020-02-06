@@ -1,9 +1,21 @@
+.w-25 {
+  width: 25%;
+}
+
 .w-75 {
   width: 75%;
 }
 
 .w-100 {
   width: 100%;
+}
+
+.h-25 {
+  height: 25%;
+}
+
+.h-75 {
+  height: 75%;
 }
 
 .h-100 {
@@ -20,4 +32,16 @@
 
 .columns-5 {
   grid-template-columns: repeat(5, 20%);
+}
+
+.resize-none {
+  resize: none;
+}
+
+.position-absolute {
+  position: absolute;
+}
+
+.position-relative {
+  position: relative;
 }

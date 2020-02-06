@@ -38,6 +38,89 @@ type jobs struct {
 	Build build
 }
 
+type meeting struct {
+	ID        uint `gorm:"primary_key"`
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	Name      string `gorm:"type:varchar(128);not null"`
+	ProjectID uint   `gorm:"not null"`
+}
+
+func (m meeting) public() interface{} {
+	i, err := convert(m)
+	if err != nil {
+		return m
+	}
+	ma, ok := i.(map[string]interface{})
+	if !ok {
+		return m
+	}
+	meetingUsers := []meetingUser{}
+	err = find(map[string]interface{}{"meetingID": m.ID}, &meetingUsers)
+	if err != nil {
+		return m
+	}
+	userIDs := make([]uint, len(meetingUsers))
+	for index, meetingUser := range meetingUsers {
+		userIDs[index] = meetingUser.UserID
+	}
+	users := []user{}
+	err = findByUniqueKey(userIDs, &users)
+	if err != nil {
+		return m
+	}
+	ma["users"] = users
+	return ma
+}
+
+type meetingMessage struct {
+	ID        uint `gorm:"primary_key"`
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	Text      string `gorm:"type:text;not null"`
+	MeetingID uint   `gorm:"not null"`
+	UserID    uint   `gorm:"not null"`
+	ParentID  *uint
+}
+
+func (m meetingMessage) public() interface{} {
+	i, err := convert(m)
+	if err != nil {
+		return m
+	}
+	ma, ok := i.(map[string]interface{})
+	if !ok {
+		return m
+	}
+	u := user{}
+	err = first(map[string]interface{}{"id": m.UserID}, &u)
+	if err != nil {
+		return m
+	}
+	ma["user"] = u
+	if m.ParentID != nil {
+		parent := meetingMessage{}
+		err = first(map[string]interface{}{"id": *m.ParentID}, &parent)
+		if err != nil {
+			return m
+		}
+		ma["parent"] = parent
+	}
+	return ma
+}
+
+type meetingUser struct {
+	ID        uint `gorm:"primary_key"`
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	MeetingID uint `gorm:"not null"`
+	UserID    uint `gorm:"not null"`
+}
+
+func (_ *meetingUser) TableName() string {
+	return "meeting_user"
+}
+
 type project struct {
 	ID        uint `gorm:"primary_key"`
 	CreatedAt time.Time
@@ -56,7 +139,7 @@ func (p project) public() interface{} {
 		return p
 	}
 	projectUsers := []projectUser{}
-	err = find(map[string]interface{}{"project_id": p.ID}, &projectUsers)
+	err = find(map[string]interface{}{"projectID": p.ID}, &projectUsers)
 	if err != nil {
 		return p
 	}
@@ -113,7 +196,7 @@ func (s scan) public() interface{} {
 	}
 	m := i.(map[string]interface{})
 	vulnerabilities := []vulnerability{}
-	err = find(map[string]interface{}{"scan_id": s.ID}, &vulnerabilities)
+	err = find(map[string]interface{}{"scanID": s.ID}, &vulnerabilities)
 	if err != nil {
 		m["vulnerabilities"] = []vulnerability{}
 		return m
@@ -147,13 +230,13 @@ func (t team) public() interface{} {
 		return t
 	}
 	projects := []project{}
-	err = find(map[string]interface{}{"team_id": t.ID}, &projects)
+	err = find(map[string]interface{}{"teamID": t.ID}, &projects)
 	if err != nil {
 		return t
 	}
 	m["projects"] = projects
 	teamUsers := []teamUser{}
-	err = find(map[string]interface{}{"team_id": t.ID}, &teamUsers)
+	err = find(map[string]interface{}{"teamID": t.ID}, &teamUsers)
 	if err != nil {
 		return t
 	}
@@ -240,7 +323,7 @@ func (t teamUserInvitationRequest) public() interface{} {
 	}
 	m["role"] = r
 	teamUserInvitationRequestProjects := []teamUserInvitationRequestProject{}
-	err = find(map[string]interface{}{"team_user_invitation_request_id": t.ID}, &teamUserInvitationRequestProjects)
+	err = find(map[string]interface{}{"teamUserInvitationRequestID": t.ID}, &teamUserInvitationRequestProjects)
 	if err != nil {
 		return t
 	}
@@ -292,7 +375,7 @@ func (t test) public() interface{} {
 	}
 	m := i.(map[string]interface{})
 	testResults := []testResult{}
-	err = find(map[string]interface{}{"test_id": t.ID}, &testResults)
+	err = find(map[string]interface{}{"testID": t.ID}, &testResults)
 	if err != nil {
 		return t
 	}

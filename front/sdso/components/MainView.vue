@@ -1,9 +1,12 @@
 <template>
   <div ref="mainView" class="d-flex h-100">
-    <div class="h-100 border-right">
+    <div class="h-100 border-right sidemenu">
       <slot name="sidemenu"></slot>
     </div>
-    <div :style="contentStyle" class="w-100 h-100 overflow-x-hidden overflow-y-auto">
+    <div
+      :style="contentStyle"
+      class="h-100 overflow-x-hidden overflow-y-auto content"
+    >
       <slot name="content"></slot>
     </div>
   </div>
@@ -26,5 +29,11 @@ export default {
 <style>
 .border-right {
   border-right: 2px solid lightgrey;
+}
+.content {
+  width: 80%;
+}
+.sidemenu {
+  width: 20%;
 }
 </style>

@@ -99,12 +99,7 @@ export default {
         {
           title: "ミーティング",
           icon: "mdi-message-outline",
-          route: ""
-        },
-        {
-          title: "設定",
-          icon: "mdi-settings-outline",
-          route: ""
+          route: this.$routes.dashboard.meetings
         }
       ],
       projectname: "",

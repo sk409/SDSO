@@ -253,7 +253,7 @@ func (t *tester) sendTest(test test) error {
 		return err
 	}
 	teamUsers := []teamUser{}
-	err = find(map[string]interface{}{"team_id": team.ID}, &teamUsers)
+	err = find(map[string]interface{}{"teamID": team.ID}, &teamUsers)
 	if err != nil {
 		return err
 	}
