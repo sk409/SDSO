@@ -56,6 +56,7 @@ import TestsTable from "@/components/TestsTable.vue";
 import { pathTestResults, pathTests, Url } from "@/assets/js/urls.js";
 
 let socket = null;
+let user = null;
 export default {
   layout: "dashboard",
   components: {
@@ -73,14 +74,13 @@ export default {
           route: this.$routes.dashboard.tests
         }
       ],
-      tests: [],
-      user: null
+      tests: []
     };
   },
   created() {
-    this.setupSocket();
     this.$fetchUser().then(response => {
-      this.user = response.data;
+      user = response.data;
+      this.setupSocket();
       this.fetchTests();
     });
   },
@@ -109,13 +109,9 @@ export default {
       });
     },
     setupSocket() {
-      if (!WebSocket) {
-        alert("WebSocketに対応していないブラウザです。");
-        return;
-      }
       const that = this;
       const url = new Url(pathTests);
-      socket = new WebSocket(url.socket);
+      socket = new WebSocket(url.socket(user.id));
       socket.onmessage = function(e) {
         const branchname = that.$store.state.git.branchname;
         if (!branchname) {

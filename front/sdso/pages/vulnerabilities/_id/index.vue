@@ -29,6 +29,9 @@
             >
           </div>
         </v-tab-item>
+        <v-tab-item value="コメント">
+          <MessagesView :messages="messages" @send="sendMessage"></MessagesView>
+        </v-tab-item>
       </v-tabs-items>
     </v-card>
   </v-container>
@@ -36,11 +39,21 @@
 
 <script>
 import ajax from "@/assets/js/ajax.js";
-import { pathVulnerabilities, Url } from "@/assets/js/urls.js";
+import MessagesView from "@/components/MessagesView.vue";
+import {
+  pathDastVulnerabilityMessages,
+  pathVulnerabilities,
+  Url
+} from "@/assets/js/urls.js";
+let user = null;
 export default {
   layout: "auth",
+  components: {
+    MessagesView
+  },
   data() {
     return {
+      messages: [],
       metadata: [
         {
           text: "パス",
@@ -61,18 +74,72 @@ export default {
     };
   },
   created() {
-    const url = new Url(pathVulnerabilities);
-    const data = {
-      id: this.$route.params.id
-    };
-    ajax.get(url.base, data).then(response => {
-      this.vulnerability = response.data[0];
+    this.$fetchUser().then(response => {
+      user = response.data;
+      this.setupSocket();
     });
+    this.fetchVulnerabilityAndMessages();
+  },
+  methods: {
+    fetchVulnerabilityAndMessages() {
+      const url = new Url(pathVulnerabilities);
+      const data = {
+        id: this.$route.params.id
+      };
+      ajax
+        .get(url.base, data)
+        .then(response => {
+          this.vulnerability = response.data[0];
+          const url = new Url(pathDastVulnerabilityMessages);
+          const data = {
+            vulnerabilityId: this.vulnerability.id
+          };
+          return ajax.get(url.base, data);
+        })
+        .then(response => {
+          this.messages = response.data;
+        });
+    },
+    sendMessage(message, parent) {
+      const url = new Url(pathDastVulnerabilityMessages);
+      const data = {
+        text: message,
+        vulnerabilityId: this.vulnerability.id,
+        userId: user.id
+      };
+      if (parent) {
+        data.parentId = parent.id;
+      }
+      ajax.post(url.base, data).then(response => {
+        this.messages.push(response.data);
+      });
+    },
+    setupSocket() {
+      const url = new Url(pathDastVulnerabilityMessages);
+      const socket = new WebSocket(url.socket(user.id));
+      const that = this;
+      socket.onmessage = e => {
+        if (!that.vulnerability) {
+          return;
+        }
+        const message = JSON.parse(e.data);
+        if (message.vulnerabilityId !== that.vulnerability.id) {
+          return;
+        }
+        if (message.userId === user.id) {
+          return;
+        }
+        this.messages.push(message);
+      };
+    }
   }
 };
 </script>
 
 <style>
+.messages-view {
+  height: 450px;
+}
 .vulnerability-label {
   width: 100px;
 }

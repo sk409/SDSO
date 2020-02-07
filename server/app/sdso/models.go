@@ -30,6 +30,48 @@ type config struct {
 	Jobs    jobs
 }
 
+type dastVulnerabilityMessage struct {
+	ID              uint `gorm:"primary_key"`
+	CreatedAt       time.Time
+	UpdatedAt       time.Time
+	Text            string `gorm:"type:text"`
+	VulnerabilityID uint   `gorm:"not null"`
+	UserID          uint   `gorm:"not null"`
+	ParentID        *uint
+}
+
+func (d dastVulnerabilityMessage) public() interface{} {
+	i, err := convert(d)
+	if err != nil {
+		return d
+	}
+	m, ok := i.(map[string]interface{})
+	if !ok {
+		return d
+	}
+	v := vulnerability{}
+	err = first(map[string]interface{}{"id": d.VulnerabilityID}, &v)
+	if err != nil {
+		return d
+	}
+	m["vulnerability"] = v
+	u := user{}
+	err = first(map[string]interface{}{"id": d.UserID}, &u)
+	if err != nil {
+		return d
+	}
+	m["user"] = u
+	if d.ParentID != nil {
+		p := dastVulnerabilityMessage{}
+		err = first(map[string]interface{}{"id": *d.ParentID}, &p)
+		if err != nil {
+			return d
+		}
+		m["parent"] = p
+	}
+	return m
+}
+
 type docker struct {
 	Image string
 }

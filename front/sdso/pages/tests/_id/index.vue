@@ -67,17 +67,12 @@ export default {
     };
   },
   created() {
-    this.setupSocket();
     this.fetchMessages();
     this.$fetchUser().then(response => {
       user = response.data;
-      const url = new Url(pathTests);
-      const data = {
-        id: this.$route.params.id
-      };
-      ajax.get(url.base, data).then(response => {
-        this.test = response.data[0];
-      });
+      this.fetchTest();
+      this.setupSocketMessage();
+      this.setupSocketTest();
     });
   },
   methods: {
@@ -89,6 +84,15 @@ export default {
       };
       ajax.get(url.base, data).then(response => {
         this.messages = response.data;
+      });
+    },
+    fetchTest() {
+      const url = new Url(pathTests);
+      const data = {
+        id: this.$route.params.id
+      };
+      ajax.get(url.base, data).then(response => {
+        this.test = response.data[0];
       });
     },
     sendMessage(message, parent) {
@@ -106,14 +110,28 @@ export default {
         this.messages.push(response.data);
       });
     },
-    setupSocket() {
-      if (!WebSocket) {
-        alert("WebSocketに対応していないブラウザです。");
-        return;
-      }
+    setupSocketMessage() {
+      const that = this;
+      const url = new Url(pathTestMessages);
+      socket = new WebSocket(url.socket(user.id));
+      socket.onmessage = function(e) {
+        if (!that.test || !user) {
+          return;
+        }
+        const message = JSON.parse(e.data);
+        if (message.testId !== that.test.id) {
+          return;
+        }
+        if (message.userId === user.id) {
+          return;
+        }
+        that.messages.push(message);
+      };
+    },
+    setupSocketTest() {
       const that = this;
       const url = new Url(pathTests);
-      socket = new WebSocket(url.socket);
+      socket = new WebSocket(url.socket(user.id));
       socket.onmessage = function(e) {
         const test = JSON.parse(e.data);
         if (that.test.id !== test.id) {

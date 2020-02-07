@@ -38,6 +38,8 @@ func init() {
 	db.Model(&meetingMessage{}).AddForeignKey("parent_id", "meeting_messages(id)", "SET NULL", "CASCADE")
 	db.AutoMigrate(&testMessage{}).AddForeignKey("test_id", "tests(id)", "CASCADE", "CASCADE").AddForeignKey("user_id", "users(id)", "CASCADE", "CASCADE")
 	db.Model(&testMessage{}).AddForeignKey("parent_id", "test_messages(id)", "SET NULL", "CASCADE")
+	db.AutoMigrate(&dastVulnerabilityMessage{}).AddForeignKey("vulnerability_id", "vulnerabilities(id)", "CASCADE", "CASCADE").AddForeignKey("user_id", "users(id)", "CASCADE", "CASCADE")
+	db.Model(&dastVulnerabilityMessage{}).AddForeignKey("parent_id", "dast_vulnerability_messages(id)", "SET NULL", "CASCADE")
 	insertData()
 }
 

@@ -4,7 +4,10 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"strconv"
 	"strings"
+
+	"github.com/gorilla/websocket"
 
 	"github.com/sk409/gocase"
 
@@ -150,4 +153,21 @@ func store(r *http.Request, model interface{}) error {
 	// 	return db.Error
 	// }
 	// return nil
+}
+
+func websock(w http.ResponseWriter, r *http.Request, sockets *map[uint]*websocket.Conn) error {
+	userID := r.URL.Query().Get("userId")
+	if emptyAny(userID) {
+		return errBadRequest
+	}
+	userIDUint, err := strconv.ParseUint(userID, 10, 64)
+	if err != nil {
+		return errBadRequest
+	}
+	socket, err := websocketUpgrader.Upgrade(w, r, nil)
+	if err != nil {
+		return err
+	}
+	(*sockets)[uint(userIDUint)] = socket
+	return nil
 }

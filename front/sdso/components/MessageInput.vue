@@ -5,8 +5,8 @@
     :rows="rows"
     class="resize-none"
     placeholder="Enterで改行してShift+Enterで送信します。"
-    @keydown.delete="shrink"
-    @keydown.enter.exact="grow"
+    @keydown.delete="shrink($event)"
+    @keydown.enter.exact="grow($event)"
     @keydown.enter.shift="send"
   ></textarea>
 </template>
@@ -29,8 +29,10 @@ export default {
     };
   },
   methods: {
-    grow() {
-      //   ++this.rows;
+    grow(e) {
+      if (e.isComposing) {
+        return;
+      }
       this.$emit("update:rows", this.rows + 1);
       const textarea = this.$refs.textarea;
       if (textarea.selectionStart !== textarea.selectionEnd) {
@@ -38,7 +40,6 @@ export default {
           textarea.selectionStart,
           textarea.selectionEnd
         );
-        // this.rows -= count(deletedText, "\n");
         this.$emit("update:rows", this.rows - count(deletedText, "\n"));
       }
     },
@@ -48,12 +49,14 @@ export default {
       this.$emit("update:rows", 1);
       this.message = "";
     },
-    shrink() {
+    shrink(e) {
+      if (e.isComposing) {
+        return;
+      }
       const textarea = this.$refs.textarea;
       if (textarea.selectionStart === textarea.selectionEnd) {
         const char = this.message[textarea.selectionStart - 1];
         if (char === "\n") {
-          //   --this.rows;
           this.$emit("update:rows", this.rows - 1);
         }
       } else {
@@ -61,7 +64,6 @@ export default {
           textarea.selectionStart,
           textarea.selectionEnd
         );
-        //this.rows -= count(deletedText, "\n")
         this.$emit("update:rows", this.rows - count(deletedText, "\n"));
       }
     }

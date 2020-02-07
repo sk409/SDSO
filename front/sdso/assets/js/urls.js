@@ -10,10 +10,11 @@ function socket(path) {
 export const pathAuth = "auth";
 export const pathBranches = "branches";
 export const pathCommits = "commits/";
+export const pathDastVulnerabilityMessages = "dast_vulnerability_messages/";
 export const pathFiles = "files/";
 export const pathLogin = "login";
 export const pathMeetings = "meetings/";
-export const pathMeetingMessages = "meeting_messages";
+export const pathMeetingMessages = "meeting_messages/";
 export const pathMeetingUsers = "meeting_users";
 export const pathProjects = "projects/";
 export const pathProjectUsers = "project_users";
@@ -25,7 +26,7 @@ export const pathTeamUserInvitationRequests = "team_user_invitation_requests";
 export const pathTeamUserInvitationRequestProjects =
   "team_user_invitation_request_projects";
 export const pathTests = "tests/";
-export const pathTestMessages = "test_messages";
+export const pathTestMessages = "test_messages/";
 export const pathTestResults = "test_results";
 export const pathUser = "user";
 export const pathUsers = "users/";
@@ -40,18 +41,21 @@ export class Url {
       return this.base + delimiter + id;
     };
     switch (path) {
+      case pathDastVulnerabilityMessages:
+        this.socket = userId => socket(path) + `?userId=${userId}`;
+        break;
       case pathFiles:
         this.text = this.base + "text";
         break;
-      case pathMeetings:
-        this.socket = socket(path);
+      case pathMeetingMessages:
+        this.socket = userId => socket(path) + `?userId=${userId}`;
+        break;
+      case pathTestMessages:
+        this.socket = userId => socket(path) + `?userId=${userId}`;
         break;
       case pathTests:
         this.revision = this.base + "revision";
-        this.socket = socket(path);
-        break;
-      case pathTestResults:
-        this.socket = socket(path);
+        this.socket = userId => socket(path) + `?userId=${userId}`;
         break;
     }
   }

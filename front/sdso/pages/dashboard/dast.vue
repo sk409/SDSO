@@ -32,6 +32,7 @@
           </v-card>
         </v-col>
       </v-row>
+      <!-- <div v-else>脆弱性がありません</div> -->
       <v-row v-if="2 <= vulnerabilities.length" justify="center">
         <v-col cols="11">
           <v-subheader>このコミット以前の脆弱性</v-subheader>
@@ -43,6 +44,7 @@
           </v-card>
         </v-col>
       </v-row>
+      <!-- <div v-else>脆弱性がありません</div> -->
     </template>
   </MainView>
 </template>
@@ -87,6 +89,9 @@ export default {
       const scan = this.scans.find(scan =>
         scan.commitSha1.startsWith(revision)
       );
+      if (!scan) {
+        return [];
+      }
       return this.vulnerabilities.filter(
         vulnerability => vulnerability.scanId === scan.id
       );
@@ -125,8 +130,7 @@ export default {
       const data = {
         projectname: project.name,
         revision,
-        teamname: team.name,
-        username: this.user.name
+        teamname: team.name
       };
       ajax.get(url.base, data).then(response => {
         this.scans = response.data;

@@ -11,19 +11,21 @@ import (
 )
 
 var (
-	cwd                string
-	gitTmpRepositories *gogit.Git
-	gitRepositories    *gogit.Git
-	gitTesting         *gogit.Git
-	gitServer          *gogit.HTTPServer
-	pathNoImage        string
-	pathPublic         string
-	pathPubilcImages   string
-	pathRepositories   string
-	testStatusColors   = map[string]string{}
-	websocketsMeeting  = map[uint]*websocket.Conn{}
-	websocketsTest     = map[uint]*websocket.Conn{}
-	websocketUpgrader  = &websocket.Upgrader{
+	cwd                                string
+	gitTmpRepositories                 *gogit.Git
+	gitRepositories                    *gogit.Git
+	gitTesting                         *gogit.Git
+	gitServer                          *gogit.HTTPServer
+	pathNoImage                        string
+	pathPublic                         string
+	pathPubilcImages                   string
+	pathRepositories                   string
+	testStatusColors                   = map[string]string{}
+	websocketsDastVulnerabilityMessage = map[uint]*websocket.Conn{}
+	websocketsMeetingMessage           = map[uint]*websocket.Conn{}
+	websocketsTest                     = map[uint]*websocket.Conn{}
+	websocketsTestMessage              = map[uint]*websocket.Conn{}
+	websocketUpgrader                  = &websocket.Upgrader{
 		ReadBufferSize:  socketBufferSize,
 		WriteBufferSize: socketBufferSize,
 		CheckOrigin: func(r *http.Request) bool {

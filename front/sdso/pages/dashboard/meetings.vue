@@ -107,9 +107,9 @@ export default {
     };
   },
   created() {
-    this.setupScoket();
     this.$fetchUser().then(response => {
       user = response.data;
+      this.setupScoket();
       this.fetchMeetings();
       this.fetchUsers();
     });
@@ -209,8 +209,8 @@ export default {
       this.fetchMessages();
     },
     setupScoket() {
-      const url = new Url(pathMeetings);
-      const socket = new WebSocket(url.socket);
+      const url = new Url(pathMeetingMessages);
+      const socket = new WebSocket(url.socket(user.id));
       socket.onmessage = e => {
         if (!this.selectedMeeting) {
           return;

@@ -10,6 +10,34 @@ export function count(sequence, target) {
 }
 
 class DateFormatter {
+  ago(str) {
+    const date = new Date(str);
+    const now = new Date();
+    const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+    if (seconds === 0) {
+      return "たった今";
+    }
+    if (seconds < 60) {
+      return seconds + "秒前";
+    }
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) {
+      return minutes + "分前";
+    }
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) {
+      return hours + "時間前";
+    }
+    const d = Math.floor(hours / 24);
+    if (d < 7) {
+      return d + "日前";
+    }
+    const week = Math.floor(d / 7);
+    if (week < 4) {
+      return week + "週間前";
+    }
+    return this.default(str);
+  }
   default (str) {
     const p = (n) => {
       const s = `${n}`;

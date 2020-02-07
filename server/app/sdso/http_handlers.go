@@ -229,6 +229,84 @@ func (c *commitsHandler) show(w http.ResponseWriter, r *http.Request, sha1 strin
 	}
 }
 
+type dastVulnerabilityMessagesHandler struct {
+}
+
+func (d *dastVulnerabilityMessagesHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	base := "/dast_vulnerability_messages/"
+	switch r.Method {
+	case http.MethodGet:
+		switch r.URL.Path {
+		case base:
+			d.fetch(w, r)
+			return
+		case base + "socket":
+			d.socket(w, r)
+			return
+		}
+	case http.MethodPost:
+		d.store(w, r)
+		return
+	}
+	respond(w, http.StatusNotFound)
+}
+
+func (d *dastVulnerabilityMessagesHandler) fetch(w http.ResponseWriter, r *http.Request) {
+	dastVulnerabilityMessages := []dastVulnerabilityMessage{}
+	err := fetch(r, &dastVulnerabilityMessages)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
+	_, err = respondJSON(w, http.StatusOK, dastVulnerabilityMessages)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
+}
+
+func (d *dastVulnerabilityMessagesHandler) socket(w http.ResponseWriter, r *http.Request) {
+	websock(w, r, &websocketsDastVulnerabilityMessage)
+}
+
+func (d *dastVulnerabilityMessagesHandler) store(w http.ResponseWriter, r *http.Request) {
+	dastVulnerabilityMessage := dastVulnerabilityMessage{}
+	err := store(r, &dastVulnerabilityMessage)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
+	_, err = respondJSON(w, http.StatusOK, dastVulnerabilityMessage)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
+	v := vulnerability{}
+	err = first(map[string]interface{}{"id": dastVulnerabilityMessage.VulnerabilityID}, &v)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
+	projectUsers := []projectUser{}
+	err = find(map[string]interface{}{"project_id": v.ProjectID}, &projectUsers)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
+	p, err := public(dastVulnerabilityMessage)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
+	for _, projectUser := range projectUsers {
+		socket, ok := websocketsDastVulnerabilityMessage[projectUser.UserID]
+		if !ok {
+			continue
+		}
+		socket.WriteJSON(p)
+	}
+}
+
 type filesHandler struct {
 }
 
@@ -529,9 +607,6 @@ func (m *meetingsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		case base + "ids":
 			m.ids(w, r)
 			return
-		case base + "socket":
-			m.socket(w, r)
-			return
 		}
 	case http.MethodPost:
 		m.store(w, r)
@@ -577,20 +652,6 @@ func (m *meetingsHandler) ids(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (m *meetingsHandler) socket(w http.ResponseWriter, r *http.Request) {
-	u, err := authenticatedUser(r)
-	if err != nil {
-		respondError(w, http.StatusInternalServerError, err)
-		return
-	}
-	socket, err := websocketUpgrader.Upgrade(w, r, nil)
-	if err != nil {
-		respondError(w, http.StatusInternalServerError, err)
-		return
-	}
-	websocketsMeeting[u.ID] = socket
-}
-
 func (m *meetingsHandler) store(w http.ResponseWriter, r *http.Request) {
 	meeting := meeting{}
 	err := store(r, &meeting)
@@ -609,10 +670,17 @@ type meetingMessagesHandler struct {
 }
 
 func (m *meetingMessagesHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	base := "/meeting_messages/"
 	switch r.Method {
 	case http.MethodGet:
-		m.fetch(w, r)
-		return
+		switch r.URL.Path {
+		case base:
+			m.fetch(w, r)
+			return
+		case base + "socket":
+			m.socket(w, r)
+			return
+		}
 	case http.MethodPost:
 		m.store(w, r)
 		return
@@ -634,6 +702,10 @@ func (m *meetingMessagesHandler) fetch(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func (m *meetingMessagesHandler) socket(w http.ResponseWriter, r *http.Request) {
+	websock(w, r, &websocketsMeetingMessage)
+}
+
 func (m *meetingMessagesHandler) store(w http.ResponseWriter, r *http.Request) {
 	meetingMessage := meetingMessage{}
 	err := store(r, &meetingMessage)
@@ -653,7 +725,7 @@ func (m *meetingMessagesHandler) store(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	for _, meetingUser := range meetingUsers {
-		socket, ok := websocketsMeeting[meetingUser.UserID]
+		socket, ok := websocketsMeetingMessage[meetingUser.UserID]
 		if !ok {
 			continue
 		}
@@ -973,19 +1045,12 @@ func (s *scansHandler) fetch(w http.ResponseWriter, r *http.Request) {
 	projectname := r.URL.Query().Get("projectname")
 	revision := r.URL.Query().Get("revision")
 	teamname := r.URL.Query().Get("teamname")
-	username := r.URL.Query().Get("username")
-	if emptyAny(projectname, revision, teamname, username) {
+	if emptyAny(projectname, revision, teamname) {
 		respond(w, http.StatusBadRequest)
 		return
 	}
-	u := user{}
-	err := first(map[string]interface{}{"name": username}, &u)
-	if err != nil {
-		respondError(w, http.StatusInternalServerError, err)
-		return
-	}
 	t := team{}
-	err = first(map[string]interface{}{"name": teamname}, &t)
+	err := first(map[string]interface{}{"name": teamname}, &t)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
 		return
@@ -1002,7 +1067,7 @@ func (s *scansHandler) fetch(w http.ResponseWriter, r *http.Request) {
 		respondError(w, http.StatusInternalServerError, err)
 		return
 	}
-	revisionsByte, err := gitRepositories.RevList(filepath.Join(username, projectname), revision)
+	revisionsByte, err := gitRepositories.RevList(filepath.Join(teamname, projectname), revision)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
 		return
@@ -1369,17 +1434,7 @@ func (t *testsHandler) fetch(w http.ResponseWriter, r *http.Request) {
 }
 
 func (t *testsHandler) socket(w http.ResponseWriter, r *http.Request) {
-	u, err := authenticatedUser(r)
-	if err != nil {
-		respondError(w, http.StatusInternalServerError, err)
-		return
-	}
-	socket, err := websocketUpgrader.Upgrade(w, r, nil)
-	if err != nil {
-		respondError(w, http.StatusInternalServerError, err)
-		return
-	}
-	websocketsTest[u.ID] = socket
+	websock(w, r, &websocketsTest)
 }
 
 func (t *testsHandler) revision(w http.ResponseWriter, r *http.Request) {
@@ -1438,10 +1493,17 @@ type testMessagesHandler struct {
 }
 
 func (t *testMessagesHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	base := "/test_messages/"
 	switch r.Method {
 	case http.MethodGet:
-		t.fetch(w, r)
-		return
+		switch r.URL.Path {
+		case base:
+			t.fetch(w, r)
+			return
+		case base + "socket":
+			t.socket(w, r)
+			return
+		}
 	case http.MethodPost:
 		t.store(w, r)
 		return
@@ -1463,6 +1525,10 @@ func (t *testMessagesHandler) fetch(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func (t *testMessagesHandler) socket(w http.ResponseWriter, r *http.Request) {
+	websock(w, r, &websocketsTestMessage)
+}
+
 func (t *testMessagesHandler) store(w http.ResponseWriter, r *http.Request) {
 	testMessage := testMessage{}
 	err := store(r, &testMessage)
@@ -1474,6 +1540,30 @@ func (t *testMessagesHandler) store(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
 		return
+	}
+	test := test{}
+	err = first(map[string]interface{}{"id": testMessage.TestID}, &test)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
+	projectUsers := []projectUser{}
+	err = find(map[string]interface{}{"project_id": test.ProjectID}, &projectUsers)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
+	p, err := public(testMessage)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
+	for _, projectUser := range projectUsers {
+		socket, ok := websocketsTestMessage[projectUser.UserID]
+		if !ok {
+			continue
+		}
+		socket.WriteJSON(p)
 	}
 }
 

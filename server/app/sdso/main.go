@@ -36,6 +36,11 @@ func main() {
 	commitsRouter.cors()
 	commitsRouter.handler = &commitsHandler{}
 	http.Handle("/commits/", &commitsRouter)
+	//
+	dastVulnerabilityMessagesRouter := router{}
+	dastVulnerabilityMessagesRouter.cors()
+	dastVulnerabilityMessagesRouter.handler = &dastVulnerabilityMessagesHandler{}
+	http.Handle("/dast_vulnerability_messages/", &dastVulnerabilityMessagesRouter)
 	// http.Handle("/files/", cors(&filesHandler{}))
 	filesRouter := router{}
 	filesRouter.cors()
@@ -68,7 +73,7 @@ func main() {
 	meetingMessagesRouter := router{}
 	meetingMessagesRouter.cors()
 	meetingMessagesRouter.handler = &meetingMessagesHandler{}
-	http.Handle("/meeting_messages", &meetingMessagesRouter)
+	http.Handle("/meeting_messages/", &meetingMessagesRouter)
 	// http.Handle("/meeting_users", cors(&meetingUsersHandler{}))
 	meetingUsersRouter := router{}
 	meetingUsersRouter.cors()
@@ -136,7 +141,7 @@ func main() {
 	testMessagesRouter := router{}
 	testMessagesRouter.cors()
 	testMessagesRouter.handler = &testMessagesHandler{}
-	http.Handle("/test_messages", &testMessagesRouter)
+	http.Handle("/test_messages/", &testMessagesRouter)
 	// http.Handle("/test_results/", cors(&testResultsHandler{}))
 	testResultsRouter := router{}
 	testResultsRouter.cors()
