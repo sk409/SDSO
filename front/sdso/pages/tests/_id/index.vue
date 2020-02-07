@@ -35,6 +35,9 @@
             </v-expansion-panel>
           </v-expansion-panels>
         </v-tab-item>
+        <v-tab-item value="コメント">
+          <MessagesView :messages="messages" @send="sendMessage"></MessagesView>
+        </v-tab-item>
       </v-tabs-items>
     </v-card>
   </v-container>
@@ -42,16 +45,22 @@
 
 <script>
 import ajax from "@/assets/js/ajax.js";
-import { pathTests, Url } from "@/assets/js/urls.js";
+import MessagesView from "@/components/MessagesView.vue";
+import { pathTests, pathTestMessages, Url } from "@/assets/js/urls.js";
 
 let socket = null;
+let user = null;
 const statusLoading = "statusLoading";
 const statusPermissionError = "statusPermissionError";
 const statusOK = "statusOK";
 export default {
   layout: "auth",
+  components: {
+    MessagesView
+  },
   data() {
     return {
+      messages: [],
       tabActive: "",
       tabs: ["コマンド", "コメント"],
       test: null
@@ -59,7 +68,9 @@ export default {
   },
   created() {
     this.setupSocket();
+    this.fetchMessages();
     this.$fetchUser().then(response => {
+      user = response.data;
       const url = new Url(pathTests);
       const data = {
         id: this.$route.params.id
@@ -70,6 +81,31 @@ export default {
     });
   },
   methods: {
+    fetchMessages() {
+      const testId = this.$route.params.id;
+      const url = new Url(pathTestMessages);
+      const data = {
+        testId
+      };
+      ajax.get(url.base, data).then(response => {
+        this.messages = response.data;
+      });
+    },
+    sendMessage(message, parent) {
+      const testId = this.$route.params.id;
+      const url = new Url(pathTestMessages);
+      const data = {
+        text: message,
+        testId,
+        userId: user.id
+      };
+      if (parent) {
+        data.parentId = parent.id;
+      }
+      ajax.post(url.base, data).then(response => {
+        this.messages.push(response.data);
+      });
+    },
     setupSocket() {
       if (!WebSocket) {
         alert("WebSocketに対応していないブラウザです。");
@@ -89,3 +125,9 @@ export default {
   }
 };
 </script>
+
+<style>
+.messages-view {
+  height: 450px;
+}
+</style>

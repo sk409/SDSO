@@ -4,18 +4,18 @@
       <div
         v-for="(message, index) in messages"
         :key="message.id"
-        class="pa-3"
+        class="py-3 mx-auto message"
         @click="clickMessage(message, index)"
       >
-        <v-card
+        <div
           v-if="message.parents && message.parents.length != 0"
-          class="pa-3 my-3"
+          class="pa-3 my-3 w-100 parents-card"
         >
           <div v-for="parent in message.parents" :key="parent.id">
-            <MessageView :message="parent"> </MessageView>
+            <MessageView :message="parent"></MessageView>
             <v-divider></v-divider>
           </div>
-        </v-card>
+        </div>
         <MessageView :message="message"></MessageView>
         <MessageInput
           v-if="inputs[index].visible"
@@ -106,15 +106,27 @@ export default {
   position: absolute;
   bottom: 0;
   left: 0;
-  border-top: 1px solid lightgray;
+  border: 1px solid lightgray;
   height: 10%;
   max-height: 30%;
+}
+.message {
+  width: 95%;
+  position: relative;
 }
 .messages {
   height: 90%;
 }
 .messages-view {
   position: relative;
+}
+.parents-card {
+  position: absolute;
+  top: -10px;
+  transform: translate(0, -100%);
+  background: white;
+  border: 1px solid lightgray;
+  box-shadow: 0 0 8px gray;
 }
 .replay-message-input {
   max-height: 300px;

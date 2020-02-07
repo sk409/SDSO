@@ -1,6 +1,6 @@
 {
   "method": "GET",
-  "url": "http://192.168.10.101:4800/os_command_injection/get.php?name=\u0026password=\u0026",
+  "url": "http://192.168.10.103:4800/os_command_injection/get.php?name=\u0026password=\u0026",
   "path": "/os_command_injection/get.php",
   "header": {
     "Accept-Encoding": [

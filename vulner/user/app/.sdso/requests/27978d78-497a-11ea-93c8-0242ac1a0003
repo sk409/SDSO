@@ -1,7 +1,7 @@
 {
   "method": "POST",
-  "url": "http://192.168.10.101:4800/sql_injection/mysql/1/post.php",
-  "path": "/sql_injection/mysql/1/post.php",
+  "url": "http://192.168.10.103:4800/xss/post.php",
+  "path": "/xss/post.php",
   "header": {
     "Accept-Encoding": [
       "gzip"

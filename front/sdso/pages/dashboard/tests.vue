@@ -27,35 +27,19 @@
       ></GitToolbar>
       <v-row v-if="tests.length !== 0" justify="center">
         <v-col cols="11">
+          <v-subheader>このコミットのテスト</v-subheader>
+          <v-divider class="mb-4"></v-divider>
           <v-card class="mb-4">
-            <v-simple-table>
-              <thead>
-                <tr>
-                  <th>ステータス</th>
-                  <th>ブランチ</th>
-                  <th>SHA1</th>
-                  <th>ステップ</th>
-                  <th>実施日</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr
-                  v-for="test in tests"
-                  :key="test.id"
-                  @click="$router.push($routes.tests.show(test.id))"
-                >
-                  <td>
-                    <v-chip :color="test.color" small text-color="white">
-                      {{ test.status }}
-                    </v-chip>
-                  </td>
-                  <td>{{ test.branchname }}</td>
-                  <td>{{ test.commitSha1.substr(0, 5) }}</td>
-                  <td>{{ test.results.length }}/{{ test.steps }}</td>
-                  <td>{{ test.createdAt | dateDefault }}</td>
-                </tr>
-              </tbody>
-            </v-simple-table>
+            <TestsTable :tests="tests.slice(0, 1)"></TestsTable>
+          </v-card>
+        </v-col>
+      </v-row>
+      <v-row v-if="2 <= tests.length" justify="center">
+        <v-col cols="11">
+          <v-subheader>このコミット以前のテスト</v-subheader>
+          <v-divider class="mb-4"></v-divider>
+          <v-card class="mb-4">
+            <TestsTable :tests="tests.slice(1)"></TestsTable>
           </v-card>
         </v-col>
       </v-row>
@@ -68,6 +52,7 @@ import ajax from "@/assets/js/ajax.js";
 import GitToolbar from "@/components/GitToolbar.vue";
 import MainView from "@/components/MainView.vue";
 import mutations from "@/assets/js/mutations.js";
+import TestsTable from "@/components/TestsTable.vue";
 import { pathTestResults, pathTests, Url } from "@/assets/js/urls.js";
 
 let socket = null;
@@ -75,7 +60,8 @@ export default {
   layout: "dashboard",
   components: {
     GitToolbar,
-    MainView
+    MainView,
+    TestsTable
   },
   data() {
     return {

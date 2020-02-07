@@ -1434,6 +1434,49 @@ func (t *testsHandler) revision(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+type testMessagesHandler struct {
+}
+
+func (t *testMessagesHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodGet:
+		t.fetch(w, r)
+		return
+	case http.MethodPost:
+		t.store(w, r)
+		return
+	}
+	respond(w, http.StatusNotFound)
+}
+
+func (t *testMessagesHandler) fetch(w http.ResponseWriter, r *http.Request) {
+	testMessages := []testMessage{}
+	err := fetch(r, &testMessages)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
+	_, err = respondJSON(w, http.StatusOK, testMessages)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
+}
+
+func (t *testMessagesHandler) store(w http.ResponseWriter, r *http.Request) {
+	testMessage := testMessage{}
+	err := store(r, &testMessage)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
+	_, err = respondJSON(w, http.StatusOK, testMessage)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
+}
+
 type testResultsHandler struct {
 }
 

@@ -411,6 +411,48 @@ func (t test) public() interface{} {
 	return m
 }
 
+type testMessage struct {
+	ID        uint `gorm:"primary_key"`
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	Text      string `gorm:"type:text"`
+	TestID    uint   `gorm:"not null"`
+	UserID    uint   `gorm:"not null"`
+	ParentID  *uint
+}
+
+func (t testMessage) public() interface{} {
+	i, err := convert(t)
+	if err != nil {
+		return t
+	}
+	m, ok := i.(map[string]interface{})
+	if !ok {
+		return t
+	}
+	test := test{}
+	err = first(map[string]interface{}{"id": t.TestID}, &test)
+	if err != nil {
+		return t
+	}
+	m["test"] = test
+	u := user{}
+	err = first(map[string]interface{}{"id": t.UserID}, &u)
+	if err != nil {
+		return t
+	}
+	m["user"] = u
+	if t.ParentID != nil {
+		p := testMessage{}
+		err = first(map[string]interface{}{"id": *t.ParentID}, &p)
+		if err != nil {
+			return t
+		}
+		m["parent"] = p
+	}
+	return m
+}
+
 type testStatus struct {
 	ID        uint `gorm:"primary_key"`
 	CreatedAt time.Time

@@ -21,35 +21,25 @@
       <v-subheader>動的テスト結果一覧</v-subheader>
       <v-divider class="mb-1"></v-divider>
       <GitToolbar class="mb-3" @change-revision="fetchScans"></GitToolbar>
-      <v-row v-if="vulnerabilities.length" justify="center">
+      <v-row v-if="vulnerabilities.length !== 0" justify="center">
         <v-col cols="11">
+          <v-subheader>このコミットの脆弱性</v-subheader>
+          <v-divider></v-divider>
           <v-card class="mb-4">
-            <v-simple-table>
-              <thead>
-                <tr>
-                  <th>パス</th>
-                  <th>種類</th>
-                  <th>メソッド</th>
-                  <th>状態</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr
-                  v-for="vulnerability in vulnerabilities"
-                  :key="vulnerability.id"
-                  @click="
-                    $router.push($routes.vulnerabilities.show(vulnerability.id))
-                  "
-                >
-                  <td>{{ vulnerability.path }}</td>
-                  <td>{{ vulnerability.name }}</td>
-                  <td>{{ vulnerability.method }}</td>
-                  <td>
-                    <v-chip color="red" small text-color="white">未修正</v-chip>
-                  </td>
-                </tr>
-              </tbody>
-            </v-simple-table>
+            <DastVulnerabilitiesTable
+              :vulnerabilities="current"
+            ></DastVulnerabilitiesTable>
+          </v-card>
+        </v-col>
+      </v-row>
+      <v-row v-if="2 <= vulnerabilities.length" justify="center">
+        <v-col cols="11">
+          <v-subheader>このコミット以前の脆弱性</v-subheader>
+          <v-divider></v-divider>
+          <v-card class="mb-4">
+            <DastVulnerabilitiesTable
+              :vulnerabilities="previous"
+            ></DastVulnerabilitiesTable>
           </v-card>
         </v-col>
       </v-row>
@@ -59,12 +49,14 @@
 
 <script>
 import ajax from "@/assets/js/ajax.js";
+import DastVulnerabilitiesTable from "@/components/DastVulnerabilitiesTable.vue";
 import GitToolbar from "@/components/GitToolbar.vue";
 import MainView from "@/components/MainView.vue";
 import { pathScans, Url } from "@/assets/js/urls.js";
 export default {
   layout: "dashboard",
   components: {
+    DastVulnerabilitiesTable,
     GitToolbar,
     MainView
   },
@@ -87,6 +79,24 @@ export default {
     };
   },
   computed: {
+    current() {
+      const revision = this.$store.state.git.revision;
+      if (!revision) {
+        return [];
+      }
+      const scan = this.scans.find(scan =>
+        scan.commitSha1.startsWith(revision)
+      );
+      return this.vulnerabilities.filter(
+        vulnerability => vulnerability.scanId === scan.id
+      );
+    },
+    previous() {
+      const current = this.current;
+      return this.vulnerabilities.filter(vulnerability =>
+        current.find(v => vulnerability.id !== v.id)
+      );
+    },
     vulnerabilities() {
       return this.scans.map(scan => scan.vulnerabilities).flat();
     }

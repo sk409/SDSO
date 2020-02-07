@@ -21,11 +21,12 @@ export const pathRegister = "register";
 export const pathScans = "scans";
 export const pathTeams = "teams/";
 export const pathTeamUsers = "team_users";
-export const pathTestResults = "test_results";
 export const pathTeamUserInvitationRequests = "team_user_invitation_requests";
 export const pathTeamUserInvitationRequestProjects =
   "team_user_invitation_request_projects";
 export const pathTests = "tests/";
+export const pathTestMessages = "test_messages";
+export const pathTestResults = "test_results";
 export const pathUser = "user";
 export const pathUsers = "users/";
 export const pathVulnerabilities = "vulnerabilities";

@@ -35,7 +35,9 @@ func init() {
 	db.AutoMigrate(&meeting{}).AddForeignKey("project_id", "projects(id)", "CASCADE", "CASCADE")
 	db.AutoMigrate(&meetingUser{}).AddForeignKey("meeting_id", "meetings(id)", "CASCADE", "CASCADE").AddForeignKey("user_id", "users(id)", "CASCADE", "CASCADE").AddUniqueIndex("meeting_id_user_id_unique", "meeting_id", "user_id")
 	db.AutoMigrate(&meetingMessage{}).AddForeignKey("meeting_id", "meetings(id)", "CASCADE", "CASCADE").AddForeignKey("user_id", "users(id)", "CASCADE", "CASCADE")
-	db.Model(&meetingMessage{}).AddForeignKey("parent_id", "meeting_messages(id)", "CASCADE", "SET NULL")
+	db.Model(&meetingMessage{}).AddForeignKey("parent_id", "meeting_messages(id)", "SET NULL", "CASCADE")
+	db.AutoMigrate(&testMessage{}).AddForeignKey("test_id", "tests(id)", "CASCADE", "CASCADE").AddForeignKey("user_id", "users(id)", "CASCADE", "CASCADE")
+	db.Model(&testMessage{}).AddForeignKey("parent_id", "test_messages(id)", "SET NULL", "CASCADE")
 	insertData()
 }
 
