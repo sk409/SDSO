@@ -955,7 +955,7 @@ func (p *projectUsersHandler) store(w http.ResponseWriter, r *http.Request) {
 		respondError(w, http.StatusInternalServerError, err)
 		return
 	}
-	response, err := projectUserRepository.find(map[string]interface{}{"project_id": projectUser.ProjectID, "user_id": projectUser.UserID})
+	response, err := projectUserRepository.first(map[string]interface{}{"project_id": projectUser.ProjectID, "user_id": projectUser.UserID})
 	_, err = respondJSON(w, http.StatusInternalServerError, response)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
@@ -1172,7 +1172,6 @@ func (t *teamsHandler) store(w http.ResponseWriter, r *http.Request) {
 type teamUsersHandler struct {
 }
 
-//
 func (t *teamUsersHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
@@ -1186,8 +1185,7 @@ func (t *teamUsersHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (t *teamUsersHandler) fetch(w http.ResponseWriter, r *http.Request) {
-	teamUsers := []teamUser{}
-	err := fetch(r, &teamUsers)
+	teamUsers, err := teamUserRepository.find(makeQuery(r, true), loadAllRelation)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
 		return
@@ -1207,19 +1205,23 @@ func (t *teamUsersHandler) store(w http.ResponseWriter, r *http.Request) {
 		respond(w, http.StatusBadRequest)
 		return
 	}
-	teamUserRole := teamUserRole{}
-	err := first(map[string]interface{}{"role": role}, &teamUserRole)
+	teamUserRole, err := teamUserRoleRepository.findByRole(role)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
 		return
 	}
-	teamUser := teamUser{}
-	err = save(map[string]interface{}{"teamID": teamID, "roleID": teamUserRole.ID, "userID": userID}, &teamUser)
+	query := map[string]interface{}{"teamID": teamID, "roleID": teamUserRole.ID, "userID": userID}
+	teamUser, err := teamUserRepository.save(query)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
 		return
 	}
-	_, err = respondJSON(w, http.StatusInternalServerError, teamUser)
+	response, err := teamUserRepository.first(map[string]interface{}{"team_id": teamUser.TeamID, "user_id": teamUser.UserID})
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
+	_, err = respondJSON(w, http.StatusInternalServerError, response)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
 		return
@@ -1264,7 +1266,7 @@ func (t *teamUserInvitationRequestProjectsHandler) store(w http.ResponseWriter, 
 		return
 	}
 	query := map[string]interface{}{"team_user_invitation_request_id": teamUserInvitationRequestProject.TeamUserInvitationRequestID, "project_id": teamUserInvitationRequestProject.ProjectID}
-	response, err := teamUserInvitationRequestProjectRepository.find(query, loadAllRelation)
+	response, err := teamUserInvitationRequestProjectRepository.first(query, loadAllRelation)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
 		return
@@ -1321,7 +1323,7 @@ func (t *teamUserInvitationRequestsHandler) store(w http.ResponseWriter, r *http
 	message := r.PostFormValue("message")
 	roleText := r.PostFormValue("role")
 	teamID := r.PostFormValue("teamId")
-	if emptyAny(inviterUserID, inviteeUserID, message, roleText, teamID) {
+	if emptyAny(inviterUserID, inviteeUserID, roleText, teamID) {
 		respond(w, http.StatusBadRequest)
 		return
 	}
@@ -1380,8 +1382,7 @@ func (t *testsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (t *testsHandler) fetch(w http.ResponseWriter, r *http.Request) {
-	tests := []test{}
-	err := fetch(r, &tests)
+	tests, err := testRepository.find(makeQuery(r, true), loadAllRelation)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
 		return
@@ -1405,18 +1406,19 @@ func (t *testsHandler) revision(w http.ResponseWriter, r *http.Request) {
 		respond(w, http.StatusBadRequest)
 		return
 	}
-	team := team{}
-	err := first(map[string]interface{}{"name": teamname}, &team)
+	team, err := teamRepository.findByName(teamname)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
 		return
 	}
-	p := project{}
-	err = first(map[string]interface{}{"name": projectname, "team_id": team.ID}, &p)
-	tests := []test{}
-	gormDB.Where("project_id = ?", p.ID).Order("created_at DESC").Find(&tests)
-	if gormDB.Error != nil {
-		respondError(w, http.StatusInternalServerError, gormDB.Error)
+	p, err := projectRepository.first(map[string]interface{}{"name": projectname, "team_id": team.ID})
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
+	tests, err := testRepository.findOrder(map[string]interface{}{"project_id": p.ID}, "created_at DESC", loadAllRelation)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
 		return
 	}
 	if len(tests) == 0 {

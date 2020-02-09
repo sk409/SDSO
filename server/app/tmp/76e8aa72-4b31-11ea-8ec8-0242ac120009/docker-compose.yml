@@ -1,0 +1,5 @@
+version: "3.3"
+services:
+  node:
+    build: /go/src/github.com/sk409/sdso/tmp/76e8aa72-4b31-11ea-8ec8-0242ac120009
+    tty: true

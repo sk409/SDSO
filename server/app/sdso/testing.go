@@ -61,15 +61,15 @@ func (t *tester) execTestCommand(test test, testPath, primaryServicename, comman
 		return err
 	}
 	testResult := testResult{
-		Command:      command,
-		TestID:       test.ID,
-		TestStatusID: testStatusRunning.ID,
+		Command:  command,
+		TestID:   test.ID,
+		StatusID: testStatusRunning.ID,
 	}
 	gormDB.Save(&testResult)
 	if gormDB.Error != nil {
 		return err
 	}
-	t.sendTest(test)
+	t.sendTest(test.ID)
 	args := []string{"exec", "-T", primaryServicename}
 	args = append(args, strings.Split(command, " ")...)
 	cmd := exec.Command("docker-compose", args...)
@@ -89,17 +89,17 @@ func (t *tester) execTestCommand(test test, testPath, primaryServicename, comman
 	}
 	now := time.Now()
 	testResult.Output = output.String()
-	testResult.TestStatusID = testStatus.ID
+	testResult.StatusID = testStatus.ID
 	testResult.CompletedAt = &now
 	gormDB.Save(&testResult)
 	if gormDB.Error != nil {
 		return err
 	}
-	t.sendTest(test)
+	t.sendTest(test.ID)
 	return failed
 }
 
-func (t *tester) makeDockerfiles( /*tmpPath???????*/ tmpPath string, c *config) ([]string, error) {
+func (t *tester) makeDockerfiles(tmpPath string, c *config) ([]string, error) {
 	workDir := "/app"
 	servicenames := []string{}
 	servicenameRegex := regexp.MustCompile("(.+):.+")
@@ -209,7 +209,7 @@ func (t *tester) run(teamname, projectname, clonePath, branchname, commitSHA1 st
 		return false, err
 	}
 	//************
-	err = t.sendTest(test)
+	err = t.sendTest(test.ID)
 	if err != nil {
 		return false, err
 	}
@@ -236,9 +236,12 @@ func (t *tester) runSteps(test test, c *config, testPath, primaryServicename str
 	return nil
 }
 
-func (t *tester) sendTest(test test) error {
-	pub, err := public(test.public())
-	testBytes, err := json.Marshal(pub)
+func (t *tester) sendTest(id uint) error {
+	test, err := testRepository.findByID(id, loadAllRelation)
+	if err != nil {
+		return err
+	}
+	testBytes, err := json.Marshal(test)
 	if err != nil {
 		return err
 	}

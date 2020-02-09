@@ -9,11 +9,42 @@ export function count(sequence, target) {
   return sequence.split(target).length - 1;
 }
 
+export function setupTest(test) {
+  const failed = "failed";
+  const failedColor = "rgb(220, 102, 97)";
+  const running = "running";
+  const runningColor = "rgb(130, 209, 226)";
+  const success = "success";
+  const successColor = "rgb(107, 197, 143)";
+  test.status = test.results.find(result => result.status.text === failed)
+    ? failed
+    : test.results.find(result => result.status.text === running)
+    ? running
+    : success;
+  test.color =
+    test.status === failed
+      ? failedColor
+      : test.status === running
+      ? runningColor
+      : successColor;
+  test.results.forEach(result => {
+    result.color =
+      result.status.text === failed
+        ? failedColor
+        : result.status.text === running
+        ? runningColor
+        : successColor;
+  });
+}
+
 class DateFormatter {
   ago(str) {
     const date = new Date(str);
     const now = new Date();
-    const seconds = Math.max(0, Math.floor((now.getTime() - date.getTime()) / 1000));
+    const seconds = Math.max(
+      0,
+      Math.floor((now.getTime() - date.getTime()) / 1000)
+    );
     if (seconds === 0) {
       return "たった今";
     }
@@ -38,10 +69,10 @@ class DateFormatter {
     }
     return this.default(str);
   }
-  default (str) {
-    const p = (n) => {
+  default(str) {
+    const p = n => {
       const s = `${n}`;
-      return s.length < 2 ? "0" + s : s
+      return s.length < 2 ? "0" + s : s;
     };
     const date = new Date(str);
     const y = date.getFullYear();

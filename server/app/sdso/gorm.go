@@ -26,7 +26,7 @@ func init() {
 	gormDB.AutoMigrate(&project{}).AddForeignKey("team_id", "teams(id)", "CASCADE", "CASCADE").AddUniqueIndex("name_team_id_unique", "name", "team_id")
 	gormDB.AutoMigrate(&scan{}).AddForeignKey("user_id", "users(id)", "CASCADE", "CASCADE").AddForeignKey("project_id", "projects(id)", "CASCADE", "CASCADE")
 	gormDB.AutoMigrate(&test{}).AddForeignKey("project_id", "projects(id)", "CASCADE", "CASCADe")
-	gormDB.AutoMigrate(&testResult{}).AddForeignKey("test_id", "tests(id)", "CASCADE", "CASCADE").AddForeignKey("test_status_id", "test_statuses(id)", "CASCADE", "CASCADe")
+	gormDB.AutoMigrate(&testResult{}).AddForeignKey("test_id", "tests(id)", "CASCADE", "CASCADE").AddForeignKey("status_id", "test_statuses(id)", "CASCADE", "CASCADe")
 	gormDB.AutoMigrate(&vulnerability{}).AddForeignKey("project_id", "projects(id)", "CASCADE", "CASCADE").AddForeignKey("scan_id", "scans(id)", "CASCADE", "CASCADE")
 	gormDB.AutoMigrate(&branchProtectionRule{}).AddForeignKey("project_id", "projects(id)", "CASCADE", "CASCADE")
 	gormDB.AutoMigrate(&projectUserRole{})

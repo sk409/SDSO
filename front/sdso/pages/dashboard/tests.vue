@@ -54,6 +54,7 @@ import MainView from "@/components/MainView.vue";
 import mutations from "@/assets/js/mutations.js";
 import TestsTable from "@/components/TestsTable.vue";
 import { pathTestResults, pathTests, Url } from "@/assets/js/urls.js";
+import { setupTest } from "@/assets/js/utils.js";
 
 let socket = null;
 let user = null;
@@ -105,6 +106,10 @@ export default {
         revision
       };
       ajax.get(url.revision, data).then(response => {
+        const tests = response.data;
+        tests.forEach(test => {
+          setupTest(test);
+        });
         this.tests = response.data;
       });
     },
@@ -126,6 +131,7 @@ export default {
         if (index === notFound) {
           that.newRevision = true;
         } else {
+          setupTest(test);
           that.$set(that.tests, index, test);
         }
       };

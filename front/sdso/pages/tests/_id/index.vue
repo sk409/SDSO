@@ -47,6 +47,7 @@
 import ajax from "@/assets/js/ajax.js";
 import MessagesView from "@/components/MessagesView.vue";
 import { pathTests, pathTestMessages, Url } from "@/assets/js/urls.js";
+import { setupTest } from "@/assets/js/utils.js";
 
 let socket = null;
 let user = null;
@@ -93,6 +94,7 @@ export default {
       };
       ajax.get(url.base, data).then(response => {
         this.test = response.data[0];
+        setupTest(this.test);
       });
     },
     sendMessage(message, parent) {
@@ -137,6 +139,7 @@ export default {
         if (that.test.id !== test.id) {
           return;
         }
+        setupTest(test);
         that.test = test;
       };
     }
