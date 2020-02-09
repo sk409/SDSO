@@ -65,8 +65,8 @@ func (t *tester) execTestCommand(test test, testPath, primaryServicename, comman
 		TestID:       test.ID,
 		TestStatusID: testStatusRunning.ID,
 	}
-	db.Save(&testResult)
-	if db.Error != nil {
+	gormDB.Save(&testResult)
+	if gormDB.Error != nil {
 		return err
 	}
 	t.sendTest(test)
@@ -91,8 +91,8 @@ func (t *tester) execTestCommand(test test, testPath, primaryServicename, comman
 	testResult.Output = output.String()
 	testResult.TestStatusID = testStatus.ID
 	testResult.CompletedAt = &now
-	db.Save(&testResult)
-	if db.Error != nil {
+	gormDB.Save(&testResult)
+	if gormDB.Error != nil {
 		return err
 	}
 	t.sendTest(test)
@@ -198,9 +198,9 @@ func (t *tester) run(teamname, projectname, clonePath, branchname, commitSHA1 st
 	// 	CommitSHA1: commitSHA1,
 	// 	ProjectID:  p.ID,
 	// }
-	// db.Save(&test)
-	// if db.Error != nil {
-	// 	return false, db.Error
+	// gormDB.Save(&test)
+	// if gormDB.Error != nil {
+	// 	return false, gormDB.Error
 	// }
 	//************
 	test := test{}
@@ -263,7 +263,7 @@ func (t *tester) sendTest(test test) error {
 		if err != nil {
 			continue
 		}
-		socket, exist := websocketsTest[u.ID]
+		socket, exist := testWebsockets[u.ID]
 		if !exist {
 			continue
 		}

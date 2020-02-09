@@ -83,26 +83,20 @@ func (router *router) gitBasicAuth() {
 		teamname := components[1]
 		projectname := components[2]
 		if r.URL.Path == "/"+path.Join(teamname, projectname, "git-receive-pack") {
-			t := team{}
-			err := first(map[string]interface{}{"name": teamname}, &t)
+			t, err := teamRepository.findByName(teamname, loadAllRelation)
 			if err != nil {
 				respondError(w, http.StatusInternalServerError, err)
 				return false
 			}
 			username, password, ok := r.BasicAuth()
 			u := user{}
-			err = first(map[string]interface{}{"name": username}, &u)
-			if err != nil {
-				respondError(w, http.StatusInternalServerError, err)
-				return false
+			for _, user := range t.Users {
+				if user.Name == username {
+					u = user
+					break
+				}
 			}
-			teamUser := teamUser{}
-			err = first(map[string]interface{}{"team_id": t.ID, "user_id": u.ID}, &teamUser)
-			if err != nil {
-				respondError(w, http.StatusInternalServerError, err)
-				return false
-			}
-			if teamUser.ID == 0 {
+			if u.ID == 0 {
 				unauthorized(w)
 				return false
 			}

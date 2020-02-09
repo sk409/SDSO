@@ -2,6 +2,17 @@
   <v-container>
     <v-subheader>参加しているチーム一覧</v-subheader>
     <v-divider></v-divider>
+    <v-row>
+      <v-col cols="3">
+        <v-btn
+          color="primary"
+          outlined
+          @click="$router.push($routes.teams.create)"
+        >
+          新規作成
+        </v-btn>
+      </v-col>
+    </v-row>
     <v-row justify="center">
       <v-col cols="10">
         <v-card>
@@ -30,16 +41,6 @@
         </v-card>
       </v-col>
     </v-row>
-    <v-btn
-      color="accent"
-      fab
-      fixed
-      right
-      bottom
-      @click="$router.push($routes.teams.create)"
-    >
-      <v-icon>mdi-plus</v-icon>
-    </v-btn>
   </v-container>
 </template>
 

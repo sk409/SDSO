@@ -80,10 +80,11 @@ export default {
         teamId: this.team.id
       };
       this.creating = true;
+      let project = null;
       ajax
         .post(url.base, data)
         .then(response => {
-          const project = response.data;
+          project = response.data;
           const url = new Url(pathProjectUsers);
           const data = {
             projectId: project.id,
@@ -97,7 +98,7 @@ export default {
           this.setNotificationMessage(
             `プロジェクト「${this.projectname}」を作成しました`
           );
-          this.$emit("created", response.data);
+          this.$emit("created", project);
         });
     }
   }

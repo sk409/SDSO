@@ -11,20 +11,23 @@ import (
 )
 
 var (
-	cwd                                string
-	gitTmpRepositories                 *gogit.Git
-	gitRepositories                    *gogit.Git
-	gitTesting                         *gogit.Git
-	gitServer                          *gogit.HTTPServer
-	pathNoImage                        string
-	pathPublic                         string
-	pathPubilcImages                   string
-	pathRepositories                   string
-	testStatusColors                   = map[string]string{}
-	websocketsDastVulnerabilityMessage = map[uint]*websocket.Conn{}
-	websocketsMeetingMessage           = map[uint]*websocket.Conn{}
-	websocketsTest                     = map[uint]*websocket.Conn{}
-	websocketsTestMessage              = map[uint]*websocket.Conn{}
+	cwd                string
+	gitTmpRepositories *gogit.Git
+	gitRepositories    *gogit.Git
+	gitTesting         *gogit.Git
+	gitServer          *gogit.HTTPServer
+	pathNoImage        string
+	pathPublic         string
+	pathPubilcImages   string
+	pathRepositories   string
+	testStatusColors   = map[string]string{}
+)
+
+var (
+	dastVulnerabilityMessageWebsockets = map[uint]*websocket.Conn{}
+	meetingMessageWebsockets           = map[uint]*websocket.Conn{}
+	testWebsockets                     = map[uint]*websocket.Conn{}
+	testMessageWebsockets              = map[uint]*websocket.Conn{}
 	websocketUpgrader                  = &websocket.Upgrader{
 		ReadBufferSize:  socketBufferSize,
 		WriteBufferSize: socketBufferSize,
@@ -63,9 +66,9 @@ func init() {
 	pathPublic = "public"
 	pathPubilcImages = filepath.Join(pathPublic, "images")
 	pathNoImage = filepath.Join(pathPubilcImages, "noimage.png")
-	pathRepositories = filepath.Join(cwd, "..", "repositories")
+	pathRepositories = filepath.Join(cwd, "repositories")
 	gitTmpRepositories = gogit.NewGit(filepath.Join(cwd, "..", "tmp_repositories"), gitBinPath)
-	gitRepositories = gogit.NewGit(filepath.Join(cwd, "..", "repositories"), gitBinPath)
+	gitRepositories = gogit.NewGit(pathRepositories, gitBinPath)
 	gitServer = gogit.NewHTTPServer(pathRepositories, gitBinPath)
 	testStatusColors[testStatusFailedText] = testStatusFailedColor
 	testStatusColors[testStatusRunningText] = testStatusRunningColor

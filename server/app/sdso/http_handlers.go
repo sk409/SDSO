@@ -25,7 +25,7 @@ func (a *authHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		a.auth(w, r)
 		return
 	}
-	respond(w, http.StatusNotFound)
+	respond(w, http.StatusMethodNotAllowed)
 }
 
 func (a *authHandler) auth(w http.ResponseWriter, r *http.Request) {
@@ -66,7 +66,7 @@ func (b *branchesHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		b.fetch(w, r)
 		return
 	}
-	respond(w, http.StatusNotFound)
+	respond(w, http.StatusMethodNotAllowed)
 }
 
 func (b *branchesHandler) fetch(w http.ResponseWriter, r *http.Request) {
@@ -108,8 +108,7 @@ func (b *branchProtectionRulesHandler) ServeHTTP(w http.ResponseWriter, r *http.
 }
 
 func (b *branchProtectionRulesHandler) fetch(w http.ResponseWriter, r *http.Request) {
-	branchProtectionRules := []branchProtectionRule{}
-	err := fetch(r, &branchProtectionRules)
+	branchProtectionRules, err := branchProtectionRuleRepository.find(makeQuery(r, true), loadAllRelation)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
 		return
@@ -150,8 +149,10 @@ func (c *commitsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			c.fetch(w, r)
 			return
 		}
+		respond(w, http.StatusNotFound)
+		return
 	}
-	respond(w, http.StatusNotFound)
+	respond(w, http.StatusMethodNotAllowed)
 }
 
 func (c *commitsHandler) fetch(w http.ResponseWriter, r *http.Request) {
@@ -244,6 +245,7 @@ func (d *dastVulnerabilityMessagesHandler) ServeHTTP(w http.ResponseWriter, r *h
 			d.socket(w, r)
 			return
 		}
+		respond(w, http.StatusNotFound)
 	case http.MethodPost:
 		d.store(w, r)
 		return
@@ -252,8 +254,7 @@ func (d *dastVulnerabilityMessagesHandler) ServeHTTP(w http.ResponseWriter, r *h
 }
 
 func (d *dastVulnerabilityMessagesHandler) fetch(w http.ResponseWriter, r *http.Request) {
-	dastVulnerabilityMessages := []dastVulnerabilityMessage{}
-	err := fetch(r, &dastVulnerabilityMessages)
+	dastVulnerabilityMessages, err := dastVulnerabilityMessageRepository.find(makeQuery(r, true), loadAllRelation)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
 		return
@@ -266,44 +267,32 @@ func (d *dastVulnerabilityMessagesHandler) fetch(w http.ResponseWriter, r *http.
 }
 
 func (d *dastVulnerabilityMessagesHandler) socket(w http.ResponseWriter, r *http.Request) {
-	websock(w, r, &websocketsDastVulnerabilityMessage)
+	putWebsocket(w, r, &dastVulnerabilityMessageWebsockets)
 }
 
 func (d *dastVulnerabilityMessagesHandler) store(w http.ResponseWriter, r *http.Request) {
-	dastVulnerabilityMessage := dastVulnerabilityMessage{}
-	err := store(r, &dastVulnerabilityMessage)
+	dastVulnerabilityMessage, err := dastVulnerabilityMessageRepository.save(makeQuery(r, false))
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
 		return
 	}
-	_, err = respondJSON(w, http.StatusOK, dastVulnerabilityMessage)
+	response, err := dastVulnerabilityMessageRepository.findByID(dastVulnerabilityMessage.ID, loadAllRelation)
+	project, err := projectRepository.findByID(response.Vulnerability.ProjectID, loadAllRelation)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
 		return
 	}
-	v := vulnerability{}
-	err = first(map[string]interface{}{"id": dastVulnerabilityMessage.VulnerabilityID}, &v)
-	if err != nil {
-		respondError(w, http.StatusInternalServerError, err)
-		return
-	}
-	projectUsers := []projectUser{}
-	err = find(map[string]interface{}{"project_id": v.ProjectID}, &projectUsers)
-	if err != nil {
-		respondError(w, http.StatusInternalServerError, err)
-		return
-	}
-	p, err := public(dastVulnerabilityMessage)
-	if err != nil {
-		respondError(w, http.StatusInternalServerError, err)
-		return
-	}
-	for _, projectUser := range projectUsers {
-		socket, ok := websocketsDastVulnerabilityMessage[projectUser.UserID]
+	for _, u := range project.Users {
+		socket, ok := dastVulnerabilityMessageWebsockets[u.ID]
 		if !ok {
 			continue
 		}
-		socket.WriteJSON(p)
+		socket.WriteJSON(response)
+	}
+	_, err = respondJSON(w, http.StatusOK, response)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
 	}
 }
 
@@ -459,14 +448,14 @@ func (g *gitHandler) receivePack(w http.ResponseWriter, r *http.Request, teamnam
 		return
 	}
 	branchProtectionRules := []branchProtectionRule{}
-	db.Where("project_id = ?", p.ID).Find(&branchProtectionRules)
+	gormDB.Where("project_id = ?", p.ID).Find(&branchProtectionRules)
 	branchName, commitSHA1, err := getBranchNameAndCommitSHA1(r)
 	if err != nil {
 		return
 	}
 	protection := false
 	for _, branchProtectionRule := range branchProtectionRules {
-		if branchName == branchProtectionRule.BranchName {
+		if branchName == branchProtectionRule.Branchname {
 			protection = true
 			break
 		}
@@ -616,8 +605,7 @@ func (m *meetingsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (m *meetingsHandler) fetch(w http.ResponseWriter, r *http.Request) {
-	meetings := []meeting{}
-	err := fetch(r, &meetings)
+	meetings, err := meetingRepository.find(makeQuery(r, true), loadAllRelation)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
 		return
@@ -639,8 +627,7 @@ func (m *meetingsHandler) ids(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
-	meetings := []meeting{}
-	err := findByUniqueKey(ids, &meetings)
+	meetings, err := meetingRepository.findByIDs(stringsToUints(ids), loadAllRelation)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
 		return
@@ -653,13 +640,17 @@ func (m *meetingsHandler) ids(w http.ResponseWriter, r *http.Request) {
 }
 
 func (m *meetingsHandler) store(w http.ResponseWriter, r *http.Request) {
-	meeting := meeting{}
-	err := store(r, &meeting)
+	meeting, err := meetingRepository.save(makeQuery(r, false))
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
 		return
 	}
-	_, err = respondJSON(w, http.StatusOK, meeting)
+	response, err := meetingRepository.findByID(meeting.ID, loadAllRelation)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
+	_, err = respondJSON(w, http.StatusOK, response)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
 		return
@@ -669,6 +660,7 @@ func (m *meetingsHandler) store(w http.ResponseWriter, r *http.Request) {
 type meetingMessagesHandler struct {
 }
 
+//
 func (m *meetingMessagesHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	base := "/meeting_messages/"
 	switch r.Method {
@@ -689,8 +681,7 @@ func (m *meetingMessagesHandler) ServeHTTP(w http.ResponseWriter, r *http.Reques
 }
 
 func (m *meetingMessagesHandler) fetch(w http.ResponseWriter, r *http.Request) {
-	meetingMessages := []meetingMessage{}
-	err := fetch(r, &meetingMessages)
+	meetingMessages, err := meetingMessageRepository.find(makeQuery(r, true), loadAllRelation)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
 		return
@@ -703,37 +694,39 @@ func (m *meetingMessagesHandler) fetch(w http.ResponseWriter, r *http.Request) {
 }
 
 func (m *meetingMessagesHandler) socket(w http.ResponseWriter, r *http.Request) {
-	websock(w, r, &websocketsMeetingMessage)
+	putWebsocket(w, r, &meetingMessageWebsockets)
 }
 
 func (m *meetingMessagesHandler) store(w http.ResponseWriter, r *http.Request) {
-	meetingMessage := meetingMessage{}
-	err := store(r, &meetingMessage)
+	meetingMessage, err := meetingMessageRepository.save(makeQuery(r, false))
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
 		return
 	}
-	_, err = respondJSON(w, http.StatusOK, meetingMessage)
+	meeting, err := meetingRepository.findByID(meetingMessage.MeetingID, meetingRelationUsers)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
 		return
 	}
-	meetingUsers := []meetingUser{}
-	err = find(map[string]interface{}{"meetingID": meetingMessage.MeetingID}, &meetingUsers)
+	response, err := meetingMessageRepository.findByID(meetingMessage.ID, loadAllRelation)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
 		return
 	}
-	for _, meetingUser := range meetingUsers {
-		socket, ok := websocketsMeetingMessage[meetingUser.UserID]
+	for _, u := range meeting.Users {
+		if u.ID == meetingMessage.UserID {
+			continue
+		}
+		socket, ok := meetingMessageWebsockets[u.ID]
 		if !ok {
 			continue
 		}
-		p, err := public(meetingMessage)
-		if err != nil {
-			continue
-		}
-		socket.WriteJSON(p)
+		socket.WriteJSON(response)
+	}
+	_, err = respondJSON(w, http.StatusOK, response)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
 	}
 }
 
@@ -753,8 +746,7 @@ func (m *meetingUsersHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 }
 
 func (m *meetingUsersHandler) fetch(w http.ResponseWriter, r *http.Request) {
-	meetingUsers := []meetingUser{}
-	err := fetch(r, &meetingUsers)
+	meetingUsers, err := meetingUserRepository.find(makeQuery(r, true), loadAllRelation)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
 		return
@@ -767,13 +759,18 @@ func (m *meetingUsersHandler) fetch(w http.ResponseWriter, r *http.Request) {
 }
 
 func (m *meetingUsersHandler) store(w http.ResponseWriter, r *http.Request) {
-	meetingUser := meetingUser{}
-	err := store(r, &meetingUser)
+	meetingUser, err := meetingUserRepository.save(makeQuery(r, false))
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
 		return
 	}
-	_, err = respondJSON(w, http.StatusOK, meetingUser)
+	query := map[string]interface{}{"meeting_id": meetingUser.MeetingID, "user_id": meetingUser.UserID}
+	response, err := meetingUserRepository.find(query, loadAllRelation)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
+	_, err = respondJSON(w, http.StatusOK, response)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
 		return
@@ -803,8 +800,7 @@ func (p *projectsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (p *projectsHandler) fetch(w http.ResponseWriter, r *http.Request) {
-	projects := []project{}
-	err := fetch(r, &projects)
+	projects, err := projectRepository.find(makeQuery(r, true), loadAllRelation)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
 		return
@@ -817,8 +813,7 @@ func (p *projectsHandler) fetch(w http.ResponseWriter, r *http.Request) {
 }
 
 func (p *projectsHandler) ids(w http.ResponseWriter, r *http.Request) {
-	r.ParseForm()
-	ids := r.Form["ids[]"]
+	ids := r.URL.Query()["ids"]
 	if emptyAny(ids) {
 		_, err := respondJSON(w, http.StatusOK, []project{})
 		if err != nil {
@@ -827,8 +822,7 @@ func (p *projectsHandler) ids(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
-	projects := []project{}
-	err := findByUniqueKey(ids, &projects)
+	projects, err := projectRepository.findByIDs(stringsToUints(ids), loadAllRelation)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
 		return
@@ -841,14 +835,12 @@ func (p *projectsHandler) ids(w http.ResponseWriter, r *http.Request) {
 }
 
 func (p *projectsHandler) store(w http.ResponseWriter, r *http.Request) {
-	project := project{}
-	err := store(r, &project)
+	project, err := projectRepository.save(makeQuery(r, false))
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
 		return
 	}
-	t := team{}
-	err = first(map[string]interface{}{"id": project.TeamID}, &t)
+	t, err := teamRepository.findByID(project.TeamID, loadAllRelation)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
 		return
@@ -863,7 +855,12 @@ func (p *projectsHandler) store(w http.ResponseWriter, r *http.Request) {
 		respondError(w, http.StatusInternalServerError, err)
 		return
 	}
-	_, err = respondJSON(w, http.StatusOK, project)
+	response, err := projectRepository.findByID(project.ID, loadAllRelation)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
+	_, err = respondJSON(w, http.StatusOK, response)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
 		return
@@ -883,12 +880,6 @@ func (h *registerHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *registerHandler) register(w http.ResponseWriter, r *http.Request) {
-	response := func(u *user, ok bool) map[string]interface{} {
-		return map[string]interface{}{
-			"ok":   ok,
-			"user": u,
-		}
-	}
 	username := r.PostFormValue("username")
 	password := r.PostFormValue("password")
 	if emptyAny(username, password) {
@@ -900,24 +891,9 @@ func (h *registerHandler) register(w http.ResponseWriter, r *http.Request) {
 		respondError(w, http.StatusInternalServerError, err)
 		return
 	}
-	u := user{
-		Name:             username,
-		Password:         string(hashedPassword),
-		ProfileImagePath: pathNoImage,
-	}
-	count := 0
-	db.Model(&user{}).Where("name = ?", u.Name).Count(&count)
-	if count != 0 {
-		_, err = respondJSON(w, http.StatusOK, response(nil, false))
-		if err != nil {
-			respondError(w, http.StatusInternalServerError, err)
-			return
-		}
-		return
-	}
-	db.Save(&u)
-	if db.Error != nil {
-		respondError(w, http.StatusInternalServerError, db.Error)
+	u, err := userRepository.saveWith(username, string(hashedPassword), pathNoImage)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
 		return
 	}
 	_, err = login(w, username, password)
@@ -925,7 +901,7 @@ func (h *registerHandler) register(w http.ResponseWriter, r *http.Request) {
 		respondError(w, http.StatusInternalServerError, err)
 		return
 	}
-	_, err = respondJSON(w, http.StatusOK, response(&u, true))
+	_, err = respondJSON(w, http.StatusOK, u)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
 		return
@@ -948,8 +924,7 @@ func (p *projectUsersHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 }
 
 func (p *projectUsersHandler) fetch(w http.ResponseWriter, r *http.Request) {
-	projectUsers := []projectUser{}
-	err := fetch(r, &projectUsers)
+	projectUsers, err := projectUserRepository.find(makeQuery(r, true), loadAllRelation)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
 		return
@@ -969,19 +944,19 @@ func (p *projectUsersHandler) store(w http.ResponseWriter, r *http.Request) {
 		respond(w, http.StatusBadRequest)
 		return
 	}
-	projectUserRole := projectUserRole{}
-	err := first(map[string]interface{}{"role": role}, &projectUserRole)
+	projectUserRole, err := projectUserRoleRepository.findByRole(role)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
 		return
 	}
-	projectUser := projectUser{}
-	err = save(map[string]interface{}{"projectId": projectID, "roleId": projectUserRole.ID, "userId": userID}, &projectUser)
+	query := map[string]interface{}{"projectId": projectID, "roleId": projectUserRole.ID, "userId": userID}
+	projectUser, err := projectUserRepository.save(query)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
 		return
 	}
-	_, err = respondJSON(w, http.StatusInternalServerError, projectUser)
+	response, err := projectUserRepository.find(map[string]interface{}{"project_id": projectUser.ProjectID, "user_id": projectUser.UserID})
+	_, err = respondJSON(w, http.StatusInternalServerError, response)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
 		return
@@ -1049,20 +1024,17 @@ func (s *scansHandler) fetch(w http.ResponseWriter, r *http.Request) {
 		respond(w, http.StatusBadRequest)
 		return
 	}
-	t := team{}
-	err := first(map[string]interface{}{"name": teamname}, &t)
+	t, err := teamRepository.findByName(teamname)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
 		return
 	}
-	p := project{}
-	err = first(map[string]interface{}{"name": projectname, "team_id": t.ID}, &p)
+	p, err := projectRepository.first(map[string]interface{}{"name": projectname, "team_id": t.ID})
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
 		return
 	}
-	scans := []scan{}
-	err = find(map[string]interface{}{"projectId": p.ID}, &scans)
+	scans, err := scanRepository.find(map[string]interface{}{"project_id": p.ID}, loadAllRelation)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
 		return
@@ -1098,35 +1070,28 @@ func (s *scansHandler) store(w http.ResponseWriter, r *http.Request) {
 		respond(w, http.StatusBadRequest)
 		return
 	}
-	u := user{}
-	err := first(map[string]interface{}{"name": username}, &u)
+	u, err := userRepository.findByName(username)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
 		return
 	}
-	t := team{}
-	err = first(map[string]interface{}{"name": teamname}, &t)
+	t, err := teamRepository.findByName(teamname)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
 		return
 	}
-	p := project{}
-	err = first(map[string]interface{}{"name": projectname, "team_id": t.ID}, &p)
+	p, err := projectRepository.first(map[string]interface{}{"name": projectname, "team_id": t.ID})
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
 		return
 	}
-	scan := scan{
-		CommitSHA1: commitSHA1,
-		UserID:     u.ID,
-		ProjectID:  p.ID,
-	}
-	db.Save(&scan)
-	if db.Error != nil {
-		respondError(w, http.StatusInternalServerError, db.Error)
+	scan, err := scanRepository.saveWith(commitSHA1, p.ID, u.ID)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
 		return
 	}
-	_, err = respondJSON(w, http.StatusOK, scan)
+	response, err := scanRepository.findByID(scan.ID, loadAllRelation)
+	_, err = respondJSON(w, http.StatusOK, response)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
 		return
@@ -1156,8 +1121,7 @@ func (t *teamsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (t *teamsHandler) fetch(w http.ResponseWriter, r *http.Request) {
-	teams := []team{}
-	err := fetch(r, &teams)
+	teams, err := teamRepository.find(makeQuery(r, true), loadAllRelation)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
 		return
@@ -1179,8 +1143,7 @@ func (t *teamsHandler) ids(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
-	teams := []team{}
-	err := findByUniqueKey(ids, &teams)
+	teams, err := teamRepository.findByIDs(stringsToUints(ids), loadAllRelation)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
 		return
@@ -1193,13 +1156,13 @@ func (t *teamsHandler) ids(w http.ResponseWriter, r *http.Request) {
 }
 
 func (t *teamsHandler) store(w http.ResponseWriter, r *http.Request) {
-	team := team{}
-	err := store(r, &team)
+	team, err := teamRepository.save(makeQuery(r, false))
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
 		return
 	}
-	_, err = respondJSON(w, http.StatusOK, team)
+	response, err := teamRepository.findByID(team.ID, loadAllRelation)
+	_, err = respondJSON2(w, http.StatusOK, response)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
 		return
@@ -1209,6 +1172,7 @@ func (t *teamsHandler) store(w http.ResponseWriter, r *http.Request) {
 type teamUsersHandler struct {
 }
 
+//
 func (t *teamUsersHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
@@ -1281,13 +1245,12 @@ func (t *teamUserInvitationRequestProjectsHandler) ServeHTTP(w http.ResponseWrit
 }
 
 func (t *teamUserInvitationRequestProjectsHandler) fetch(w http.ResponseWriter, r *http.Request) {
-	teamUserInvitationRequests := []teamUserInvitationRequest{}
-	err := fetch(r, &teamUserInvitationRequests)
+	teamUserInvitationRequestProjects, err := teamUserInvitationRequestProjectRepository.find(makeQuery(r, true), loadAllRelation)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
 		return
 	}
-	_, err = respondJSON(w, http.StatusOK, teamUserInvitationRequests)
+	_, err = respondJSON(w, http.StatusOK, teamUserInvitationRequestProjects)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
 		return
@@ -1295,13 +1258,18 @@ func (t *teamUserInvitationRequestProjectsHandler) fetch(w http.ResponseWriter, 
 }
 
 func (t *teamUserInvitationRequestProjectsHandler) store(w http.ResponseWriter, r *http.Request) {
-	teamUserInvitationRequestProject := teamUserInvitationRequestProject{}
-	err := store(r, &teamUserInvitationRequestProject)
+	teamUserInvitationRequestProject, err := teamUserInvitationRequestProjectRepository.save(makeQuery(r, false))
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
 		return
 	}
-	_, err = respondJSON(w, http.StatusOK, teamUserInvitationRequestProject)
+	query := map[string]interface{}{"team_user_invitation_request_id": teamUserInvitationRequestProject.TeamUserInvitationRequestID, "project_id": teamUserInvitationRequestProject.ProjectID}
+	response, err := teamUserInvitationRequestProjectRepository.find(query, loadAllRelation)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
+	_, err = respondJSON(w, http.StatusOK, response)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
 		return
@@ -1309,13 +1277,7 @@ func (t *teamUserInvitationRequestProjectsHandler) store(w http.ResponseWriter, 
 }
 
 func (t *teamUserInvitationRequestProjectsHandler) destroy(w http.ResponseWriter, r *http.Request) {
-	teamUserInvitationRequestProject := []teamUserInvitationRequestProject{}
-	err := destroy(r, &teamUserInvitationRequestProject)
-	if err != nil {
-		respondError(w, http.StatusInternalServerError, err)
-		return
-	}
-	_, err = respondJSON(w, http.StatusOK, teamUserInvitationRequestProject)
+	err := teamUserInvitationRequestProjectRepository.delete(makeQuery(r, true))
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
 		return
@@ -1341,8 +1303,7 @@ func (t *teamUserInvitationRequestsHandler) ServeHTTP(w http.ResponseWriter, r *
 }
 
 func (t *teamUserInvitationRequestsHandler) fetch(w http.ResponseWriter, r *http.Request) {
-	teamUserInvitationRequests := []teamUserInvitationRequest{}
-	err := fetch(r, &teamUserInvitationRequests)
+	teamUserInvitationRequests, err := teamUserInvitationRequestRepository.find(makeQuery(r, true), loadAllRelation)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
 		return
@@ -1364,19 +1325,23 @@ func (t *teamUserInvitationRequestsHandler) store(w http.ResponseWriter, r *http
 		respond(w, http.StatusBadRequest)
 		return
 	}
-	role := teamUserRole{}
-	err := first(map[string]interface{}{"role": roleText}, &role)
+	role, err := teamUserRoleRepository.findByRole(roleText)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
 		return
 	}
-	teamUserInvitationRequest := teamUserInvitationRequest{}
-	err = save(map[string]interface{}{"message": message, "teamID": teamID, "inviterUserID": inviterUserID, "inviteeUserID": inviteeUserID, "roleID": role.ID}, &teamUserInvitationRequest)
+	query := map[string]interface{}{"message": message, "inviterUserID": inviterUserID, "inviteeUserID": inviteeUserID, "roleID": role.ID, "teamID": teamID}
+	teamUserInvitationRequest, err := teamUserInvitationRequestRepository.save(query)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
 		return
 	}
-	_, err = respondJSON(w, http.StatusOK, teamUserInvitationRequest)
+	response, err := teamUserInvitationRequestRepository.findByID(teamUserInvitationRequest.ID)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
+	_, err = respondJSON(w, http.StatusOK, response)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
 		return
@@ -1384,13 +1349,7 @@ func (t *teamUserInvitationRequestsHandler) store(w http.ResponseWriter, r *http
 }
 
 func (t *teamUserInvitationRequestsHandler) destroy(w http.ResponseWriter, r *http.Request) {
-	teamUserInvitationRequest := teamUserInvitationRequest{}
-	err := destroy(r, &teamUserInvitationRequest)
-	if err != nil {
-		respondError(w, http.StatusInternalServerError, err)
-		return
-	}
-	_, err = respondJSON(w, http.StatusOK, teamUserInvitationRequest)
+	err := teamUserInvitationRequestRepository.delete(makeQuery(r, true))
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
 		return
@@ -1400,6 +1359,7 @@ func (t *teamUserInvitationRequestsHandler) destroy(w http.ResponseWriter, r *ht
 type testsHandler struct {
 }
 
+//
 func (t *testsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	base := "/tests/"
 	switch r.Method {
@@ -1434,7 +1394,7 @@ func (t *testsHandler) fetch(w http.ResponseWriter, r *http.Request) {
 }
 
 func (t *testsHandler) socket(w http.ResponseWriter, r *http.Request) {
-	websock(w, r, &websocketsTest)
+	putWebsocket(w, r, &testWebsockets)
 }
 
 func (t *testsHandler) revision(w http.ResponseWriter, r *http.Request) {
@@ -1454,9 +1414,9 @@ func (t *testsHandler) revision(w http.ResponseWriter, r *http.Request) {
 	p := project{}
 	err = first(map[string]interface{}{"name": projectname, "team_id": team.ID}, &p)
 	tests := []test{}
-	db.Where("project_id = ?", p.ID).Order("created_at DESC").Find(&tests)
-	if db.Error != nil {
-		respondError(w, http.StatusInternalServerError, db.Error)
+	gormDB.Where("project_id = ?", p.ID).Order("created_at DESC").Find(&tests)
+	if gormDB.Error != nil {
+		respondError(w, http.StatusInternalServerError, gormDB.Error)
 		return
 	}
 	if len(tests) == 0 {
@@ -1492,6 +1452,7 @@ func (t *testsHandler) revision(w http.ResponseWriter, r *http.Request) {
 type testMessagesHandler struct {
 }
 
+//
 func (t *testMessagesHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	base := "/test_messages/"
 	switch r.Method {
@@ -1526,7 +1487,7 @@ func (t *testMessagesHandler) fetch(w http.ResponseWriter, r *http.Request) {
 }
 
 func (t *testMessagesHandler) socket(w http.ResponseWriter, r *http.Request) {
-	websock(w, r, &websocketsTestMessage)
+	putWebsocket(w, r, &testMessageWebsockets)
 }
 
 func (t *testMessagesHandler) store(w http.ResponseWriter, r *http.Request) {
@@ -1559,7 +1520,7 @@ func (t *testMessagesHandler) store(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	for _, projectUser := range projectUsers {
-		socket, ok := websocketsTestMessage[projectUser.UserID]
+		socket, ok := testMessageWebsockets[projectUser.UserID]
 		if !ok {
 			continue
 		}
@@ -1570,6 +1531,7 @@ func (t *testMessagesHandler) store(w http.ResponseWriter, r *http.Request) {
 type testResultsHandler struct {
 }
 
+//
 func (t *testResultsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
@@ -1596,6 +1558,7 @@ func (t *testResultsHandler) fetch(w http.ResponseWriter, r *http.Request) {
 type testStatusesHandler struct {
 }
 
+//
 func (t *testStatusesHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
@@ -1622,6 +1585,7 @@ func (t *testStatusesHandler) fetch(w http.ResponseWriter, r *http.Request) {
 type userHandler struct {
 }
 
+//
 func (u *userHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
@@ -1645,9 +1609,9 @@ func (u *userHandler) fetch(w http.ResponseWriter, r *http.Request) {
 	userID, err := session.Uint(sessionStoreNameUserID)
 	user := user{}
 	user.ID = userID
-	db.Find(&user)
-	if db.Error != nil {
-		respondError(w, http.StatusInternalServerError, db.Error)
+	gormDB.Find(&user)
+	if gormDB.Error != nil {
+		respondError(w, http.StatusInternalServerError, gormDB.Error)
 	}
 	_, err = respondJSON(w, http.StatusOK, user)
 	if err != nil {
@@ -1659,6 +1623,7 @@ func (u *userHandler) fetch(w http.ResponseWriter, r *http.Request) {
 type usersHandler struct {
 }
 
+//
 func (u *usersHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	base := "/users/"
 	switch r.Method {
@@ -1715,6 +1680,7 @@ func (u *usersHandler) ids(w http.ResponseWriter, r *http.Request) {
 type vulnerabilitiesHandler struct {
 }
 
+//
 func (v *vulnerabilitiesHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
@@ -1782,9 +1748,9 @@ func (v *vulnerabilitiesHandler) store(w http.ResponseWriter, r *http.Request) {
 		ProjectID:   p.ID,
 		ScanID:      s.ID,
 	}
-	db.Save(&vulnerability)
-	if db.Error != nil {
-		respondError(w, http.StatusInternalServerError, db.Error)
+	gormDB.Save(&vulnerability)
+	if gormDB.Error != nil {
+		respondError(w, http.StatusInternalServerError, gormDB.Error)
 		return
 	}
 	_, err = respondJSON(w, http.StatusOK, vulnerability)

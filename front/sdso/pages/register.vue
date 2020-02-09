@@ -41,9 +41,7 @@ export default {
         withCredentials: true
       };
       ajax.post(url.base, data, config).then(response => {
-        if (response.data.ok) {
-          this.$router.push(this.$routes.dashboard.commits.base);
-        }
+        this.$router.push(this.$routes.dashboard.commits.base);
       });
     }
   }

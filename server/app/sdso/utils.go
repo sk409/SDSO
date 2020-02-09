@@ -82,18 +82,18 @@ func find(query map[string]interface{}, model interface{}) error {
 		s := string(gocase.SnakeCase([]byte(key)))
 		q[s] = value
 	}
-	db.Where(q).Find(model)
-	return db.Error
+	gormDB.Where(q).Find(model)
+	return gormDB.Error
 }
 
 func findByUniqueKey(uniqueKeys interface{}, model interface{}) error {
-	db.Where(uniqueKeys).Find(model)
-	return db.Error
+	gormDB.Where(uniqueKeys).Find(model)
+	return gormDB.Error
 }
 
 func first(query map[string]interface{}, model interface{}) error {
-	db.Where(query).First(model)
-	return db.Error
+	gormDB.Where(query).First(model)
+	return gormDB.Error
 }
 
 func getBranchNameAndCommitSHA1(r *http.Request) (string, string, error) {
@@ -163,9 +163,21 @@ func save(query map[string]interface{}, model interface{}) error {
 			}
 		}
 	}
-	db.Save(model)
-	if db.Error != nil {
-		return db.Error
+	gormDB.Save(model)
+	if gormDB.Error != nil {
+		return gormDB.Error
 	}
 	return nil
+}
+
+func stringsToUints(strings []string) []uint {
+	uints := make([]uint, len(strings))
+	for index, str := range strings {
+		u, err := strconv.ParseUint(str, 10, 64)
+		if err != nil {
+			continue
+		}
+		uints[index] = uint(u)
+	}
+	return uints
 }

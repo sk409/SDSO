@@ -27,6 +27,7 @@ import { pathTeams, pathTeamUsers, Url } from "@/assets/js/urls.js";
 import { mapMutations } from "vuex";
 let user = null;
 export default {
+  layout: "auth",
   components: {
     FormCard
   },

@@ -159,11 +159,13 @@ func main() {
 	for _, requestConfig := range requestConfigs {
 		request, err := makeRequest(requestConfig.method, requestConfig.urlString, requestConfig.params)
 		if err != nil {
-			log.Println(err.Error())
+			// log.Println(err.Error())
 			continue
 		}
 		// log.Println("BEFORE DO")
 		response, err := client.Do(request)
+		// b, err := ioutil.ReadAll(response.Body)
+		// log.Println(string(b))
 		// log.Println("AFTER DO")
 		if err != nil {
 			log.Println(err.Error())

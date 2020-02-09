@@ -80,12 +80,18 @@ export default {
       });
       this.inputs[index].visible = true;
       const parents = [];
-      let parent = message.parent;
+      let parent = message.parent
+        ? this.messages.find(m => m.id === message.parent.id)
+        : null;
       while (parent) {
         parents.push(parent);
-        parent = parent.parent;
+        parent = parent.parent
+          ? this.messages.find(m => m.id === parent.parent.id)
+          : null;
       }
-      message.parents = parents.reverse();
+      message.parents = this.messages.filter(message =>
+        parents.find(parent => parent.id === message.id)
+      );
     },
     scroll() {
       const messages = this.$refs.messages;

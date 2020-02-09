@@ -80,7 +80,7 @@ export default {
         return false;
       }
       const user = this.users.find(user => user.id === this.user.id);
-      return user ? user.role === roles.team.manager : false;
+      return user ? user.role.role === roles.team.manager : false;
     },
     selectedRole() {
       const role = this.dialogs.invitation.roles.find(role => role.checked);

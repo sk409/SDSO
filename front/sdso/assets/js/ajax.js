@@ -1,10 +1,13 @@
 import axios from "axios";
 
 class Ajax {
-
   makeBody(data, config) {
     let params = new URLSearchParams();
-    if (config && config.headers && config.headers["content-type"] == "multipart/form-data") {
+    if (
+      config &&
+      config.headers &&
+      config.headers["content-type"] == "multipart/form-data"
+    ) {
       params = new FormData();
     }
     for (const key in data) {
@@ -14,7 +17,7 @@ class Ajax {
   }
 
   get(url, data, config) {
-    url += "?"
+    url += "?";
     for (let key in data) {
       const value = data[key];
       if (Array.isArray(value)) {
@@ -22,13 +25,13 @@ class Ajax {
           key += "[]";
         }
         for (const item of value) {
-          url += `${key}=${item}&`
+          url += `${key}=${item}&`;
         }
       } else {
-        url += `${key}=${value}&`
+        url += `${key}=${value}&`;
       }
     }
-    return axios.get(url, config)
+    return axios.get(url, config);
   }
 
   post(url, data, config) {

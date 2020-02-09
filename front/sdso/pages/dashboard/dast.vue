@@ -26,9 +26,7 @@
           <v-subheader>このコミットの脆弱性</v-subheader>
           <v-divider></v-divider>
           <v-card class="mb-4">
-            <DastVulnerabilitiesTable
-              :vulnerabilities="current"
-            ></DastVulnerabilitiesTable>
+            <DastVulnerabilitiesTable :vulnerabilities="current"></DastVulnerabilitiesTable>
           </v-card>
         </v-col>
       </v-row>
@@ -38,9 +36,7 @@
           <v-subheader>このコミット以前の脆弱性</v-subheader>
           <v-divider></v-divider>
           <v-card class="mb-4">
-            <DastVulnerabilitiesTable
-              :vulnerabilities="previous"
-            ></DastVulnerabilitiesTable>
+            <DastVulnerabilitiesTable :vulnerabilities="previous"></DastVulnerabilitiesTable>
           </v-card>
         </v-col>
       </v-row>
@@ -97,9 +93,18 @@ export default {
       );
     },
     previous() {
-      const current = this.current;
-      return this.vulnerabilities.filter(vulnerability =>
-        current.find(v => vulnerability.id !== v.id)
+      const revision = this.$store.state.git.revision;
+      if (!revision) {
+        return [];
+      }
+      const scan = this.scans.find(scan =>
+        scan.commitSha1.startsWith(revision)
+      );
+      if (!scan) {
+        return [];
+      }
+      return this.vulnerabilities.filter(
+        vulnerability => vulnerability.scanId !== scan.id
       );
     },
     vulnerabilities() {

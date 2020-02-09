@@ -104,6 +104,7 @@ export default {
           ajax.post(url.base, data);
         }
         this.meetingname = "";
+        meeting.users = this.inviteeUsers;
         this.$emit("created", meeting);
         this.creating = false;
         this.inviteeUsers = [];

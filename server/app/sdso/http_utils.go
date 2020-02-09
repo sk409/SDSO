@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 
@@ -31,8 +32,8 @@ func authenticatedUser(r *http.Request) (*user, error) {
 		return nil, err
 	}
 	u := user{}
-	db.Where("id = ?", userID).First(&u)
-	if db.Error != nil {
+	gormDB.Where("id = ?", userID).First(&u)
+	if gormDB.Error != nil {
 		return nil, err
 	}
 	return &u, nil
@@ -44,8 +45,8 @@ func destroy(r *http.Request, model interface{}) error {
 		s := string(gocase.SnakeCase([]byte(key)))
 		query[s] = value[0]
 	}
-	db.Delete(model, query)
-	return db.Error
+	gormDB.Delete(model, query)
+	return gormDB.Error
 }
 
 func fetch(r *http.Request, model interface{}) error {
@@ -54,17 +55,21 @@ func fetch(r *http.Request, model interface{}) error {
 		s := string(gocase.SnakeCase([]byte(key)))
 		query[s] = value[0]
 	}
-	db.Where(query).Find(model)
-	return db.Error
+	gormDB.Where(query).Find(model)
+	return gormDB.Error
 }
 
 func login(w http.ResponseWriter, username, password string) (*user, error) {
-	u := user{}
-	db.Where("name = ?", username).First(&u)
-	if db.Error != nil {
-		return nil, db.Error
+	// u := userModel{}
+	// gormDB.Where("name = ?", username).First(&u)
+	// if gormDB.Error != nil {
+	// 	return nil, gormDB.Error
+	// }
+	u, err := userRepository.findByName(username)
+	if err != nil {
+		return nil, err
 	}
-	err := bcrypt.CompareHashAndPassword([]byte(u.Password), []byte(password))
+	err = bcrypt.CompareHashAndPassword([]byte(u.Password), []byte(password))
 	if err != nil {
 		return nil, err
 	}
@@ -75,7 +80,26 @@ func login(w http.ResponseWriter, username, password string) (*user, error) {
 	session.Store(sessionStoreNameUserID, u.ID)
 	sessionCookie := newCookie(cookieNameSessionID, session.ID(), cookie30Days)
 	http.SetCookie(w, sessionCookie)
-	return &u, nil
+	return u, nil
+}
+
+func makeQuery(r *http.Request, snake bool) map[string]interface{} {
+	m := make(map[string]interface{})
+	values := url.Values{}
+	if r.Method == http.MethodGet {
+		values = r.URL.Query()
+	} else {
+		r.ParseForm()
+		values = r.PostForm
+	}
+	for key, value := range values {
+		k := key
+		if snake {
+			k = string(gocase.SnakeCase([]byte(key)))
+		}
+		m[k] = value[0]
+	}
+	return m
 }
 
 func respond(w http.ResponseWriter, statusCode int) {
@@ -94,6 +118,17 @@ func respondJSON(w http.ResponseWriter, statusCode int, model interface{}) ([]by
 		return nil, err
 	}
 	jsonBytes, err := json.Marshal(data)
+	if err != nil {
+		return nil, err
+	}
+	w.Header().Set(goconst.HTTP_HEADER_CONTENT_TYPE, goconst.HTTP_HEADER_CONTENT_TYPE_JSON)
+	w.Write(jsonBytes)
+	return jsonBytes, nil
+	//respond(w, statusCode)
+}
+
+func respondJSON2(w http.ResponseWriter, statusCode int, model interface{}) ([]byte, error) {
+	jsonBytes, err := json.Marshal(model)
 	if err != nil {
 		return nil, err
 	}
@@ -133,29 +168,9 @@ func store(r *http.Request, model interface{}) error {
 		query[key] = value[0]
 	}
 	return save(query, model)
-	// rv := reflect.ValueOf(model).Elem()
-	// for key, value := range r.PostForm {
-	// 	fieldName := string(gocase.UpperCamelCase([]byte(key), true))
-	// 	fv := rv.FieldByName(fieldName)
-	// 	ft := fv.Type()
-	// 	if ft.Kind() == reflect.String {
-	// 		fv.SetString(value[0])
-	// 	} else if ft.Kind() == reflect.Uint {
-	// 		u, err := strconv.ParseUint(value[0], 10, 64)
-	// 		if err != nil {
-	// 			return errBadRequest
-	// 		}
-	// 		fv.SetUint(u)
-	// 	}
-	// }
-	// db.Save(model)
-	// if db.Error != nil {
-	// 	return db.Error
-	// }
-	// return nil
 }
 
-func websock(w http.ResponseWriter, r *http.Request, sockets *map[uint]*websocket.Conn) error {
+func putWebsocket(w http.ResponseWriter, r *http.Request, sockets *map[uint]*websocket.Conn) error {
 	userID := r.URL.Query().Get("userId")
 	if emptyAny(userID) {
 		return errBadRequest

@@ -9,9 +9,11 @@ const (
 
 func newCookie(name, value string, maxAge int) *http.Cookie {
 	return &http.Cookie{
-		Name:   name,
-		Value:  value,
-		MaxAge: cookie30Days,
-		Path:   "/",
+		Name:     name,
+		Value:    value,
+		MaxAge:   cookie30Days,
+		Path:     "/",
+		SameSite: http.SameSiteLaxMode,
+		HttpOnly: true,
 	}
 }
