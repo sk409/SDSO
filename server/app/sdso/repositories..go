@@ -20,9 +20,11 @@ var (
 	teamUserInvitationRequestRepository        teamUserInvitationRequestRepositoryInterface
 	teamUserRoleRepository                     teamUserRoleRepositoryInterface
 	testRepository                             testRepositoryInterface
+	testMessageRepository                      testMessageRepositoryInterface
 	testResultRepository                       testResultRepositoryInterface
 	testStatusRepository                       testStatusRepositoryInterface
 	userRepository                             userRepositoryInterface
+	vulnerabilityRepository                    vulnerabilityRepositoryInterface
 )
 
 const (
@@ -49,9 +51,11 @@ func init() {
 		teamUserInvitationRequestProjectRepository = &teamUserInvitationRequestProjectRepositoryGORM{}
 		teamUserRoleRepository = &teamUserRoleRepositoryGORM{}
 		testRepository = &testRepositoryGORM{}
+		testMessageRepository = &testMessageRepositoryGORM{}
 		testResultRepository = &testResultRepositoryGORM{}
 		testStatusRepository = &testStatusRepositoryGORM{}
 		userRepository = &userRepositoryGORM{}
+		vulnerabilityRepository = &vulnerabilityRepositoryGORM{}
 	}
 }
 
@@ -743,6 +747,45 @@ func (t *testRepositoryGORM) save(query map[string]interface{}) (*test, error) {
 	return &test, nil
 }
 
+type testMessageRepositoryInterface interface {
+	find(map[string]interface{}, ...string) ([]testMessage, error)
+	findByID(uint, ...string) (*testMessage, error)
+	save(map[string]interface{}) (*testMessage, error)
+}
+
+type testMessageRepositoryGORM struct {
+}
+
+func (t *testMessageRepositoryGORM) find(query map[string]interface{}, preloads ...string) ([]testMessage, error) {
+	testMessages := []testMessage{}
+	db := gormDB.Where(query)
+	db = eagerLoadingGORM(db, testMessageAllRelation, preloads...)
+	err := db.Find(&testMessages).Error
+	if err != nil {
+		return nil, err
+	}
+	return testMessages, nil
+}
+
+func (t *testMessageRepositoryGORM) findByID(id uint, preloads ...string) (*testMessage, error) {
+	testMessage := testMessage{ID: id}
+	db := eagerLoadingGORM(gormDB, testMessageAllRelation, preloads...)
+	err := db.First(&testMessage).Error
+	if err != nil {
+		return nil, err
+	}
+	return &testMessage, nil
+}
+
+func (t *testMessageRepositoryGORM) save(query map[string]interface{}) (*testMessage, error) {
+	testMessage := testMessage{}
+	err := save(query, &testMessage)
+	if err != nil {
+		return nil, err
+	}
+	return &testMessage, nil
+}
+
 type testResultRepositoryInterface interface {
 	find(map[string]interface{}, ...string) ([]testResult, error)
 	findByID(uint, ...string) (*testResult, error)
@@ -819,11 +862,41 @@ func (t *testStatusRepositoryGORM) save(query map[string]interface{}) (*testStat
 }
 
 type userRepositoryInterface interface {
-	findByName(name string) (*user, error)
+	find(map[string]interface{}) ([]user, error)
+	findByID(uint) (*user, error)
+	findByIDs([]uint) ([]user, error)
+	findByName(string) (*user, error)
 	saveWith(name, password, profileImagePath string) (*user, error)
 }
 
 type userRepositoryGORM struct {
+}
+
+func (u *userRepositoryGORM) find(query map[string]interface{}) ([]user, error) {
+	users := []user{}
+	err := gormDB.Where(query).Find(&users).Error
+	if err != nil {
+		return nil, err
+	}
+	return users, nil
+}
+
+func (u *userRepositoryGORM) findByID(id uint) (*user, error) {
+	user := user{ID: id}
+	err := gormDB.First(&user).Error
+	if err != nil {
+		return nil, err
+	}
+	return &user, nil
+}
+
+func (u *userRepositoryGORM) findByIDs(ids []uint) ([]user, error) {
+	users := []user{}
+	err := gormDB.Where(ids).Find(&users).Error
+	if err != nil {
+		return nil, err
+	}
+	return users, nil
 }
 
 func (u *userRepositoryGORM) findByName(name string) (*user, error) {
@@ -842,4 +915,43 @@ func (u *userRepositoryGORM) saveWith(name, password, profileImagePath string) (
 		return nil, err
 	}
 	return &user, nil
+}
+
+type vulnerabilityRepositoryInterface interface {
+	find(map[string]interface{}, ...string) ([]vulnerability, error)
+	findByID(uint, ...string) (*vulnerability, error)
+	save(map[string]interface{}) (*vulnerability, error)
+}
+
+type vulnerabilityRepositoryGORM struct {
+}
+
+func (v *vulnerabilityRepositoryGORM) find(query map[string]interface{}, preloads ...string) ([]vulnerability, error) {
+	vulnerabilities := []vulnerability{}
+	db := gormDB.Where(query)
+	db = eagerLoadingGORM(db, vulnerabilityAllRelation, preloads...)
+	err := db.Find(&vulnerabilities).Error
+	if err != nil {
+		return nil, err
+	}
+	return vulnerabilities, nil
+}
+
+func (v *vulnerabilityRepositoryGORM) findByID(id uint, preloads ...string) (*vulnerability, error) {
+	vulnerability := vulnerability{ID: id}
+	db := eagerLoadingGORM(gormDB, vulnerabilityAllRelation, preloads...)
+	err := db.First(&vulnerability).Error
+	if err != nil {
+		return nil, err
+	}
+	return &vulnerability, nil
+}
+
+func (v *vulnerabilityRepositoryGORM) save(query map[string]interface{}) (*vulnerability, error) {
+	vulnerability := vulnerability{}
+	err := save(query, &vulnerability)
+	if err != nil {
+		return nil, err
+	}
+	return &vulnerability, nil
 }

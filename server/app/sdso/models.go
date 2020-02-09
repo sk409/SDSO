@@ -18,7 +18,9 @@ var (
 	teamUserInvitationRequestProjectAllRelation = []string{"TeamUserInvitationRequest", "Project"}
 	teamUserInvitationRequestAllRelation        = []string{"InviterUser", "InviteeUser", "Projects", "Role", "Team"}
 	testAllRelation                             = []string{"Project", "Results", "Results.Status"}
+	testMessageAllRelation                      = []string{"Test", "User", "Parent"}
 	testResultAllRelation                       = []string{"Test", "Status"}
+	vulnerabilityAllRelation                    = []string{"Project", "Scan"}
 )
 
 var (
@@ -68,32 +70,6 @@ type meetingMessage struct {
 	Meeting   meeting         `json:"meeting"`
 	Parent    *meetingMessage `json:"parent"`
 	User      user            `json:"user"`
-}
-
-func (m meetingMessage) public() interface{} {
-	i, err := convert(m)
-	if err != nil {
-		return m
-	}
-	ma, ok := i.(map[string]interface{})
-	if !ok {
-		return m
-	}
-	u := user{}
-	err = first(map[string]interface{}{"id": m.UserID}, &u)
-	if err != nil {
-		return m
-	}
-	ma["user"] = u
-	if m.ParentID != nil {
-		parent := meetingMessage{}
-		err = first(map[string]interface{}{"id": *m.ParentID}, &parent)
-		if err != nil {
-			return m
-		}
-		ma["parent"] = parent
-	}
-	return ma
 }
 
 type meetingUser struct {
@@ -148,30 +124,6 @@ type scan struct {
 	User            user            `json:"user"`
 	Vulnerabilities []vulnerability `json:"vulnerability"`
 }
-
-// func (s scan) public() interface{} {
-// 	i, err := convert(s)
-// 	if err != nil {
-// 		return s
-// 	}
-// 	m := i.(map[string]interface{})
-// 	vulnerabilities := []vulnerability{}
-// 	err = find(map[string]interface{}{"scanID": s.ID}, &vulnerabilities)
-// 	if err != nil {
-// 		m["vulnerabilities"] = []vulnerability{}
-// 		return m
-// 	}
-// 	vp := make([]interface{}, len(vulnerabilities))
-// 	for index, v := range vulnerabilities {
-// 		p, err := public(v)
-// 		if err != nil {
-// 			continue
-// 		}
-// 		vp[index] = p
-// 	}
-// 	m["vulnerabilities"] = vp
-// 	return m
-// }
 
 type team struct {
 	ID        uint      `gorm:"primary_key" json:"id"`
@@ -237,90 +189,18 @@ type test struct {
 	Results    []testResult `json:"results"`
 }
 
-// func (t test) public() interface{} {
-// 	i, err := convert(t)
-// 	if err != nil {
-// 		return t
-// 	}
-// 	m := i.(map[string]interface{})
-// 	testResults := []testResult{}
-// 	err = find(map[string]interface{}{"testID": t.ID}, &testResults)
-// 	if err != nil {
-// 		return t
-// 	}
-// 	statusText := testStatusSuccessText
-// 	if t.Steps != len(testResults) {
-// 		statusText = testStatusRunningText
-// 	}
-// 	for _, testResult := range testResults {
-// 		testStatus := testStatus{}
-// 		err = first(map[string]interface{}{"id": testResult.TestStatusID}, &testStatus)
-// 		if err != nil {
-// 			break
-// 		}
-// 		if testStatus.Text == testStatusFailedText {
-// 			statusText = testStatusFailedText
-// 		}
-// 	}
-// 	rp := make([]interface{}, len(testResults))
-// 	for index, testResult := range testResults {
-// 		if statusText == testStatusSuccessText {
-// 			status := testStatus{}
-// 			err = first(map[string]interface{}{"id": testResult.TestStatusID}, &status)
-// 			if err != nil {
-// 				continue
-// 			}
-// 			statusText = status.Text
-// 		}
-// 		rp[index] = testResult.public()
-// 	}
-// 	m["color"] = testStatusColors[statusText]
-// 	m["results"] = rp
-// 	m["status"] = statusText
-// 	return m
-// }
-
 type testMessage struct {
-	ID        uint `gorm:"primary_key"`
-	CreatedAt time.Time
-	UpdatedAt time.Time
-	Text      string `gorm:"type:text"`
-	TestID    uint   `gorm:"not null"`
-	UserID    uint   `gorm:"not null"`
-	ParentID  *uint
+	ID        uint         `gorm:"primary_key" json:"id"`
+	Text      string       `gorm:"type:text" json:"text"`
+	TestID    uint         `gorm:"not null" json:"testId"`
+	UserID    uint         `gorm:"not null" json:"userId"`
+	ParentID  *uint        `json:"parentId"`
+	CreatedAt time.Time    `json:"createdAt"`
+	UpdatedAt time.Time    `json:"updatedAt"`
+	Test      test         `json:"test"`
+	User      user         `json:"user"`
+	Parent    *testMessage `json:"parent"`
 }
-
-// func (t testMessage) public() interface{} {
-// 	i, err := convert(t)
-// 	if err != nil {
-// 		return t
-// 	}
-// 	m, ok := i.(map[string]interface{})
-// 	if !ok {
-// 		return t
-// 	}
-// 	test := test{}
-// 	err = first(map[string]interface{}{"id": t.TestID}, &test)
-// 	if err != nil {
-// 		return t
-// 	}
-// 	m["test"] = test
-// 	u := user{}
-// 	err = first(map[string]interface{}{"id": t.UserID}, &u)
-// 	if err != nil {
-// 		return t
-// 	}
-// 	m["user"] = u
-// 	if t.ParentID != nil {
-// 		p := testMessage{}
-// 		err = first(map[string]interface{}{"id": *t.ParentID}, &p)
-// 		if err != nil {
-// 			return t
-// 		}
-// 		m["parent"] = p
-// 	}
-// 	return m
-// }
 
 type testStatus struct {
 	ID        uint      `gorm:"primary_key" json:"id"`
@@ -342,22 +222,6 @@ type testResult struct {
 	Status      testStatus `json:"status"`
 }
 
-// func (t testResult) public() interface{} {
-// 	i, err := convert(t)
-// 	if err != nil {
-// 		return t
-// 	}
-// 	m := i.(map[string]interface{})
-// 	ts := testStatus{}
-// 	err = first(map[string]interface{}{"id": t.TestStatusID}, &ts)
-// 	if err != nil {
-// 		return t
-// 	}
-// 	m["color"] = testStatusColors[ts.Text]
-// 	m["status"] = ts.Text
-// 	return m
-// }
-
 type user struct {
 	ID               uint      `gorm:"primary_key" json:"id"`
 	CreatedAt        time.Time `json:"createdAt"`
@@ -369,8 +233,6 @@ type user struct {
 
 type vulnerability struct {
 	ID          uint      `gorm:"primary_key" json:"id"`
-	CreatedAt   time.Time `json:"createdAt"`
-	UpdatedAt   time.Time `json:"updatedAt"`
 	Name        string    `gorm:"type:varchar(32);not null" json:"name"`
 	Description string    `gorm:"type:varchar(128);not null" json:"description"`
 	Path        string    `gorm:"type:varchar(256);not null" json:"path"`
@@ -379,4 +241,8 @@ type vulnerability struct {
 	Response    string    `gorm:"type:text;not null" json:"response"`
 	ProjectID   uint      `gorm:"not null" json:"projectId"`
 	ScanID      uint      `gorm:"not null" json:"scanId"`
+	CreatedAt   time.Time `json:"createdAt"`
+	UpdatedAt   time.Time `json:"updatedAt"`
+	Project     project   `json:"project"`
+	Scan        scan      `json:"scan"`
 }
