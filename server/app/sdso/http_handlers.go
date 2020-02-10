@@ -1663,7 +1663,6 @@ func (u *usersHandler) ids(w http.ResponseWriter, r *http.Request) {
 type vulnerabilitiesHandler struct {
 }
 
-//
 func (v *vulnerabilitiesHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
@@ -1677,8 +1676,7 @@ func (v *vulnerabilitiesHandler) ServeHTTP(w http.ResponseWriter, r *http.Reques
 }
 
 func (v *vulnerabilitiesHandler) fetch(w http.ResponseWriter, r *http.Request) {
-	vulnerabilities := []vulnerability{}
-	err := fetch(r, &vulnerabilities)
+	vulnerabilities, err := vulnerabilityRepository.find(makeQuery(r, true), loadAllRelation)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
 		return
@@ -1714,7 +1712,7 @@ func (v *vulnerabilitiesHandler) store(w http.ResponseWriter, r *http.Request) {
 		respondError(w, http.StatusInternalServerError, err)
 		return
 	}
-	query := map[string]interface{}{"name": name, "description": description, "path": path, "method": method, "request": request, "response": response, "project_id": p.ID, "scan_id": scanID}
+	query := map[string]interface{}{"Name": name, "Description": description, "Path": path, "Method": method, "Request": request, "Response": response, "ProjectID": p.ID, "ScanID": scanID}
 	vulnerability, err := vulnerabilityRepository.save(query)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
