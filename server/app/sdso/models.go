@@ -35,7 +35,7 @@ var (
 	projectRelationTeamUsers                   = "Team.Users"
 	projectRelationUsers                       = "Users"
 	teamRelationInvitationRequests             = "InvitationRequests"
-	teamRelationInvitationRequestsUser         = "InvitationRequests.User"
+	teamRelationInvitationRequestsInviteeUser  = "InvitationRequests.InviteeUser"
 	teamRelationUsers                          = "Users"
 	teamUserInvitationRequestRelationTeam      = "Team"
 	teamUserInvitationRequestRelationTeamUsers = "Team.Users"

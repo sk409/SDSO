@@ -126,20 +126,13 @@ func (b *branchProtectionRulesHandler) store(w http.ResponseWriter, r *http.Requ
 		respond(w, http.StatusBadRequest)
 		return
 	}
-	user, err := authenticatedUser(r)
+	p, err := projectRepository.first(map[string]interface{}{"id": projectID}, projectRelationUsers)
+	ok, err := checkPermission(r, p.Users)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
 		return
 	}
-	p, err := projectRepository.first(map[string]interface{}{"id": projectID}, projectRelationUsers)
-	forbidden := true
-	for _, u := range p.Users {
-		if user.ID == u.ID {
-			forbidden = false
-			break
-		}
-	}
-	if forbidden {
+	if !ok {
 		respond(w, http.StatusForbidden)
 		return
 	}
@@ -298,24 +291,17 @@ func (d *dastVulnerabilityMessagesHandler) store(w http.ResponseWriter, r *http.
 		respond(w, http.StatusBadRequest)
 		return
 	}
-	user, err := authenticatedUser(r)
-	if err != nil {
-		respondError(w, http.StatusInternalServerError, err)
-		return
-	}
 	v, err := vulnerabilityRepository.first(map[string]interface{}{"id": vulnerabilityID}, vulnerabilityRelationProject, vulnerabilityRelationProjectUsers)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
 		return
 	}
-	forbidden := true
-	for _, u := range v.Project.Users {
-		if user.ID == u.ID {
-			forbidden = false
-			break
-		}
+	ok, err := checkPermission(r, v.Project.Users)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
 	}
-	if forbidden {
+	if !ok {
 		respond(w, http.StatusForbidden)
 		return
 	}
@@ -691,24 +677,17 @@ func (m *meetingsHandler) store(w http.ResponseWriter, r *http.Request) {
 		respond(w, http.StatusBadRequest)
 		return
 	}
-	u, err := authenticatedUser(r)
-	if err != nil {
-		respondError(w, http.StatusInternalServerError, err)
-		return
-	}
 	p, err := projectRepository.first(map[string]interface{}{"id": projectID}, projectRelationUsers)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
 		return
 	}
-	forbidden := true
-	for _, user := range p.Users {
-		if u.ID == user.ID {
-			forbidden = false
-			break
-		}
+	ok, err := checkPermission(r, p.Users)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
 	}
-	if forbidden {
+	if !ok {
 		respond(w, http.StatusForbidden)
 		return
 	}
@@ -779,19 +758,12 @@ func (m *meetingMessagesHandler) store(w http.ResponseWriter, r *http.Request) {
 		respondError(w, http.StatusInternalServerError, err)
 		return
 	}
-	u, err := authenticatedUser(r)
+	ok, err := checkPermission(r, meeting.Project.Users)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
 		return
 	}
-	forbidden := true
-	for _, user := range meeting.Project.Users {
-		if u.ID == user.ID {
-			forbidden = false
-			break
-		}
-	}
-	if forbidden {
+	if !ok {
 		respond(w, http.StatusForbidden)
 		return
 	}
@@ -861,19 +833,12 @@ func (m *meetingUsersHandler) store(w http.ResponseWriter, r *http.Request) {
 		respondError(w, http.StatusInternalServerError, err)
 		return
 	}
-	u, err := authenticatedUser(r)
+	ok, err := checkPermission(r, meeting.Project.Users)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
 		return
 	}
-	forbidden := true
-	for _, user := range meeting.Project.Users {
-		if u.ID == user.ID {
-			forbidden = false
-			break
-		}
-	}
-	if forbidden {
+	if !ok {
 		respond(w, http.StatusForbidden)
 		return
 	}
@@ -963,19 +928,12 @@ func (p *projectsHandler) store(w http.ResponseWriter, r *http.Request) {
 		respondError(w, http.StatusInternalServerError, err)
 		return
 	}
-	u, err := authenticatedUser(r)
+	ok, err := checkPermission(r, t.Users)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
 		return
 	}
-	forbidden := true
-	for _, user := range t.Users {
-		if u.ID == user.ID {
-			forbidden = false
-			break
-		}
-	}
-	if forbidden {
+	if !ok {
 		respond(w, http.StatusForbidden)
 		return
 	}
@@ -1047,19 +1005,12 @@ func (p *projectUsersHandler) store(w http.ResponseWriter, r *http.Request) {
 		respondError(w, http.StatusInternalServerError, err)
 		return
 	}
-	u, err := authenticatedUser(r)
+	ok, err := checkPermission(r, project.Team.Users)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
 		return
 	}
-	forbidden := true
-	for _, user := range project.Team.Users {
-		if u.ID == user.ID {
-			forbidden = false
-			break
-		}
-	}
-	if forbidden {
+	if !ok {
 		respond(w, http.StatusForbidden)
 		return
 	}
@@ -1365,21 +1316,23 @@ func (t *teamUsersHandler) store(w http.ResponseWriter, r *http.Request) {
 		respond(w, http.StatusBadRequest)
 		return
 	}
-	team, err := teamRepository.first(map[string]interface{}{"id": teamID}, teamRelationInvitationRequestsUser)
+	team, err := teamRepository.first(map[string]interface{}{"id": teamID}, teamRelationInvitationRequestsInviteeUser)
 	u, err := authenticatedUser(r)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
 		return
 	}
 	if team.FounderUserID != u.ID {
-		forbidden := true
-		for _, invitationRequest := range team.InvitationRequests {
-			if u.ID == invitationRequest.InviteeUserID {
-				forbidden = false
-				break
-			}
+		users := make([]user, len(team.InvitationRequests))
+		for index, invitationRequest := range team.InvitationRequests {
+			users[index] = invitationRequest.InviteeUser
 		}
-		if forbidden {
+		ok, err := checkPermission(r, users)
+		if err != nil {
+			respondError(w, http.StatusInternalServerError, err)
+			return
+		}
+		if !ok {
 			respond(w, http.StatusForbidden)
 			return
 		}
@@ -1449,19 +1402,12 @@ func (t *teamUserInvitationRequestProjectsHandler) store(w http.ResponseWriter, 
 		respondError(w, http.StatusInternalServerError, err)
 		return
 	}
-	u, err := authenticatedUser(r)
+	ok, err := checkPermission(r, teamUserInvitationRequest.Team.Users)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
 		return
 	}
-	forbidden := true
-	for _, user := range teamUserInvitationRequest.Team.Users {
-		if u.ID == user.ID {
-			forbidden = false
-			break
-		}
-	}
-	if forbidden {
+	if !ok {
 		respond(w, http.StatusForbidden)
 		return
 	}
@@ -1537,19 +1483,12 @@ func (t *teamUserInvitationRequestsHandler) store(w http.ResponseWriter, r *http
 		respondError(w, http.StatusInternalServerError, err)
 		return
 	}
-	u, err := authenticatedUser(r)
+	ok, err := checkPermission(r, team.Users)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
 		return
 	}
-	forbidden := true
-	for _, user := range team.Users {
-		if u.ID == user.ID {
-			forbidden = false
-			break
-		}
-	}
-	if forbidden {
+	if !ok {
 		respond(w, http.StatusForbidden)
 		return
 	}
@@ -1726,19 +1665,12 @@ func (t *testMessagesHandler) store(w http.ResponseWriter, r *http.Request) {
 		respondError(w, http.StatusInternalServerError, err)
 		return
 	}
-	u, err := authenticatedUser(r)
+	ok, err := checkPermission(r, test.Project.Users)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
 		return
 	}
-	forbidden := true
-	for _, user := range test.Project.Users {
-		if u.ID == user.ID {
-			forbidden = false
-			break
-		}
-	}
-	if forbidden {
+	if !ok {
 		respond(w, http.StatusForbidden)
 		return
 	}
