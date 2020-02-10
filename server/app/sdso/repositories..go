@@ -828,6 +828,7 @@ func (t *testResultRepositoryGORM) save(query map[string]interface{}) (*testResu
 type testStatusRepositoryInterface interface {
 	find(map[string]interface{}) ([]testStatus, error)
 	findByID(uint) (*testStatus, error)
+	findByText(string) (*testStatus, error)
 	save(map[string]interface{}) (*testStatus, error)
 }
 
@@ -846,6 +847,15 @@ func (t *testStatusRepositoryGORM) find(query map[string]interface{}) ([]testSta
 func (t *testStatusRepositoryGORM) findByID(id uint) (*testStatus, error) {
 	testStatus := testStatus{ID: id}
 	err := gormDB.First(&testStatus).Error
+	if err != nil {
+		return nil, err
+	}
+	return &testStatus, nil
+}
+
+func (t *testStatusRepositoryGORM) findByText(text string) (*testStatus, error) {
+	testStatus := testStatus{}
+	err := gormDB.Where("text = ?", text).First(&testStatus).Error
 	if err != nil {
 		return nil, err
 	}

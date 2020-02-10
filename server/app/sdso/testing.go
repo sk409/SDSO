@@ -55,8 +55,7 @@ func (t *tester) config(testPath string) (*config, error) {
 }
 
 func (t *tester) execTestCommand(test test, testPath, primaryServicename, command string) error {
-	testStatusRunning := testStatus{}
-	err := first(map[string]interface{}{"text": testStatusRunningText}, &testStatusRunning)
+	testStatusRunning, err := testStatusRepository.findByText(testStatusRunningText)
 	if err != nil {
 		return err
 	}
@@ -82,8 +81,7 @@ func (t *tester) execTestCommand(test test, testPath, primaryServicename, comman
 	if failed != nil {
 		status = testStatusFailedText
 	}
-	testStatus := testStatus{}
-	err = first(map[string]interface{}{"text": status}, &testStatus)
+	testStatus, err := testStatusRepository.findByText(status)
 	if err != nil {
 		return err
 	}
@@ -147,17 +145,15 @@ func (t *tester) makeTestDirectory() (string, string, error) {
 }
 
 func (t *tester) project(teamname, projectname string) (*project, error) {
-	team := team{}
-	err := first(map[string]interface{}{"name": teamname}, &team)
+	team, err := teamRepository.findByName(teamname)
 	if err != nil {
 		return nil, err
 	}
-	p := project{}
-	err = first(map[string]interface{}{"name": projectname, "team_id": team.ID}, &p)
+	p, err := projectRepository.first(map[string]interface{}{"name": projectname, "team_id": team.ID})
 	if err != nil {
 		return nil, err
 	}
-	return &p, nil
+	return p, nil
 }
 
 func (t *tester) run(teamname, projectname, clonePath, branchname, commitSHA1 string) (bool, error) {
@@ -245,27 +241,11 @@ func (t *tester) sendTest(id uint) error {
 	if err != nil {
 		return err
 	}
-	p := project{}
-	err = first(map[string]interface{}{"id": test.ProjectID}, &p)
+	p, err := projectRepository.findByID(test.ProjectID, projectRelationTeam, projectRelationTeamUsers)
 	if err != nil {
 		return err
 	}
-	team := team{}
-	err = first(map[string]interface{}{"id": p.TeamID}, &team)
-	if err != nil {
-		return err
-	}
-	teamUsers := []teamUser{}
-	err = find(map[string]interface{}{"teamID": team.ID}, &teamUsers)
-	if err != nil {
-		return err
-	}
-	for _, teamUser := range teamUsers {
-		u := user{}
-		err = first(map[string]interface{}{"id": teamUser.UserID}, &u)
-		if err != nil {
-			continue
-		}
+	for _, u := range p.Team.Users {
 		socket, exist := testWebsockets[u.ID]
 		if !exist {
 			continue

@@ -24,7 +24,9 @@ var (
 )
 
 var (
-	meetingRelationUsers = "Users"
+	meetingRelationUsers     = "Users"
+	projectRelationTeam      = "Team"
+	projectRelationTeamUsers = "Team.Users"
 )
 
 type branchProtectionRule struct {

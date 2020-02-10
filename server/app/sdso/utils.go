@@ -76,25 +76,25 @@ func emptyAny(values ...interface{}) bool {
 	return false
 }
 
-func find(query map[string]interface{}, model interface{}) error {
-	q := map[string]interface{}{}
-	for key, value := range query {
-		s := string(gocase.SnakeCase([]byte(key)))
-		q[s] = value
-	}
-	gormDB.Where(q).Find(model)
-	return gormDB.Error
-}
+// func find(query map[string]interface{}, model interface{}) error {
+// 	q := map[string]interface{}{}
+// 	for key, value := range query {
+// 		s := string(gocase.SnakeCase([]byte(key)))
+// 		q[s] = value
+// 	}
+// 	gormDB.Where(q).Find(model)
+// 	return gormDB.Error
+// }
 
-func findByUniqueKey(uniqueKeys interface{}, model interface{}) error {
-	gormDB.Where(uniqueKeys).Find(model)
-	return gormDB.Error
-}
+// func findByUniqueKey(uniqueKeys interface{}, model interface{}) error {
+// 	gormDB.Where(uniqueKeys).Find(model)
+// 	return gormDB.Error
+// }
 
-func first(query map[string]interface{}, model interface{}) error {
-	gormDB.Where(query).First(model)
-	return gormDB.Error
-}
+// func first(query map[string]interface{}, model interface{}) error {
+// 	gormDB.Where(query).First(model)
+// 	return gormDB.Error
+// }
 
 func getBranchNameAndCommitSHA1(r *http.Request) (string, string, error) {
 	var body io.ReadCloser

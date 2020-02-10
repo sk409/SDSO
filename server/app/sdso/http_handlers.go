@@ -427,8 +427,7 @@ func (g *gitHandler) refs(w http.ResponseWriter, r *http.Request) {
 }
 
 func (g *gitHandler) receivePack(w http.ResponseWriter, r *http.Request, teamname, projectname string) {
-	t := team{}
-	err := first(map[string]interface{}{"name": teamname}, &t)
+	t, err := teamRepository.findByName(teamname)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
 		return
@@ -437,8 +436,7 @@ func (g *gitHandler) receivePack(w http.ResponseWriter, r *http.Request, teamnam
 		respondError(w, http.StatusInternalServerError, errBadRequest)
 		return
 	}
-	p := project{}
-	err = first(map[string]interface{}{"name": projectname, "team_id": t.ID}, &p)
+	p, err := projectRepository.first(map[string]interface{}{"name": projectname, "team_id": t.ID})
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
 		return
@@ -660,7 +658,6 @@ func (m *meetingsHandler) store(w http.ResponseWriter, r *http.Request) {
 type meetingMessagesHandler struct {
 }
 
-//
 func (m *meetingMessagesHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	base := "/meeting_messages/"
 	switch r.Method {
