@@ -12,14 +12,18 @@ var (
 	meetingUserAllRelation                      = []string{"Meeting", "User"}
 	projectAllRelation                          = []string{"Team", "Users"}
 	projectUserAllRelation                      = []string{"Project", "User", "Role"}
+	projectUserRoleAllRelation                  = []string{}
 	scanAllRelation                             = []string{"Project", "User", "Vulnerabilities", "Vulnerabilities.Scan"}
 	teamAllRelation                             = []string{"Projects", "InvitationRequests", "Users"}
 	teamUserAllRelation                         = []string{"Team", "User", "Role"}
 	teamUserInvitationRequestProjectAllRelation = []string{"TeamUserInvitationRequest", "Project"}
 	teamUserInvitationRequestAllRelation        = []string{"InviterUser", "InviteeUser", "Projects", "Role", "Team"}
+	teamUserRoleAllRelation                     = []string{}
 	testAllRelation                             = []string{"Project", "Results", "Results.Status"}
 	testMessageAllRelation                      = []string{"Test", "User", "Parent"}
 	testResultAllRelation                       = []string{"Test", "Status"}
+	testStatusAllRelation                       = []string{}
+	userAllRelation                             = []string{}
 	vulnerabilityAllRelation                    = []string{"Project", "Scan"}
 )
 

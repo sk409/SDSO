@@ -77,6 +77,10 @@ func initGORM() {
 	})
 }
 
+func deleteGORM(query interface{}, model interface{}) error {
+	return gormDB.Delete(model, query).Error
+}
+
 func eagerLoadingGORM(db *gorm.DB, allRelation []string, preloads ...string) *gorm.DB {
 	if len(preloads) == 1 && preloads[0] == loadAllRelation {
 		preloads = allRelation
@@ -87,16 +91,27 @@ func eagerLoadingGORM(db *gorm.DB, allRelation []string, preloads ...string) *go
 	return db
 }
 
-func findByIDGORM(model interface{}, allRelation []string, preloads ...string) error {
-	db := eagerLoadingGORM(gormDB, allRelation, preloads...)
-	err := db.First(&model).Error
+func findGORM(query interface{}, model interface{}, allRelation []string, preloads ...string) error {
+	db := gormDB.Where(query)
+	db = eagerLoadingGORM(db, allRelation, preloads...)
+	err := db.Find(model).Error
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func firstGORM(query map[string]interface{}, model interface{}, allRelation []string, preloads ...string) error {
+func findOrderGORM(query interface{}, order string, model interface{}, allRelation []string, preloads ...string) error {
+	db := gormDB.Where(query)
+	db = eagerLoadingGORM(db, allRelation, preloads...)
+	err := db.Order(order).Find(model).Error
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func firstGORM(query interface{}, model interface{}, allRelation []string, preloads ...string) error {
 	db := gormDB.Where(query)
 	db = eagerLoadingGORM(db, allRelation, preloads...)
 	return db.First(model).Error
