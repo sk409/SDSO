@@ -27,26 +27,17 @@ func (router *router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (router *router) allowCredentials(methods ...string) {
+func (router *router) allowCredentials() {
 	router.middlewares = append(router.middlewares, func(w http.ResponseWriter, r *http.Request) bool {
-		for _, method := range methods {
-			if r.Method == method {
-				w.Header().Set(goconst.HTTP_HEADER_ACCESS_CONTROL_ALLOW_CREDENTIALS, "true")
-				break
-			}
-		}
+		w.Header().Set(goconst.HTTP_HEADER_ACCESS_CONTROL_ALLOW_CREDENTIALS, "true")
 		return true
 	})
 }
 
-func (router *router) allowHeaders(methodHeaders map[string][]string) {
+func (router *router) allowHeaders(headers ...string) {
 	router.middlewares = append(router.middlewares, func(w http.ResponseWriter, r *http.Request) bool {
-		for method, headers := range methodHeaders {
-			if r.Method == method {
-				v := strings.Join(headers, ",")
-				w.Header().Set(goconst.HTTP_HEADER_ACCESS_CONTROL_ALLOW_HEADERS, v)
-			}
-		}
+		v := strings.Join(headers, ",")
+		w.Header().Set(goconst.HTTP_HEADER_ACCESS_CONTROL_ALLOW_HEADERS, v)
 		return true
 	})
 }

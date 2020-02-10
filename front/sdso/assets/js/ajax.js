@@ -35,6 +35,10 @@ class Ajax {
   }
 
   post(url, data, config) {
+    if (!config) {
+      config = {}
+    }
+    config.withCredentials = true;
     return axios.post(url, this.makeBody(data, config), config);
   }
 

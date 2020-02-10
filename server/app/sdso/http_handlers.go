@@ -121,6 +121,28 @@ func (b *branchProtectionRulesHandler) fetch(w http.ResponseWriter, r *http.Requ
 }
 
 func (b *branchProtectionRulesHandler) store(w http.ResponseWriter, r *http.Request) {
+	projectID := r.PostFormValue("projectId")
+	if emptyAny(projectID) {
+		respond(w, http.StatusBadRequest)
+		return
+	}
+	user, err := authenticatedUser(r)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
+	p, err := projectRepository.first(map[string]interface{}{"id": projectID}, projectRelationUsers)
+	forbidden := true
+	for _, u := range p.Users {
+		if user.ID == u.ID {
+			forbidden = false
+			break
+		}
+	}
+	if forbidden {
+		respond(w, http.StatusForbidden)
+		return
+	}
 	branchProtectionRule, err := branchProtectionRuleRepository.save(makeQuery(r, false))
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
@@ -270,6 +292,33 @@ func (d *dastVulnerabilityMessagesHandler) socket(w http.ResponseWriter, r *http
 }
 
 func (d *dastVulnerabilityMessagesHandler) store(w http.ResponseWriter, r *http.Request) {
+	userID := r.PostFormValue("userId")
+	vulnerabilityID := r.PostFormValue("vulnerabilityId")
+	if emptyAny(userID, vulnerabilityID) {
+		respond(w, http.StatusBadRequest)
+		return
+	}
+	user, err := authenticatedUser(r)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
+	v, err := vulnerabilityRepository.first(map[string]interface{}{"id": vulnerabilityID}, vulnerabilityRelationProject, vulnerabilityRelationProjectUsers)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
+	forbidden := true
+	for _, u := range v.Project.Users {
+		if user.ID == u.ID {
+			forbidden = false
+			break
+		}
+	}
+	if forbidden {
+		respond(w, http.StatusForbidden)
+		return
+	}
 	dastVulnerabilityMessage, err := dastVulnerabilityMessageRepository.save(makeQuery(r, false))
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
@@ -400,20 +449,20 @@ func (g *gitHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		respond(w, http.StatusNotFound)
 		return
 	}
-	userName := components[1]
+	teamname := components[1]
 	projectName := components[2]
 	switch r.Method {
 	case http.MethodGet:
-		if r.URL.Path == "/"+path.Join(userName, projectName, "info", "refs") {
+		if r.URL.Path == "/"+path.Join(teamname, projectName, "info", "refs") {
 			g.refs(w, r)
 			return
 		}
 	case http.MethodPost:
 		switch r.URL.Path {
-		case "/" + path.Join(userName, projectName, "git-receive-pack"):
-			g.receivePack(w, r, userName, projectName)
+		case "/" + path.Join(teamname, projectName, "git-receive-pack"):
+			g.receivePack(w, r, teamname, projectName)
 			return
-		case "/" + path.Join(userName, projectName, "git-upload-pack"):
+		case "/" + path.Join(teamname, projectName, "git-upload-pack"):
 			g.uploadPack(w, r)
 			return
 		}
@@ -637,6 +686,32 @@ func (m *meetingsHandler) ids(w http.ResponseWriter, r *http.Request) {
 }
 
 func (m *meetingsHandler) store(w http.ResponseWriter, r *http.Request) {
+	projectID := r.PostFormValue("projectId")
+	if emptyAny(projectID) {
+		respond(w, http.StatusBadRequest)
+		return
+	}
+	u, err := authenticatedUser(r)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
+	p, err := projectRepository.first(map[string]interface{}{"id": projectID}, projectRelationUsers)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
+	forbidden := true
+	for _, user := range p.Users {
+		if u.ID == user.ID {
+			forbidden = false
+			break
+		}
+	}
+	if forbidden {
+		respond(w, http.StatusForbidden)
+		return
+	}
 	meeting, err := meetingRepository.save(makeQuery(r, false))
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
@@ -694,12 +769,33 @@ func (m *meetingMessagesHandler) socket(w http.ResponseWriter, r *http.Request) 
 }
 
 func (m *meetingMessagesHandler) store(w http.ResponseWriter, r *http.Request) {
-	meetingMessage, err := meetingMessageRepository.save(makeQuery(r, false))
+	meetingID := r.PostFormValue("meetingId")
+	if emptyAny(meetingID) {
+		respond(w, http.StatusBadRequest)
+		return
+	}
+	meeting, err := meetingRepository.first(map[string]interface{}{"id": meetingID}, meetingRelationProjectUsers, meetingRelationUsers)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
 		return
 	}
-	meeting, err := meetingRepository.findByID(meetingMessage.MeetingID, meetingRelationUsers)
+	u, err := authenticatedUser(r)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
+	forbidden := true
+	for _, user := range meeting.Project.Users {
+		if u.ID == user.ID {
+			forbidden = false
+			break
+		}
+	}
+	if forbidden {
+		respond(w, http.StatusForbidden)
+		return
+	}
+	meetingMessage, err := meetingMessageRepository.save(makeQuery(r, false))
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
 		return
@@ -755,6 +851,32 @@ func (m *meetingUsersHandler) fetch(w http.ResponseWriter, r *http.Request) {
 }
 
 func (m *meetingUsersHandler) store(w http.ResponseWriter, r *http.Request) {
+	meetingID := r.PostFormValue("meetingId")
+	if emptyAny(meetingID) {
+		respond(w, http.StatusBadRequest)
+		return
+	}
+	meeting, err := meetingRepository.first(map[string]interface{}{"id": meetingID}, meetingRelationProjectUsers)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
+	u, err := authenticatedUser(r)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
+	forbidden := true
+	for _, user := range meeting.Project.Users {
+		if u.ID == user.ID {
+			forbidden = false
+			break
+		}
+	}
+	if forbidden {
+		respond(w, http.StatusForbidden)
+		return
+	}
 	meetingUser, err := meetingUserRepository.save(makeQuery(r, false))
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
@@ -831,12 +953,33 @@ func (p *projectsHandler) ids(w http.ResponseWriter, r *http.Request) {
 }
 
 func (p *projectsHandler) store(w http.ResponseWriter, r *http.Request) {
-	project, err := projectRepository.save(makeQuery(r, false))
+	teamID := r.PostFormValue("teamId")
+	if emptyAny(teamID) {
+		respond(w, http.StatusBadRequest)
+		return
+	}
+	t, err := teamRepository.first(map[string]interface{}{"id": teamID}, teamRelationUsers)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
 		return
 	}
-	t, err := teamRepository.findByID(project.TeamID, loadAllRelation)
+	u, err := authenticatedUser(r)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
+	forbidden := true
+	for _, user := range t.Users {
+		if u.ID == user.ID {
+			forbidden = false
+			break
+		}
+	}
+	if forbidden {
+		respond(w, http.StatusForbidden)
+		return
+	}
+	project, err := projectRepository.save(makeQuery(r, false))
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
 		return
@@ -857,47 +1000,6 @@ func (p *projectsHandler) store(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	_, err = respondJSON(w, http.StatusOK, response)
-	if err != nil {
-		respondError(w, http.StatusInternalServerError, err)
-		return
-	}
-}
-
-type registerHandler struct {
-}
-
-func (h *registerHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	switch r.Method {
-	case http.MethodPost:
-		h.register(w, r)
-		return
-	}
-	respond(w, http.StatusNotFound)
-}
-
-func (h *registerHandler) register(w http.ResponseWriter, r *http.Request) {
-	username := r.PostFormValue("username")
-	password := r.PostFormValue("password")
-	if emptyAny(username, password) {
-		respond(w, http.StatusNotFound)
-		return
-	}
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
-	if err != nil {
-		respondError(w, http.StatusInternalServerError, err)
-		return
-	}
-	u, err := userRepository.saveWith(username, string(hashedPassword), pathNoImage)
-	if err != nil {
-		respondError(w, http.StatusInternalServerError, err)
-		return
-	}
-	_, err = login(w, username, password)
-	if err != nil {
-		respondError(w, http.StatusInternalServerError, err)
-		return
-	}
-	_, err = respondJSON(w, http.StatusOK, u)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
 		return
@@ -938,6 +1040,27 @@ func (p *projectUsersHandler) store(w http.ResponseWriter, r *http.Request) {
 	userID := r.PostFormValue("userId")
 	if emptyAny(projectID, role, userID) {
 		respond(w, http.StatusBadRequest)
+		return
+	}
+	project, err := projectRepository.first(map[string]interface{}{"id": projectID}, projectRelationTeamUsers)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
+	u, err := authenticatedUser(r)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
+	forbidden := true
+	for _, user := range project.Team.Users {
+		if u.ID == user.ID {
+			forbidden = false
+			break
+		}
+	}
+	if forbidden {
+		respond(w, http.StatusForbidden)
 		return
 	}
 	projectUserRole, err := projectUserRoleRepository.findByRole(role)
@@ -991,6 +1114,47 @@ func (h *repositoriesHandler) store(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	err = gitRepositories.InitBare(repositoryPath)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
+}
+
+type registerHandler struct {
+}
+
+func (h *registerHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodPost:
+		h.register(w, r)
+		return
+	}
+	respond(w, http.StatusNotFound)
+}
+
+func (h *registerHandler) register(w http.ResponseWriter, r *http.Request) {
+	username := r.PostFormValue("username")
+	password := r.PostFormValue("password")
+	if emptyAny(username, password) {
+		respond(w, http.StatusNotFound)
+		return
+	}
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
+	u, err := userRepository.saveWith(username, string(hashedPassword), pathNoImage)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
+	_, err = login(w, username, password)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
+	_, err = respondJSON(w, http.StatusOK, u)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
 		return
@@ -1201,6 +1365,25 @@ func (t *teamUsersHandler) store(w http.ResponseWriter, r *http.Request) {
 		respond(w, http.StatusBadRequest)
 		return
 	}
+	team, err := teamRepository.first(map[string]interface{}{"id": teamID}, teamRelationInvitationRequestsUser)
+	u, err := authenticatedUser(r)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
+	if team.FounderUserID != u.ID {
+		forbidden := true
+		for _, invitationRequest := range team.InvitationRequests {
+			if u.ID == invitationRequest.InviteeUserID {
+				forbidden = false
+				break
+			}
+		}
+		if forbidden {
+			respond(w, http.StatusForbidden)
+			return
+		}
+	}
 	teamUserRole, err := teamUserRoleRepository.findByRole(role)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
@@ -1256,6 +1439,32 @@ func (t *teamUserInvitationRequestProjectsHandler) fetch(w http.ResponseWriter, 
 }
 
 func (t *teamUserInvitationRequestProjectsHandler) store(w http.ResponseWriter, r *http.Request) {
+	teamUserInvitationRequestID := r.PostFormValue("teamUserInvitationRequestId")
+	if emptyAny(teamUserInvitationRequestID) {
+		respond(w, http.StatusBadRequest)
+		return
+	}
+	teamUserInvitationRequest, err := teamUserInvitationRequestRepository.first(map[string]interface{}{"id": teamUserInvitationRequestID}, teamUserInvitationRequestRelationTeamUsers)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
+	u, err := authenticatedUser(r)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
+	forbidden := true
+	for _, user := range teamUserInvitationRequest.Team.Users {
+		if u.ID == user.ID {
+			forbidden = false
+			break
+		}
+	}
+	if forbidden {
+		respond(w, http.StatusForbidden)
+		return
+	}
 	teamUserInvitationRequestProject, err := teamUserInvitationRequestProjectRepository.save(makeQuery(r, false))
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
@@ -1321,6 +1530,27 @@ func (t *teamUserInvitationRequestsHandler) store(w http.ResponseWriter, r *http
 	teamID := r.PostFormValue("teamId")
 	if emptyAny(inviterUserID, inviteeUserID, roleText, teamID) {
 		respond(w, http.StatusBadRequest)
+		return
+	}
+	team, err := teamRepository.first(map[string]interface{}{"id": teamID}, teamRelationUsers)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
+	u, err := authenticatedUser(r)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
+	forbidden := true
+	for _, user := range team.Users {
+		if u.ID == user.ID {
+			forbidden = false
+			break
+		}
+	}
+	if forbidden {
+		respond(w, http.StatusForbidden)
 		return
 	}
 	role, err := teamUserRoleRepository.findByRole(roleText)
@@ -1486,23 +1716,39 @@ func (t *testMessagesHandler) socket(w http.ResponseWriter, r *http.Request) {
 }
 
 func (t *testMessagesHandler) store(w http.ResponseWriter, r *http.Request) {
+	testID := r.PostFormValue("testId")
+	if emptyAny(testID) {
+		respond(w, http.StatusBadRequest)
+		return
+	}
+	test, err := testRepository.first(map[string]interface{}{"id": testID}, testRelationProjectUsers)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
+	u, err := authenticatedUser(r)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
+	forbidden := true
+	for _, user := range test.Project.Users {
+		if u.ID == user.ID {
+			forbidden = false
+			break
+		}
+	}
+	if forbidden {
+		respond(w, http.StatusForbidden)
+		return
+	}
 	testMessage, err := testMessageRepository.save(makeQuery(r, false))
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
 		return
 	}
-	test, err := testRepository.findByID(testMessage.TestID)
-	if err != nil {
-		respondError(w, http.StatusInternalServerError, err)
-		return
-	}
-	project, err := projectRepository.findByID(test.ProjectID, loadAllRelation)
-	if err != nil {
-		respondError(w, http.StatusInternalServerError, err)
-		return
-	}
 	response, err := testMessageRepository.findByID(testMessage.ID, loadAllRelation)
-	for _, u := range project.Users {
+	for _, u := range test.Project.Users {
 		socket, ok := testMessageWebsockets[u.ID]
 		if !ok {
 			continue

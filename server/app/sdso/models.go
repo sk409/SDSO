@@ -13,7 +13,7 @@ var (
 	projectAllRelation                          = []string{"Team", "Users"}
 	projectUserAllRelation                      = []string{"Project", "User", "Role"}
 	scanAllRelation                             = []string{"Project", "User", "Vulnerabilities", "Vulnerabilities.Scan"}
-	teamAllRelation                             = []string{"Projects", "Users"}
+	teamAllRelation                             = []string{"Projects", "InvitationRequests", "Users"}
 	teamUserAllRelation                         = []string{"Team", "User", "Role"}
 	teamUserInvitationRequestProjectAllRelation = []string{"TeamUserInvitationRequest", "Project"}
 	teamUserInvitationRequestAllRelation        = []string{"InviterUser", "InviteeUser", "Projects", "Role", "Team"}
@@ -24,9 +24,21 @@ var (
 )
 
 var (
-	meetingRelationUsers     = "Users"
-	projectRelationTeam      = "Team"
-	projectRelationTeamUsers = "Team.Users"
+	meetingRelationProject                     = "Project"
+	meetingRelationProjectUsers                = "Project.Users"
+	meetingRelationUsers                       = "Users"
+	projectRelationTeam                        = "Team"
+	projectRelationTeamUsers                   = "Team.Users"
+	projectRelationUsers                       = "Users"
+	teamRelationInvitationRequests             = "InvitationRequests"
+	teamRelationInvitationRequestsUser         = "InvitationRequests.User"
+	teamRelationUsers                          = "Users"
+	teamUserInvitationRequestRelationTeam      = "Team"
+	teamUserInvitationRequestRelationTeamUsers = "Team.Users"
+	testRelationProjectUsers                   = "Project.Users"
+	testMessageRelationTestProjectUsers        = "Test.Project.Users"
+	vulnerabilityRelationProject               = "Project"
+	vulnerabilityRelationProjectUsers          = "Project.Users"
 )
 
 type branchProtectionRule struct {
@@ -128,12 +140,14 @@ type scan struct {
 }
 
 type team struct {
-	ID        uint      `gorm:"primary_key" json:"id"`
-	Name      string    `gorm:"type:varchar(256);not null;unique;" json:"name"`
-	CreatedAt time.Time `json:"createdAt"`
-	UpdatedAt time.Time `json:"updatedAt"`
-	Users     []user    `gorm:"many2many:team_users" json:"users"`
-	Projects  []project `json:"projects"`
+	ID                 uint                        `gorm:"primary_key" json:"id"`
+	Name               string                      `gorm:"type:varchar(256);not null;unique;" json:"name"`
+	FounderUserID      uint                        `gorm:"not null"`
+	CreatedAt          time.Time                   `json:"createdAt"`
+	UpdatedAt          time.Time                   `json:"updatedAt"`
+	Projects           []project                   `json:"projects"`
+	InvitationRequests []teamUserInvitationRequest `json:"invitationRequests"`
+	Users              []user                      `gorm:"many2many:team_users" json:"users"`
 }
 
 type teamUser struct {

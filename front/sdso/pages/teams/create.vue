@@ -71,7 +71,8 @@ export default {
       }
       const url = new Url(pathTeams);
       const data = {
-        name: this.teamname
+        name: this.teamname,
+        founderUserId: user.id
       };
       this.creating = true;
       ajax.post(url.base, data).then(response => {

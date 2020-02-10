@@ -1,7 +1,7 @@
 <template>
-  <v-snackbar v-model="snackbar" :timeout="2000" top @input="input">
+  <v-snackbar v-model="snackbar" :timeout="2000" top>
     <span>{{ $store.state.notifications.message }}</span>
-    <v-btn icon @click="snackbar = false">
+    <v-btn icon @click="close">
       <v-icon>mdi-close</v-icon>
     </v-btn>
   </v-snackbar>
@@ -32,7 +32,8 @@ export default {
     ...mapMutations({
       setMessage: mutations.notifications.setMessage
     }),
-    input() {
+    close() {
+      this.snackbar = false;
       this.setMessage("");
     }
   }

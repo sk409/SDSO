@@ -13,7 +13,7 @@ import (
 
 var gormDB *gorm.DB
 
-func init() {
+func initGORM() {
 	dsn := fmt.Sprintf("root:root@(%s)/sdso?charset=utf8&parseTime=True&loc=Local", databaseHost)
 	var err error
 	gormDB, err = gorm.Open("mysql", dsn)
@@ -23,7 +23,7 @@ func init() {
 	gormDB.AutoMigrate(&user{}).AddUniqueIndex("idx_name_password", "name", "password")
 	gormDB.AutoMigrate(&request{})
 	gormDB.AutoMigrate(&testStatus{})
-	gormDB.AutoMigrate(&team{})
+	gormDB.AutoMigrate(&team{}).AddForeignKey("founder_user_id", "users(id)", "NO ACTION", "CASCADE")
 	gormDB.AutoMigrate(&teamUserRole{})
 	gormDB.AutoMigrate(&teamUser{}).AddForeignKey("team_id", "teams(id)", "CASCADE", "CASCADE").AddForeignKey("user_id", "users(id)", "CASCADE", "CASCADE").AddForeignKey("role_id", "team_user_roles(id)", "CASCADE", "CASCADE")
 	gormDB.AutoMigrate(&project{}).AddForeignKey("team_id", "teams(id)", "CASCADE", "CASCADE").AddUniqueIndex("name_team_id_unique", "name", "team_id")
@@ -44,10 +44,7 @@ func init() {
 	gormDB.Model(&testMessage{}).AddForeignKey("parent_id", "test_messages(id)", "SET NULL", "CASCADE")
 	gormDB.AutoMigrate(&dastVulnerabilityMessage{}).AddForeignKey("vulnerability_id", "vulnerabilities(id)", "CASCADE", "CASCADE").AddForeignKey("user_id", "users(id)", "CASCADE", "CASCADE")
 	gormDB.Model(&dastVulnerabilityMessage{}).AddForeignKey("parent_id", "dast_vulnerability_messages(id)", "SET NULL", "CASCADE")
-	insertData()
-}
 
-func insertData() {
 	insertIfNotExist := func(model interface{}) {
 		gormDB.Where(model).First(model)
 		rv := reflect.ValueOf(model).Elem()
@@ -78,6 +75,31 @@ func insertData() {
 	insertIfNotExist(&teamUserRole{
 		Role: roleTeamUserMember,
 	})
+}
+
+func eagerLoadingGORM(db *gorm.DB, allRelation []string, preloads ...string) *gorm.DB {
+	if len(preloads) == 1 && preloads[0] == loadAllRelation {
+		preloads = allRelation
+	}
+	for _, preload := range preloads {
+		db = db.Preload(preload)
+	}
+	return db
+}
+
+func findByIDGORM(model interface{}, allRelation []string, preloads ...string) error {
+	db := eagerLoadingGORM(gormDB, allRelation, preloads...)
+	err := db.First(&model).Error
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func firstGORM(query map[string]interface{}, model interface{}, allRelation []string, preloads ...string) error {
+	db := gormDB.Where(query)
+	db = eagerLoadingGORM(db, allRelation, preloads...)
+	return db.First(model).Error
 }
 
 func saveGORM(query map[string]interface{}, model interface{}) error {

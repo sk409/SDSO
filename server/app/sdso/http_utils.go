@@ -86,22 +86,6 @@ func respondError(w http.ResponseWriter, statusCode int, err error) {
 	respond(w, statusCode)
 }
 
-// func respondJSON(w http.ResponseWriter, statusCode int, model interface{}) ([]byte, error) {
-// 	data := model
-// 	data, err := public(data)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	jsonBytes, err := json.Marshal(data)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	w.Header().Set(goconst.HTTP_HEADER_CONTENT_TYPE, goconst.HTTP_HEADER_CONTENT_TYPE_JSON)
-// 	w.Write(jsonBytes)
-// 	return jsonBytes, nil
-// 	//respond(w, statusCode)
-// }
-
 func respondJSON(w http.ResponseWriter, statusCode int, model interface{}) ([]byte, error) {
 	jsonBytes, err := json.Marshal(model)
 	if err != nil {
