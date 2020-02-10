@@ -59,13 +59,9 @@ func (t *tester) execTestCommand(test test, testPath, primaryServicename, comman
 	if err != nil {
 		return err
 	}
-	testResult := testResult{
-		Command:  command,
-		TestID:   test.ID,
-		StatusID: testStatusRunning.ID,
-	}
-	gormDB.Save(&testResult)
-	if gormDB.Error != nil {
+	query := map[string]interface{}{"Command": command, "TestID": test.ID, "StatusID": testStatusRunning.ID}
+	testResult, err := testResultRepository.save(query)
+	if err != nil {
 		return err
 	}
 	t.sendTest(test.ID)
@@ -86,13 +82,7 @@ func (t *tester) execTestCommand(test test, testPath, primaryServicename, comman
 		return err
 	}
 	now := time.Now()
-	testResult.Output = output.String()
-	testResult.StatusID = testStatus.ID
-	testResult.CompletedAt = &now
-	gormDB.Save(&testResult)
-	if gormDB.Error != nil {
-		return err
-	}
+	testResultRepository.update(map[string]interface{}{"id": testResult.ID}, map[string]interface{}{"output": output.String(), "status_id": testStatus.ID, "completedAt": &now})
 	t.sendTest(test.ID)
 	return failed
 }
@@ -187,23 +177,10 @@ func (t *tester) run(teamname, projectname, clonePath, branchname, commitSHA1 st
 		downCommand.Dir = testPath
 		downCommand.Run()
 	}()
-	//************
-	// test := test{
-	// 	Steps:      len(c.Jobs.Build.Steps),
-	// 	Branchname: branchname,
-	// 	CommitSHA1: commitSHA1,
-	// 	ProjectID:  p.ID,
-	// }
-	// gormDB.Save(&test)
-	// if gormDB.Error != nil {
-	// 	return false, gormDB.Error
-	// }
-	//************
 	test, err := testRepository.save(map[string]interface{}{"Steps": len(c.Jobs.Build.Steps), "Branchname": branchname, "CommitSHA1": commitSHA1, "ProjectID": p.ID})
 	if err != nil {
 		return false, err
 	}
-	//************
 	err = t.sendTest(test.ID)
 	if err != nil {
 		return false, err

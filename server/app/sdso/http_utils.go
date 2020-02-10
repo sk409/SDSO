@@ -31,12 +31,11 @@ func authenticatedUser(r *http.Request) (*user, error) {
 	if err != nil {
 		return nil, err
 	}
-	u := user{}
-	gormDB.Where("id = ?", userID).First(&u)
-	if gormDB.Error != nil {
+	u, err := userRepository.findByID(userID, loadAllRelation)
+	if err != nil {
 		return nil, err
 	}
-	return &u, nil
+	return u, nil
 }
 
 func checkPermission(r *http.Request, users []user) (bool, error) {

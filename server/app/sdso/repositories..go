@@ -670,8 +670,9 @@ func (t *teamUserRoleRepositoryGORM) findByRole(role string, preloads ...string)
 }
 
 func (t *teamUserRoleRepositoryGORM) saveWith(role string) (*teamUserRole, error) {
-	teamUserRole := teamUserRole{Role: role}
-	err := gormDB.Save(&teamUserRole).Error
+	teamUserRole := teamUserRole{}
+	query := map[string]interface{}{"Role": role}
+	err := saveGORM(query, &teamUserRole)
 	if err != nil {
 		return nil, err
 	}
@@ -774,6 +775,7 @@ type testResultRepositoryInterface interface {
 	find(map[string]interface{}, ...string) ([]testResult, error)
 	findByID(uint, ...string) (*testResult, error)
 	save(map[string]interface{}) (*testResult, error)
+	update(map[string]interface{}, map[string]interface{}) error
 }
 
 type testResultRepositoryGORM struct {
@@ -804,6 +806,10 @@ func (t *testResultRepositoryGORM) save(query map[string]interface{}) (*testResu
 		return nil, err
 	}
 	return &testResult, nil
+}
+
+func (t *testResultRepositoryGORM) update(query map[string]interface{}, values map[string]interface{}) error {
+	return updateGORM(query, values, &testResult{})
 }
 
 type testStatusRepositoryInterface interface {
@@ -900,8 +906,9 @@ func (u *userRepositoryGORM) findByName(name string, preloads ...string) (*user,
 }
 
 func (u *userRepositoryGORM) saveWith(name, password, profileImagePath string) (*user, error) {
-	user := user{Name: name, Password: password, ProfileImagePath: profileImagePath}
-	err := gormDB.Save(&user).Error
+	user := user{}
+	query := map[string]interface{}{"Name": name, "Password": password, "ProfileImagePath": profileImagePath}
+	err := saveGORM(query, &user)
 	if err != nil {
 		return nil, err
 	}

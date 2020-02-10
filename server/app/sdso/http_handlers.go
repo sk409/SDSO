@@ -479,8 +479,10 @@ func (g *gitHandler) receivePack(w http.ResponseWriter, r *http.Request, teamnam
 		respondError(w, http.StatusInternalServerError, errBadRequest)
 		return
 	}
-	branchProtectionRules := []branchProtectionRule{}
-	gormDB.Where("project_id = ?", p.ID).Find(&branchProtectionRules)
+	branchProtectionRules, err := branchProtectionRuleRepository.find(map[string]interface{}{"project_id": p.ID})
+	if err != nil {
+		return
+	}
 	branchName, commitSHA1, err := getBranchNameAndCommitSHA1(r)
 	if err != nil {
 		return

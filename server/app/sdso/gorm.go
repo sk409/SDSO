@@ -159,3 +159,7 @@ func saveGORM(query map[string]interface{}, model interface{}) error {
 	}
 	return nil
 }
+
+func updateGORM(query interface{}, values interface{}, model interface{}) error {
+	return gormDB.Model(model).Where(query).Updates(values).Error
+}
