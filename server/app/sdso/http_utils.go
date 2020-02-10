@@ -39,32 +39,7 @@ func authenticatedUser(r *http.Request) (*user, error) {
 	return &u, nil
 }
 
-func destroy(r *http.Request, model interface{}) error {
-	query := make(map[string]interface{})
-	for key, value := range r.URL.Query() {
-		s := string(gocase.SnakeCase([]byte(key)))
-		query[s] = value[0]
-	}
-	gormDB.Delete(model, query)
-	return gormDB.Error
-}
-
-func fetch(r *http.Request, model interface{}) error {
-	query := make(map[string]interface{})
-	for key, value := range r.URL.Query() {
-		s := string(gocase.SnakeCase([]byte(key)))
-		query[s] = value[0]
-	}
-	gormDB.Where(query).Find(model)
-	return gormDB.Error
-}
-
 func login(w http.ResponseWriter, username, password string) (*user, error) {
-	// u := userModel{}
-	// gormDB.Where("name = ?", username).First(&u)
-	// if gormDB.Error != nil {
-	// 	return nil, gormDB.Error
-	// }
 	u, err := userRepository.findByName(username)
 	if err != nil {
 		return nil, err
@@ -111,23 +86,23 @@ func respondError(w http.ResponseWriter, statusCode int, err error) {
 	respond(w, statusCode)
 }
 
-func respondJSON(w http.ResponseWriter, statusCode int, model interface{}) ([]byte, error) {
-	data := model
-	data, err := public(data)
-	if err != nil {
-		return nil, err
-	}
-	jsonBytes, err := json.Marshal(data)
-	if err != nil {
-		return nil, err
-	}
-	w.Header().Set(goconst.HTTP_HEADER_CONTENT_TYPE, goconst.HTTP_HEADER_CONTENT_TYPE_JSON)
-	w.Write(jsonBytes)
-	return jsonBytes, nil
-	//respond(w, statusCode)
-}
+// func respondJSON(w http.ResponseWriter, statusCode int, model interface{}) ([]byte, error) {
+// 	data := model
+// 	data, err := public(data)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	jsonBytes, err := json.Marshal(data)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	w.Header().Set(goconst.HTTP_HEADER_CONTENT_TYPE, goconst.HTTP_HEADER_CONTENT_TYPE_JSON)
+// 	w.Write(jsonBytes)
+// 	return jsonBytes, nil
+// 	//respond(w, statusCode)
+// }
 
-func respondJSON2(w http.ResponseWriter, statusCode int, model interface{}) ([]byte, error) {
+func respondJSON(w http.ResponseWriter, statusCode int, model interface{}) ([]byte, error) {
 	jsonBytes, err := json.Marshal(model)
 	if err != nil {
 		return nil, err
@@ -156,18 +131,6 @@ func routeWithID(r *http.Request) (string, bool) {
 		return "", false
 	}
 	return components[2], true
-}
-
-func store(r *http.Request, model interface{}) error {
-	err := r.ParseForm()
-	if err != nil {
-		return err
-	}
-	query := make(map[string]interface{})
-	for key, value := range r.PostForm {
-		query[key] = value[0]
-	}
-	return save(query, model)
 }
 
 func putWebsocket(w http.ResponseWriter, r *http.Request, sockets *map[uint]*websocket.Conn) error {

@@ -6,11 +6,11 @@ type build struct {
 }
 
 type commit struct {
-	Branchname string
-	Date       string
-	Diff       string
-	Message    string
-	SHA1       string
+	Branchname string `json:"commit"`
+	Date       string `json:"date"`
+	Diff       string `json:"diff"`
+	Message    string `json:"message"`
+	SHA1       string `json:"sha1"`
 }
 
 type config struct {

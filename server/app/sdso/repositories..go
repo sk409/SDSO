@@ -71,7 +71,8 @@ func eagerLoadingGORM(db *gorm.DB, allRelation []string, preloads ...string) *go
 
 type branchProtectionRuleRepositoryInterface interface {
 	find(map[string]interface{}, ...string) ([]branchProtectionRule, error)
-	save(string, uint) (*branchProtectionRule, error)
+	save(map[string]interface{}) (*branchProtectionRule, error)
+	saveWith(branchname string, projectID uint) (*branchProtectionRule, error)
 }
 
 type branchProtectionRuleRepositoryGORM struct {
@@ -88,7 +89,16 @@ func (b *branchProtectionRuleRepositoryGORM) find(query map[string]interface{}, 
 	return branchProtectionRules, nil
 }
 
-func (b *branchProtectionRuleRepositoryGORM) save(branchname string, projectID uint) (*branchProtectionRule, error) {
+func (b *branchProtectionRuleRepositoryGORM) save(query map[string]interface{}) (*branchProtectionRule, error) {
+	branchProtectionRule := branchProtectionRule{}
+	err := saveGORM(query, &branchProtectionRule)
+	if err != nil {
+		return nil, err
+	}
+	return &branchProtectionRule, nil
+}
+
+func (b *branchProtectionRuleRepositoryGORM) saveWith(branchname string, projectID uint) (*branchProtectionRule, error) {
 	branchProtectionRule := branchProtectionRule{Branchname: branchname, ProjectID: projectID}
 	err := gormDB.Save(&branchProtectionRule).Error
 	if err != nil {
@@ -130,7 +140,7 @@ func (d *dastVulnerabilityMessageRepositoryGORM) findByID(id uint, preloads ...s
 
 func (d *dastVulnerabilityMessageRepositoryGORM) save(query map[string]interface{}) (*dastVulnerabilityMessage, error) {
 	dastVulnerabilityMessage := dastVulnerabilityMessage{}
-	err := save(query, &dastVulnerabilityMessage)
+	err := saveGORM(query, &dastVulnerabilityMessage)
 	if err != nil {
 		return nil, err
 	}
@@ -181,7 +191,7 @@ func (m *meetingRepositoryGORM) findByIDs(ids []uint, preloads ...string) ([]mee
 
 func (m *meetingRepositoryGORM) save(query map[string]interface{}) (*meeting, error) {
 	meeting := meeting{}
-	err := save(query, &meeting)
+	err := saveGORM(query, &meeting)
 	if err != nil {
 		return nil, err
 	}
@@ -220,7 +230,7 @@ func (m *meetingMessageRepositoryGORM) findByID(id uint, preloads ...string) (*m
 
 func (m *meetingMessageRepositoryGORM) save(query map[string]interface{}) (*meetingMessage, error) {
 	meetingMessage := meetingMessage{}
-	err := save(query, &meetingMessage)
+	err := saveGORM(query, &meetingMessage)
 	if err != nil {
 		return nil, err
 	}
@@ -248,7 +258,7 @@ func (m *meetingUserRepositoryGORM) find(query map[string]interface{}, preloads 
 
 func (m *meetingUserRepositoryGORM) save(query map[string]interface{}) (*meetingUser, error) {
 	meetingUser := meetingUser{}
-	err := save(query, &meetingUser)
+	err := saveGORM(query, &meetingUser)
 	if err != nil {
 		return nil, err
 	}
@@ -311,7 +321,7 @@ func (p *projectRepositoryGORM) first(query map[string]interface{}, preloads ...
 
 func (p *projectRepositoryGORM) save(query map[string]interface{}) (*project, error) {
 	project := project{}
-	err := save(query, &project)
+	err := saveGORM(query, &project)
 	if err != nil {
 		return nil, err
 	}
@@ -351,7 +361,7 @@ func (p *projectUserRepositoryGORM) first(query map[string]interface{}, preloads
 
 func (p *projectUserRepositoryGORM) save(query map[string]interface{}) (*projectUser, error) {
 	projectUser := projectUser{}
-	err := save(query, &projectUser)
+	err := saveGORM(query, &projectUser)
 	if err != nil {
 		return nil, err
 	}
@@ -397,7 +407,7 @@ func (p *projectUserRoleRepositoryGORM) findByRole(role string) (*projectUserRol
 
 func (p *projectUserRoleRepositoryGORM) save(query map[string]interface{}) (*projectUserRole, error) {
 	projectUserRole := projectUserRole{}
-	err := save(query, &projectUserRole)
+	err := saveGORM(query, &projectUserRole)
 	if err != nil {
 		return nil, err
 	}
@@ -437,7 +447,7 @@ func (s *scanRepositoryGORM) findByID(id uint, preloads ...string) (*scan, error
 
 func (s *scanRepositoryGORM) save(query map[string]interface{}) (*scan, error) {
 	scan := scan{}
-	err := save(query, &scan)
+	err := saveGORM(query, &scan)
 	if err != nil {
 		return nil, err
 	}
@@ -509,7 +519,7 @@ func (t *teamRepositoryGORM) findByName(name string, preloads ...string) (*team,
 
 func (t *teamRepositoryGORM) save(query map[string]interface{}) (*team, error) {
 	team := team{}
-	err := save(query, &team)
+	err := saveGORM(query, &team)
 	if err != nil {
 		return nil, err
 	}
@@ -549,7 +559,7 @@ func (t *teamUserRepositoryGORM) first(query map[string]interface{}, preloads ..
 
 func (t *teamUserRepositoryGORM) save(query map[string]interface{}) (*teamUser, error) {
 	teamUser := teamUser{}
-	err := save(query, &teamUser)
+	err := saveGORM(query, &teamUser)
 	if err != nil {
 		return nil, err
 	}
@@ -594,7 +604,7 @@ func (t *teamUserInvitationRequestProjectRepositoryGORM) first(query map[string]
 
 func (t *teamUserInvitationRequestProjectRepositoryGORM) save(query map[string]interface{}) (*teamUserInvitationRequestProject, error) {
 	teamUserInvitationRequestProject := teamUserInvitationRequestProject{}
-	err := save(query, &teamUserInvitationRequestProject)
+	err := saveGORM(query, &teamUserInvitationRequestProject)
 	if err != nil {
 		return nil, err
 	}
@@ -644,7 +654,7 @@ func (t *teamUserInvitationRequestRepositoryGORM) findByID(id uint, preloads ...
 
 func (t *teamUserInvitationRequestRepositoryGORM) save(query map[string]interface{}) (*teamUserInvitationRequest, error) {
 	teamUserInvitationRequest := teamUserInvitationRequest{}
-	err := save(query, &teamUserInvitationRequest)
+	err := saveGORM(query, &teamUserInvitationRequest)
 	if err != nil {
 		return nil, err
 	}
@@ -740,7 +750,7 @@ func (t *testRepositoryGORM) findOrder(query map[string]interface{}, order strin
 
 func (t *testRepositoryGORM) save(query map[string]interface{}) (*test, error) {
 	test := test{}
-	err := save(query, &test)
+	err := saveGORM(query, &test)
 	if err != nil {
 		return nil, err
 	}
@@ -779,7 +789,7 @@ func (t *testMessageRepositoryGORM) findByID(id uint, preloads ...string) (*test
 
 func (t *testMessageRepositoryGORM) save(query map[string]interface{}) (*testMessage, error) {
 	testMessage := testMessage{}
-	err := save(query, &testMessage)
+	err := saveGORM(query, &testMessage)
 	if err != nil {
 		return nil, err
 	}
@@ -818,7 +828,7 @@ func (t *testResultRepositoryGORM) findByID(id uint, preloads ...string) (*testR
 
 func (t *testResultRepositoryGORM) save(query map[string]interface{}) (*testResult, error) {
 	testResult := testResult{}
-	err := save(query, &testResult)
+	err := saveGORM(query, &testResult)
 	if err != nil {
 		return nil, err
 	}
@@ -864,7 +874,7 @@ func (t *testStatusRepositoryGORM) findByText(text string) (*testStatus, error) 
 
 func (t *testStatusRepositoryGORM) save(query map[string]interface{}) (*testStatus, error) {
 	testStatus := testStatus{}
-	err := save(query, &testStatus)
+	err := saveGORM(query, &testStatus)
 	if err != nil {
 		return nil, err
 	}
@@ -959,7 +969,7 @@ func (v *vulnerabilityRepositoryGORM) findByID(id uint, preloads ...string) (*vu
 
 func (v *vulnerabilityRepositoryGORM) save(query map[string]interface{}) (*vulnerability, error) {
 	vulnerability := vulnerability{}
-	err := save(query, &vulnerability)
+	err := saveGORM(query, &vulnerability)
 	if err != nil {
 		return nil, err
 	}

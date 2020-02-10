@@ -199,8 +199,7 @@ func (t *tester) run(teamname, projectname, clonePath, branchname, commitSHA1 st
 	// 	return false, gormDB.Error
 	// }
 	//************
-	test := test{}
-	err = save(map[string]interface{}{"Steps": len(c.Jobs.Build.Steps), "Branchname": branchname, "CommitSHA1": commitSHA1, "ProjectID": p.ID}, &test)
+	test, err := testRepository.save(map[string]interface{}{"Steps": len(c.Jobs.Build.Steps), "Branchname": branchname, "CommitSHA1": commitSHA1, "ProjectID": p.ID})
 	if err != nil {
 		return false, err
 	}
@@ -209,7 +208,7 @@ func (t *tester) run(teamname, projectname, clonePath, branchname, commitSHA1 st
 	if err != nil {
 		return false, err
 	}
-	t.runSteps(test, c, testPath, servicenames[0])
+	t.runSteps(*test, c, testPath, servicenames[0])
 	return true, nil
 }
 

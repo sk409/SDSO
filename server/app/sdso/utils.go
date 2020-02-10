@@ -13,7 +13,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/sk409/gocase"
 	"github.com/sk409/goconst"
 	"github.com/sk409/gotype"
 )
@@ -76,26 +75,6 @@ func emptyAny(values ...interface{}) bool {
 	return false
 }
 
-// func find(query map[string]interface{}, model interface{}) error {
-// 	q := map[string]interface{}{}
-// 	for key, value := range query {
-// 		s := string(gocase.SnakeCase([]byte(key)))
-// 		q[s] = value
-// 	}
-// 	gormDB.Where(q).Find(model)
-// 	return gormDB.Error
-// }
-
-// func findByUniqueKey(uniqueKeys interface{}, model interface{}) error {
-// 	gormDB.Where(uniqueKeys).Find(model)
-// 	return gormDB.Error
-// }
-
-// func first(query map[string]interface{}, model interface{}) error {
-// 	gormDB.Where(query).First(model)
-// 	return gormDB.Error
-// }
-
 func getBranchNameAndCommitSHA1(r *http.Request) (string, string, error) {
 	var body io.ReadCloser
 	var err error
@@ -125,49 +104,6 @@ func getBranchNameAndCommitSHA1(r *http.Request) (string, string, error) {
 	branchName = branchName[:len(branchName)-1]
 	//
 	return branchName, commitSHA1, nil
-}
-
-func save(query map[string]interface{}, model interface{}) error {
-	rv := reflect.ValueOf(model).Elem()
-	for key, value := range query {
-		fieldname := string(gocase.UpperCamelCase([]byte(key), true))
-		fv := rv.FieldByName(fieldname)
-		ft := fv.Type()
-		if ft.Kind() == reflect.Ptr {
-			ft = ft.Elem()
-		}
-		if ft.Kind() == reflect.String {
-			fv.SetString(value.(string))
-		} else if ft.Kind() == reflect.Int {
-			if gotype.IsInt(value) {
-				fv.SetInt(int64(value.(int)))
-			}
-		} else if ft.Kind() == reflect.Uint {
-			var v uint
-			if gotype.IsString(value) {
-				s := value.(string)
-				ui, err := strconv.ParseUint(s, 10, 64)
-				if err != nil {
-					return err
-				}
-				v = uint(ui)
-			} else if gotype.IsUint(value) {
-				v = value.(uint)
-			} else {
-				continue
-			}
-			if fv.Kind() == reflect.Ptr {
-				fv.Set(reflect.ValueOf(&v))
-			} else {
-				fv.SetUint(uint64(v))
-			}
-		}
-	}
-	gormDB.Save(model)
-	if gormDB.Error != nil {
-		return gormDB.Error
-	}
-	return nil
 }
 
 func stringsToUints(strings []string) []uint {

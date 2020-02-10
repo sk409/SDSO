@@ -121,8 +121,7 @@ func (b *branchProtectionRulesHandler) fetch(w http.ResponseWriter, r *http.Requ
 }
 
 func (b *branchProtectionRulesHandler) store(w http.ResponseWriter, r *http.Request) {
-	branchProtectionRule := branchProtectionRule{}
-	err := store(r, &branchProtectionRule)
+	branchProtectionRule, err := branchProtectionRuleRepository.save(makeQuery(r, false))
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
 		return
@@ -1159,7 +1158,7 @@ func (t *teamsHandler) store(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	response, err := teamRepository.findByID(team.ID, loadAllRelation)
-	_, err = respondJSON2(w, http.StatusOK, response)
+	_, err = respondJSON(w, http.StatusOK, response)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
 		return

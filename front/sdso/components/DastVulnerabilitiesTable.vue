@@ -5,6 +5,7 @@
         <th>パス</th>
         <th>種類</th>
         <th>メソッド</th>
+        <th>SHA1</th>
         <th>状態</th>
       </tr>
     </thead>
@@ -17,6 +18,7 @@
         <td>{{ vulnerability.path }}</td>
         <td>{{ vulnerability.name }}</td>
         <td>{{ vulnerability.method }}</td>
+        <td>{{ vulnerability.scan.commitSha1.substr(0, 7) }}</td>
         <td>
           <v-chip color="red" small text-color="white">未修正</v-chip>
         </td>

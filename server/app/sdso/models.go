@@ -12,7 +12,7 @@ var (
 	meetingUserAllRelation                      = []string{"Meeting", "User"}
 	projectAllRelation                          = []string{"Team", "Users"}
 	projectUserAllRelation                      = []string{"Project", "User", "Role"}
-	scanAllRelation                             = []string{"Project", "User", "Vulnerabilities"}
+	scanAllRelation                             = []string{"Project", "User", "Vulnerabilities", "Vulnerabilities.Scan"}
 	teamAllRelation                             = []string{"Projects", "Users"}
 	teamUserAllRelation                         = []string{"Team", "User", "Role"}
 	teamUserInvitationRequestProjectAllRelation = []string{"TeamUserInvitationRequest", "Project"}
@@ -30,12 +30,12 @@ var (
 )
 
 type branchProtectionRule struct {
-	ID         uint   `gorm:"primary_key"`
-	Branchname string `gorm:"type:varchar(128);not null"`
-	ProjectID  uint   `gorm:"not null"`
-	CreatedAt  time.Time
-	UpdatedAt  time.Time
-	Project    project
+	ID         uint      `gorm:"primary_key" json:"id"`
+	Branchname string    `gorm:"type:varchar(128);not null" json:"branchname"`
+	ProjectID  uint      `gorm:"not null" json:"projectId"`
+	CreatedAt  time.Time `json:"createdAt"`
+	UpdatedAt  time.Time `json:"updatedAt"`
+	Project    project   `json:"project"`
 }
 
 type dastVulnerabilityMessage struct {
@@ -112,7 +112,7 @@ type projectUserRole struct {
 }
 
 type request struct {
-	Text string `gorm:"type:text;not null"`
+	Text string `gorm:"type:text;not null" json:"text"`
 }
 
 type scan struct {
@@ -124,7 +124,7 @@ type scan struct {
 	UpdatedAt       time.Time       `json:"updatedAt"`
 	Project         project         `json:"project"`
 	User            user            `json:"user"`
-	Vulnerabilities []vulnerability `json:"vulnerability"`
+	Vulnerabilities []vulnerability `json:"vulnerabilities"`
 }
 
 type team struct {

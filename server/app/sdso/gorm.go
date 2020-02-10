@@ -3,9 +3,12 @@ package main
 import (
 	"fmt"
 	"reflect"
+	"strconv"
 
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/mysql"
+	"github.com/sk409/gocase"
+	"github.com/sk409/gotype"
 )
 
 var gormDB *gorm.DB
@@ -75,4 +78,47 @@ func insertData() {
 	insertIfNotExist(&teamUserRole{
 		Role: roleTeamUserMember,
 	})
+}
+
+func saveGORM(query map[string]interface{}, model interface{}) error {
+	rv := reflect.ValueOf(model).Elem()
+	for key, value := range query {
+		fieldname := string(gocase.UpperCamelCase([]byte(key), true))
+		fv := rv.FieldByName(fieldname)
+		ft := fv.Type()
+		if ft.Kind() == reflect.Ptr {
+			ft = ft.Elem()
+		}
+		if ft.Kind() == reflect.String {
+			fv.SetString(value.(string))
+		} else if ft.Kind() == reflect.Int {
+			if gotype.IsInt(value) {
+				fv.SetInt(int64(value.(int)))
+			}
+		} else if ft.Kind() == reflect.Uint {
+			var v uint
+			if gotype.IsString(value) {
+				s := value.(string)
+				ui, err := strconv.ParseUint(s, 10, 64)
+				if err != nil {
+					return err
+				}
+				v = uint(ui)
+			} else if gotype.IsUint(value) {
+				v = value.(uint)
+			} else {
+				continue
+			}
+			if fv.Kind() == reflect.Ptr {
+				fv.Set(reflect.ValueOf(&v))
+			} else {
+				fv.SetUint(uint64(v))
+			}
+		}
+	}
+	gormDB.Save(model)
+	if gormDB.Error != nil {
+		return gormDB.Error
+	}
+	return nil
 }
