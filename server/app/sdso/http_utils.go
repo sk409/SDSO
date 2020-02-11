@@ -38,19 +38,12 @@ func authenticatedUser(r *http.Request) (*user, error) {
 	return u, nil
 }
 
-func checkPermission(r *http.Request, users []user) (bool, error) {
+func checkPermissionWithRequest(r *http.Request, users []user) (bool, error) {
 	u, err := authenticatedUser(r)
 	if err != nil {
 		return false, err
 	}
-	ok := false
-	for _, user := range users {
-		if u.ID == user.ID {
-			ok = true
-			break
-		}
-	}
-	return ok, nil
+	return checkPermission(u, users), nil
 }
 
 func login(w http.ResponseWriter, username, password string) (*user, error) {

@@ -110,17 +110,13 @@ func main() {
 	repositoriesRouter.handler = &repositoriesHandler{}
 	http.Handle("/repositories", &repositoriesRouter)
 
-	// credentialsなし
 	scansRouter := router{}
 	scansRouter.cors()
-	scansRouter.allowCredentials()
 	scansRouter.handler = &scansHandler{}
 	http.Handle("/scans", &scansRouter)
 
-	// credentialsなし
 	teamsRouter := router{}
 	teamsRouter.cors()
-	teamsRouter.allowCredentials()
 	teamsRouter.handler = &teamsHandler{}
 	http.Handle("/teams/", &teamsRouter)
 
@@ -183,10 +179,8 @@ func main() {
 	usersRouter.handler = &usersHandler{}
 	http.Handle("/users/", &usersRouter)
 
-	// credentialsなし
 	vulnerabilitiesRouter := router{}
 	vulnerabilitiesRouter.cors()
-	vulnerabilitiesRouter.allowCredentials()
 	vulnerabilitiesRouter.handler = &vulnerabilitiesHandler{}
 	http.Handle("/vulnerabilities", &vulnerabilitiesRouter)
 

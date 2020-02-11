@@ -21,6 +21,17 @@ type printable interface {
 	String() string
 }
 
+func checkPermission(u *user, users []user) bool {
+	ok := false
+	for _, user := range users {
+		if u.ID == user.ID {
+			ok = true
+			break
+		}
+	}
+	return ok
+}
+
 func command(directory, name string, args ...string) ([]byte, error) {
 	cmd := exec.Command(name, args...)
 	cmd.Dir = directory

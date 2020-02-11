@@ -127,7 +127,7 @@ func (b *branchProtectionRulesHandler) store(w http.ResponseWriter, r *http.Requ
 		return
 	}
 	p, err := projectRepository.first(map[string]interface{}{"id": projectID}, projectRelationUsers)
-	ok, err := checkPermission(r, p.Users)
+	ok, err := checkPermissionWithRequest(r, p.Users)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
 		return
@@ -296,7 +296,7 @@ func (d *dastVulnerabilityMessagesHandler) store(w http.ResponseWriter, r *http.
 		respondError(w, http.StatusInternalServerError, err)
 		return
 	}
-	ok, err := checkPermission(r, v.Project.Users)
+	ok, err := checkPermissionWithRequest(r, v.Project.Users)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
 		return
@@ -684,7 +684,7 @@ func (m *meetingsHandler) store(w http.ResponseWriter, r *http.Request) {
 		respondError(w, http.StatusInternalServerError, err)
 		return
 	}
-	ok, err := checkPermission(r, p.Users)
+	ok, err := checkPermissionWithRequest(r, p.Users)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
 		return
@@ -760,7 +760,7 @@ func (m *meetingMessagesHandler) store(w http.ResponseWriter, r *http.Request) {
 		respondError(w, http.StatusInternalServerError, err)
 		return
 	}
-	ok, err := checkPermission(r, meeting.Project.Users)
+	ok, err := checkPermissionWithRequest(r, meeting.Project.Users)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
 		return
@@ -835,7 +835,7 @@ func (m *meetingUsersHandler) store(w http.ResponseWriter, r *http.Request) {
 		respondError(w, http.StatusInternalServerError, err)
 		return
 	}
-	ok, err := checkPermission(r, meeting.Project.Users)
+	ok, err := checkPermissionWithRequest(r, meeting.Project.Users)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
 		return
@@ -930,7 +930,7 @@ func (p *projectsHandler) store(w http.ResponseWriter, r *http.Request) {
 		respondError(w, http.StatusInternalServerError, err)
 		return
 	}
-	ok, err := checkPermission(r, t.Users)
+	ok, err := checkPermissionWithRequest(r, t.Users)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
 		return
@@ -1007,7 +1007,7 @@ func (p *projectUsersHandler) store(w http.ResponseWriter, r *http.Request) {
 		respondError(w, http.StatusInternalServerError, err)
 		return
 	}
-	ok, err := checkPermission(r, project.Team.Users)
+	ok, err := checkPermissionWithRequest(r, project.Team.Users)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
 		return
@@ -1177,9 +1177,10 @@ func (s *scansHandler) fetch(w http.ResponseWriter, r *http.Request) {
 func (s *scansHandler) store(w http.ResponseWriter, r *http.Request) {
 	commitSHA1 := r.PostFormValue("commitSHA1")
 	username := r.PostFormValue("username")
+	hashedPassword := r.PostFormValue("password")
 	teamname := r.PostFormValue("teamname")
 	projectname := r.PostFormValue("projectname")
-	if emptyAny(commitSHA1, username, teamname, projectname) {
+	if emptyAny(commitSHA1, username, hashedPassword, teamname, projectname) {
 		respond(w, http.StatusBadRequest)
 		return
 	}
@@ -1188,9 +1189,18 @@ func (s *scansHandler) store(w http.ResponseWriter, r *http.Request) {
 		respondError(w, http.StatusInternalServerError, err)
 		return
 	}
-	t, err := teamRepository.findByName(teamname)
+	if u.Password != hashedPassword {
+		respond(w, http.StatusBadRequest)
+		return
+	}
+	t, err := teamRepository.findByName(teamname, teamRelationUsers)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
+	ok := checkPermission(u, t.Users)
+	if !ok {
+		respond(w, http.StatusForbidden)
 		return
 	}
 	p, err := projectRepository.first(map[string]interface{}{"name": projectname, "team_id": t.ID})
@@ -1329,7 +1339,7 @@ func (t *teamUsersHandler) store(w http.ResponseWriter, r *http.Request) {
 		for index, invitationRequest := range team.InvitationRequests {
 			users[index] = invitationRequest.InviteeUser
 		}
-		ok, err := checkPermission(r, users)
+		ok, err := checkPermissionWithRequest(r, users)
 		if err != nil {
 			respondError(w, http.StatusInternalServerError, err)
 			return
@@ -1404,7 +1414,7 @@ func (t *teamUserInvitationRequestProjectsHandler) store(w http.ResponseWriter, 
 		respondError(w, http.StatusInternalServerError, err)
 		return
 	}
-	ok, err := checkPermission(r, teamUserInvitationRequest.Team.Users)
+	ok, err := checkPermissionWithRequest(r, teamUserInvitationRequest.Team.Users)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
 		return
@@ -1485,7 +1495,7 @@ func (t *teamUserInvitationRequestsHandler) store(w http.ResponseWriter, r *http
 		respondError(w, http.StatusInternalServerError, err)
 		return
 	}
-	ok, err := checkPermission(r, team.Users)
+	ok, err := checkPermissionWithRequest(r, team.Users)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
 		return
@@ -1667,7 +1677,7 @@ func (t *testMessagesHandler) store(w http.ResponseWriter, r *http.Request) {
 		respondError(w, http.StatusInternalServerError, err)
 		return
 	}
-	ok, err := checkPermission(r, test.Project.Users)
+	ok, err := checkPermissionWithRequest(r, test.Project.Users)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
 		return
@@ -1874,13 +1884,29 @@ func (v *vulnerabilitiesHandler) store(w http.ResponseWriter, r *http.Request) {
 	scanID := r.PostFormValue("scanID")
 	teamname := r.PostFormValue("teamname")
 	projectname := r.PostFormValue("projectname")
-	if emptyAny(name, description, path, method, request, response, scanID, teamname, projectname) {
+	username := r.PostFormValue("username")
+	hashedPassword := r.PostFormValue("password")
+	if emptyAny(name, description, path, method, request, response, scanID, teamname, projectname, username, hashedPassword) {
 		respond(w, http.StatusBadRequest)
 		return
 	}
-	t, err := teamRepository.findByName(teamname)
+	u, err := userRepository.findByName(username)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
+	if u.Password != hashedPassword {
+		respond(w, http.StatusBadRequest)
+		return
+	}
+	t, err := teamRepository.findByName(teamname, teamRelationUsers)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
+	ok := checkPermission(u, t.Users)
+	if !ok {
+		respond(w, http.StatusForbidden)
 		return
 	}
 	p, err := projectRepository.first(map[string]interface{}{"name": projectname, "team_id": t.ID})

@@ -200,7 +200,7 @@ func entrypointScan() {
 	u := user{}
 	err = readJSON(filepathUser, &u)
 	s := scan{}
-	err = store(pathScans, map[string]interface{}{"commitSHA1": string(commitSHA1), "username": u.Name, "teamname": c.Teamname, "projectname": c.Projectname}, &s)
+	err = store(pathScans, map[string]interface{}{"commitSHA1": string(commitSHA1), "username": u.Name, "password": u.Password, "teamname": c.Teamname, "projectname": c.Projectname}, &s)
 	if err != nil {
 		return
 	}
@@ -258,11 +258,11 @@ func entrypointUpload() {
 	if err != nil {
 		return
 	}
-	// u := user{}
-	// err = readJSON(filepathUser, &u)
-	// if err != nil {
-	// 	return
-	// }
+	u := user{}
+	err = readJSON(filepathUser, &u)
+	if err != nil {
+		return
+	}
 	vulnerabilityFiles, err := ioutil.ReadDir(directoryVulnerabilities)
 	if err != nil {
 		return
@@ -287,10 +287,11 @@ func entrypointUpload() {
 			"scanID":      strconv.Itoa(int(v.ScanID)),
 			"teamname":    c.Teamname,
 			"projectname": c.Projectname,
+			"username":    u.Name,
+			"password":    u.Password,
 		}
 		err = store(pathVulnerabilities, data, &v)
 		if err != nil {
-			log.Println(err)
 			continue
 		}
 		os.Remove(vulnerabilityFilepath)
