@@ -1,10 +1,8 @@
 package main
 
 import (
-	"encoding/json"
 	"net/http"
 	"net/http/httputil"
-	"os"
 	"path/filepath"
 	"strings"
 
@@ -43,20 +41,11 @@ func hookRequest(r *http.Request) {
 		Header: header,
 		Body:   bodyString,
 	}
-	jsonBytes, err := json.MarshalIndent(request, "", "  ")
-	if err != nil {
-		return
-	}
 	id, err := uuid.NewUUID()
 	if err != nil {
 		return
 	}
-	file, err := os.Create(filepath.Join(directoryRequests, id.String()))
-	if err != nil {
-		return
-	}
-	defer file.Close()
-	file.Write(jsonBytes)
+	saveJSON(filepath.Join(directoryRequests, id.String()), request)
 }
 
 func hookResponse(r *http.Response) {

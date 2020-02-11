@@ -16,7 +16,7 @@ import (
 )
 
 func fetch(p string, query map[string]interface{}, model interface{}) error {
-	u := serverOrigin + path.Join(p)
+	u := serverOrigin + p
 	u += "?"
 	for key, value := range query {
 		rv := reflect.ValueOf(value)
@@ -35,6 +35,9 @@ func fetch(p string, query map[string]interface{}, model interface{}) error {
 		}
 	}
 	req, err := http.NewRequest(http.MethodGet, u, nil)
+	if err != nil {
+		return err
+	}
 	req.Header.Set(goconst.HTTP_HEADER_CONTENT_TYPE, goconst.HTTP_HEADER_CONTENT_TYPE_URLENCODED)
 	if err != nil {
 		return err

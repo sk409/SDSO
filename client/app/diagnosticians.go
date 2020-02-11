@@ -10,7 +10,6 @@ import (
 )
 
 func detectedVulnerability(request *http.Request, response *http.Response, r request, signature string) (bool, string, string, error) {
-	// MEMO: なぜかclient.Doを呼び出すとBodyが消えるため、requestを作り直す
 	request, err := r.toHTTPRequestWithSignature(signature)
 	if err != nil {
 		return false, "", "", err

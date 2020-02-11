@@ -5,17 +5,14 @@ import (
 	"crypto/rsa"
 	"crypto/x509"
 	"crypto/x509/pkix"
-	"encoding/json"
 	"encoding/pem"
 	"flag"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"math"
 	"math/big"
 	"net/http"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strconv"
 	"time"
@@ -35,9 +32,6 @@ func entrypointInit() {
 	teamname := fs.String("team", "", "team name")
 	projectname := fs.String("project", "", "project name")
 	fs.Parse(os.Args[2:])
-	if emptyAny(teamname, projectname) {
-		return
-	}
 	c := config{Teamname: *teamname, Projectname: *projectname}
 	saveJSON(filepathConfig, c)
 }
@@ -47,87 +41,30 @@ func entrypointLogin() {
 	name := fs.String("name", "", "user name")
 	password := fs.String("password", "", "password")
 	fs.Parse(os.Args[2:])
-	//hashedPassword := fmt.Sprintf("%x", sha512.Sum512([]byte(*password)))
-	fetchUsersResponse, err := sendRequest(
-		http.MethodGet,
-		route(pathUsers),
-		map[string]string{
-			"name": *name,
-		},
-	)
-	if err != nil {
-		log.Println(err.Error())
-		return
-	}
-	defer fetchUsersResponse.Body.Close()
-	usersJSONBytes, err := ioutil.ReadAll(fetchUsersResponse.Body)
-	if err != nil {
-		log.Println(err.Error())
-		return
-	}
 	users := []user{}
-	err = json.Unmarshal(usersJSONBytes, &users)
+	err := fetch(pathUsers, map[string]interface{}{"name": *name}, &users)
+	if err != nil {
+		return
+	}
 	if len(users) == 0 {
-		log.Println(string(usersJSONBytes))
-		log.Println("The specified user does not exist")
 		return
 	}
-	user := users[0]
-	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(*password))
-	if err != nil {
-		log.Println("Password does not match")
-		return
-	}
-	userJSONBytes, err := json.Marshal(user)
+	u := users[0]
+	err = bcrypt.CompareHashAndPassword([]byte(u.Password), []byte(*password))
 	if err != nil {
 		return
 	}
-	userJSONFilePath := filepath.Join(directoryAuth, "user")
-	userJSONFile, err := os.Create(userJSONFilePath)
+	err = saveJSON(userJSONFilePath, u)
 	if err != nil {
 		return
 	}
-	defer userJSONFile.Close()
-	userJSONFile.Write(userJSONBytes)
 }
 
 func entrypointRecord() {
 	fs := flag.NewFlagSet(os.Args[0], flag.ExitOnError)
-	host := fs.String("host", "abc", "Vulnerability scan target host")
-	// crtFile := fs.String("crt", makeFilePath(filepath.Join("ca", "server.crt")), "Root CA certificae")
-	// keyFile := fs.String("key", makeFilePath(filepath.Join("ca", "server.key")), "Root CA private key")
+	host := fs.String("host", "", "")
 	fs.Parse(os.Args[2:])
 	targetHost = *host
-	if len(targetHost) == 0 {
-		fmt.Println("ホストを指定してください")
-		return
-	}
-	files, err := ioutil.ReadDir("requests")
-	if err != nil {
-		for _, file := range files {
-			if file.IsDir() {
-				continue
-			}
-			jsonFile, err := os.Open(filepath.Join(directoryRequests, file.Name()))
-			if err != nil {
-				continue
-			}
-			jsonBytes, err := ioutil.ReadAll(jsonFile)
-			if err != nil {
-				continue
-			}
-			var request request
-			err = json.Unmarshal(jsonBytes, &request)
-			if err != nil {
-				continue
-			}
-			httpRequest, err := request.toHTTPRequestWithSignature("")
-			if err != nil {
-				continue
-			}
-			storeRequestSignature(newRequestSignature(httpRequest))
-		}
-	}
 	crtFilePath := filepath.Join(directoryCA, "server.crt")
 	keyFilePath := filepath.Join(directoryCA, "server.key")
 	p, err := goproxy.NewHTTPProxy(crtFilePath, keyFilePath)
@@ -138,46 +75,6 @@ func entrypointRecord() {
 	// p.Hooks.Response = hookResponse
 	http.ListenAndServe("0.0.0.0:4080", p)
 
-}
-
-func entrypointRequest() {
-	if len(os.Args) <= 2 {
-		return
-	}
-	subcommand := os.Args[2]
-	switch subcommand {
-	case "send":
-		entrypointRequestSend()
-	}
-}
-
-func entrypointRequestSend() {
-	if f, err := os.Stat(".sdso"); os.IsNotExist(err) || !f.IsDir() {
-		return
-	}
-	requestDirectory := filepath.Join(".sdso", "request")
-	files, err := filepath.Glob(filepath.Join(requestDirectory, "*.sh"))
-	if err != nil {
-		return
-	}
-	cwd, err := os.Getwd()
-	if err != nil {
-		return
-	}
-	for _, file := range files {
-		// log.Print(file)
-		command := exec.Command(filepath.Join(cwd, file))
-		command.Dir = requestDirectory
-		// command.Env = append(
-		// 	os.Environ(),
-		// 	"SDSO_CRT="+makeFilePath(filepath.Join("ca", "server.crt")),
-		// 	"SDSO_KEY="+makeFilePath(filepath.Join("ca", "server.key")),
-		// )
-		err = command.Run()
-		if err != nil {
-			log.Println(err.Error())
-		}
-	}
 }
 
 func entrypointSetup() {

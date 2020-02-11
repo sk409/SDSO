@@ -16,8 +16,6 @@ func main() {
 		entrypointLogin()
 	case "record":
 		entrypointRecord()
-	case "request":
-		entrypointRequest()
 	case "setup":
 		entrypointSetup()
 	case "scan":

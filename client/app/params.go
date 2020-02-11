@@ -13,17 +13,16 @@ var (
 	filepathConfig           = ""
 	filepathUser             = ""
 	targetHost               = ""
+	userJSONFilePath         = ""
 )
 
 const (
 	directoryProject    = ".sdso"
-	pathProjects        = "projects"
+	pathProjects        = "/projects"
 	pathScans           = "/scans"
-	pathUsers           = "users"
+	pathUsers           = "/users"
 	pathVulnerabilities = "/vulnerabilities"
 	serverOrigin        = "http://server:8080"
-	// pathUsersExist    = "users/exist"
-	// pathProjectsExist = "projects/exist"
 )
 
 func init() {
@@ -34,4 +33,5 @@ func init() {
 	directoryVulnerabilities = filepath.Join(directoryProject, "vulnerabilities")
 	filepathConfig = filepath.Join(directoryProject, "config.json")
 	filepathUser = filepath.Join(directoryAuth, "user")
+	userJSONFilePath = filepath.Join(directoryAuth, "user")
 }
