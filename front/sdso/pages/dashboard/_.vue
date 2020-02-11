@@ -26,7 +26,7 @@
           @change-branchname="changeBranchname"
           @change-revision="changeRevision"
         ></GitToolbar>
-        <div v-if="file" id="editor"></div>
+        <TextEditor v-if="file" :mode="aceMode" :value="fileText"></TextEditor>
         <v-row v-else-if="completion" justify="center">
           <v-col cols="11">
             <v-card class="mb-4">
@@ -40,9 +40,7 @@
                         @click="clickFileItem(fileItem)"
                       >
                         <td>
-                          <v-icon v-if="fileItem.isDirectory"
-                            >mdi-folder-outline</v-icon
-                          >
+                          <v-icon v-if="fileItem.isDirectory">mdi-folder-outline</v-icon>
                           <v-icon v-else>mdi-file-document-box-outline</v-icon>
                           <span class="ml-3">{{ fileItem.name }}</span>
                         </td>
@@ -64,6 +62,7 @@ import ajax from "@/assets/js/ajax.js";
 import GitToolbar from "@/components/GitToolbar.vue";
 import MainView from "@/components/MainView.vue";
 import mutations from "@/assets/js/mutations.js";
+import TextEditor from "@/components/TextEditor.vue";
 import { pathFiles, Url } from "@/assets/js/urls.js";
 import { mapMutations } from "vuex";
 
@@ -88,15 +87,16 @@ const aceMode = path => {
   return base + modes[ext];
 };
 
-let editor = null;
 export default {
   layout: "dashboard",
   components: {
     GitToolbar,
-    MainView
+    MainView,
+    TextEditor
   },
   data() {
     return {
+      aceMode: "",
       completion: false,
       file: false,
       fileItems: [],
@@ -185,13 +185,7 @@ export default {
       };
       ajax.get(url.text, data).then(response => {
         this.fileText = response.data;
-        editor = ace.edit("editor");
-        editor.$blockScrolling = Infinity;
-        editor.setTheme("ace/theme/xcode");
-        editor.setFontSize(20);
-        editor.setReadOnly(true);
-        editor.setValue(response.data);
-        editor.getSession().setMode(aceMode(path));
+        this.aceMode = aceMode(path);
         this.completion = true;
       });
     },
@@ -206,10 +200,3 @@ export default {
   }
 };
 </script>
-
-<style>
-#editor {
-  width: 100%;
-  height: 85%;
-}
-</style>

@@ -16,14 +16,13 @@
               outlined
               class="ml-auto"
               @click="$router.push($routes.dashboard.files())"
-              >ファイルを確認</v-btn
-            >
+            >ファイルを確認</v-btn>
           </v-card-title>
           <v-card-text class="pa-3">
             <pre class="body-1 overflow-x-auto">{{ commit.message }}</pre>
           </v-card-text>
         </v-card>
-        <div id="editor" class="w-100 h-100 mt-5"></div>
+        <TextEditor mode="ace/mode/diff" :value="diff"></TextEditor>
       </v-container>
     </template>
   </MainView>
@@ -34,22 +33,28 @@ import ajax from "@/assets/js/ajax.js";
 import DashboardMenuGit from "@/components/DashboardMenuGit.vue";
 import GitToolbar from "@/components/GitToolbar.vue";
 import MainView from "@/components/MainView.vue";
+import TextEditor from "@/components/TextEditor.vue";
 import { pathCommits, Url } from "@/assets/js/urls.js";
-let editor = null;
+
 export default {
   layout: "dashboard",
   components: {
     DashboardMenuGit,
     GitToolbar,
-    MainView
+    MainView,
+    TextEditor
   },
   data() {
     return {
       commit: null
     };
   },
+  computed: {
+    diff() {
+      return this.commit ? this.commit.diff : "";
+    }
+  },
   mounted() {
-    this.setupAce();
     this.fetchCommit();
   },
   methods: {
@@ -73,16 +78,7 @@ export default {
       };
       ajax.get(url.show(sha1), data).then(response => {
         this.commit = response.data;
-        editor.setValue(this.commit.diff);
       });
-    },
-    setupAce() {
-      editor = ace.edit("editor");
-      // editor.$blockScrolling = Infinity;
-      editor.setTheme("ace/theme/xcode");
-      editor.setFontSize(20);
-      editor.setReadOnly(true);
-      editor.getSession().setMode("ace/mode/diff");
     }
   }
 };
