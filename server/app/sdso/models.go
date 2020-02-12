@@ -43,6 +43,7 @@ var (
 	testMessageRelationTestProjectUsers        = "Test.Project.Users"
 	vulnerabilityRelationProject               = "Project"
 	vulnerabilityRelationProjectUsers          = "Project.Users"
+	vulnerabilityRelationScan                  = "Scan"
 )
 
 type branchProtectionRule struct {
@@ -244,11 +245,13 @@ type testResult struct {
 
 type user struct {
 	ID               uint      `gorm:"primary_key" json:"id"`
-	CreatedAt        time.Time `json:"createdAt"`
-	UpdatedAt        time.Time `json:"updatedAt"`
 	Name             string    `gorm:"type:varchar(32);not null;unique" json:"name"`
 	Password         string    `gorm:"type:char(60);not null;" json:"password"`
+	Handlename       string    `gorm:"type:varchar(32);not null" json:"handlename"`
+	Email            string    `gorm:"type:varchar(254);not null;unique" json:"email"`
 	ProfileImagePath string    `gorm:"type:varchar(256);not null;" json:"profileImagePath"`
+	CreatedAt        time.Time `json:"createdAt"`
+	UpdatedAt        time.Time `json:"updatedAt"`
 }
 
 type vulnerability struct {

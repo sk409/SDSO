@@ -31,7 +31,6 @@ Vue.prototype.$routes = {
     base: "/register"
   },
   teams: {
-    create: "/teams/create",
     members(id) {
       return `/teams/${id}/members`;
     },

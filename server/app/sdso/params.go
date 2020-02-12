@@ -11,16 +11,17 @@ import (
 )
 
 var (
-	cwd                string
-	gitTmpRepositories *gogit.Git
-	gitRepositories    *gogit.Git
-	gitTesting         *gogit.Git
-	gitServer          *gogit.HTTPServer
-	pathNoImage        string
-	pathPublic         string
-	pathPubilcImages   string
-	pathRepositories   string
-	testStatusColors   = map[string]string{}
+	cwd                     string
+	gitTmpRepositories      *gogit.Git
+	gitRepositories         *gogit.Git
+	gitTesting              *gogit.Git
+	gitServer               *gogit.HTTPServer
+	pathMailTemplateMessage string
+	pathNoImage             string
+	pathPublic              string
+	pathPubilcImages        string
+	pathRepositories        string
+	testStatusColors        = map[string]string{}
 )
 
 var (
@@ -65,6 +66,7 @@ func init() {
 	}
 	pathPublic = "public"
 	pathPubilcImages = filepath.Join(pathPublic, "images")
+	pathMailTemplateMessage = filepath.Join(cwd, "mail_templates", "message.html")
 	pathNoImage = filepath.Join(pathPubilcImages, "noimage.png")
 	pathRepositories = filepath.Join(cwd, "repositories")
 	gitTmpRepositories = gogit.NewGit(filepath.Join(cwd, "..", "tmp_repositories"), gitBinPath)

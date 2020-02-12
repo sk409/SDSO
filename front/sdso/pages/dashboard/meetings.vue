@@ -3,12 +3,7 @@
     <MainView>
       <template v-slot:sidemenu>
         <div class="d-flex meetings-toolbar">
-          <v-btn
-            v-if="$store.state.projects.project"
-            icon
-            class="ml-auto"
-            @click="dialog = true"
-          >
+          <v-btn v-if="$store.state.projects.project" icon class="ml-auto" @click="dialog = true">
             <v-icon>mdi-plus</v-icon>
           </v-btn>
         </div>
@@ -18,9 +13,7 @@
             :key="meeting.id"
             @click="selectMeeting(meeting)"
           >
-            <v-list-item-title>
-              {{ meeting.name }}
-            </v-list-item-title>
+            <v-list-item-title>{{ meeting.name }}</v-list-item-title>
           </v-list-item>
         </v-list>
       </template>
@@ -37,26 +30,17 @@
                 </v-btn>
               </template>
               <v-list>
-                <v-list-item
-                  v-for="user in selectedMeeting.users"
-                  :key="user.id"
-                >
+                <v-list-item v-for="user in selectedMeeting.users" :key="user.id">
                   <v-list-item-avatar>
                     <v-img :src="$serverUrl(user.profileImagePath)"></v-img>
                   </v-list-item-avatar>
-                  <v-list-item-title>
-                    {{ user.name }}
-                  </v-list-item-title>
+                  <v-list-item-title>{{ user.name }}</v-list-item-title>
                 </v-list-item>
               </v-list>
             </v-menu>
           </div>
         </div>
-        <MessagesView
-          :messages="messages"
-          @send="sendMessage"
-          class="messages"
-        ></MessagesView>
+        <MessagesView :messages="messages" :users="users" @send="sendMessage" class="messages"></MessagesView>
       </template>
     </MainView>
     <v-dialog v-model="dialog" class="w-75">

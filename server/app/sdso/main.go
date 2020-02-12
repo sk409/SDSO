@@ -3,10 +3,18 @@ package main
 import (
 	"net/http"
 
+	"github.com/joho/godotenv"
+
 	"github.com/sk409/goconst"
 )
 
 func main() {
+
+	err := godotenv.Load(".env")
+	if err != nil {
+		panic(err)
+	}
+
 	rootRouter := router{}
 	rootRouter.gitBasicAuth()
 	rootRouter.handler = &gitHandler{}
@@ -117,6 +125,7 @@ func main() {
 
 	teamsRouter := router{}
 	teamsRouter.cors()
+	teamsRouter.allowCredentials()
 	teamsRouter.handler = &teamsHandler{}
 	http.Handle("/teams/", &teamsRouter)
 

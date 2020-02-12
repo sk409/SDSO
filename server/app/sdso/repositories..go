@@ -863,7 +863,7 @@ type userRepositoryInterface interface {
 	findByID(uint, ...string) (*user, error)
 	findByIDs([]uint, ...string) ([]user, error)
 	findByName(string, ...string) (*user, error)
-	saveWith(name, password, profileImagePath string) (*user, error)
+	saveWith(name, password, handlename, email, profileImagePath string) (*user, error)
 }
 
 type userRepositoryGORM struct {
@@ -905,9 +905,9 @@ func (u *userRepositoryGORM) findByName(name string, preloads ...string) (*user,
 	return &user, nil
 }
 
-func (u *userRepositoryGORM) saveWith(name, password, profileImagePath string) (*user, error) {
+func (u *userRepositoryGORM) saveWith(name, password, handlename, email, profileImagePath string) (*user, error) {
 	user := user{}
-	query := map[string]interface{}{"Name": name, "Password": password, "ProfileImagePath": profileImagePath}
+	query := map[string]interface{}{"Name": name, "Password": password, "Handlename": handlename, "Email": email, "ProfileImagePath": profileImagePath}
 	err := saveGORM(query, &user)
 	if err != nil {
 		return nil, err

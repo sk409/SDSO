@@ -5,37 +5,50 @@
         <v-card class="pa-4">
           <v-card-title>ログイン</v-card-title>
           <v-card-text>
-            <AuthForm
-              icon="mdi-login"
-              text="ログイン"
-              @submit="login"
-            ></AuthForm>
+            <v-form>
+              <v-text-field v-model="username" :rules="usernameRules" label="ユーザ名"></v-text-field>
+              <v-text-field
+                v-model="password"
+                autocomplete
+                :rules="passwordRules"
+                type="password"
+                label="パスワード"
+              ></v-text-field>
+            </v-form>
           </v-card-text>
+          <v-card-actions>
+            <v-btn color="accent" class="mx-auto" @click="login">ログイン</v-btn>
+          </v-card-actions>
         </v-card>
       </v-col>
     </v-row>
     <div class="text-center mt-5">
-      <v-btn color="secondary" text :to="$routes.register.base"
-        >アカウントをお持ちでない方</v-btn
-      >
+      <v-btn color="secondary" text :to="$routes.register.base">アカウントをお持ちでない方</v-btn>
     </div>
   </div>
 </template>
 
 <script>
-import AuthForm from "@/components/AuthForm.vue";
 import ajax from "@/assets/js/ajax.js";
 import { pathLogin, Url } from "@/assets/js/urls.js";
 export default {
-  components: {
-    AuthForm
+  data() {
+    return {
+      username: "",
+      usernameRules: [
+        v => !!v || "ユーザ名を入力してください",
+        v => (v && v.length <= 32) || "32文字以内で入力してください"
+      ],
+      password: "",
+      passwordRules: [v => !!v || "パスワードを入力してください"]
+    };
   },
   methods: {
-    login(username, password) {
+    login() {
       const url = new Url(pathLogin);
       const data = {
-        username,
-        password
+        username: this.username,
+        password: this.password
       };
       const config = {
         withCredentials: true

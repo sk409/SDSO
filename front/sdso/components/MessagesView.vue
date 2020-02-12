@@ -21,17 +21,14 @@
           v-if="inputs[index].visible"
           :parent="message"
           :rows.sync="inputs[index].rows"
+          :users="users"
           class="w-100 replay-message-input"
           @send="send"
         ></MessageInput>
         <v-divider></v-divider>
       </div>
     </div>
-    <MessageInput
-      :rows.sync="rows"
-      class="message-input w-100"
-      @send="send"
-    ></MessageInput>
+    <MessageInput :rows.sync="rows" :users="users" class="message-input w-100" @send="send"></MessageInput>
   </div>
 </template>
 
@@ -44,6 +41,9 @@ export default {
     messages: {
       type: Array,
       required: true
+    },
+    users: {
+      type: Array
     }
   },
   components: {

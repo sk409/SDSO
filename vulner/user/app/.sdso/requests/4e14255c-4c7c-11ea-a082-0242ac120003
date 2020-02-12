@@ -1,1 +1,0 @@
-{"method":"POST","url":"http://192.168.10.103:4800/os_command_injection/post.php","path":"/os_command_injection/post.php","header":{"Accept-Encoding":["gzip"],"Content-Length":["15"],"Content-Type":["application/x-www-form-urlencoded"],"User-Agent":["Go-http-client/1.1"]},"body":"name=\u0026password="}

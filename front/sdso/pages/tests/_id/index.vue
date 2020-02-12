@@ -36,7 +36,11 @@
           </v-expansion-panels>
         </v-tab-item>
         <v-tab-item value="コメント">
-          <MessagesView :messages="messages" @send="sendMessage"></MessagesView>
+          <MessagesView
+            :messages="messages"
+            :users="users"
+            @send="sendMessage"
+          ></MessagesView>
         </v-tab-item>
       </v-tabs-items>
     </v-card>
@@ -46,7 +50,12 @@
 <script>
 import ajax from "@/assets/js/ajax.js";
 import MessagesView from "@/components/MessagesView.vue";
-import { pathTests, pathTestMessages, Url } from "@/assets/js/urls.js";
+import {
+  pathProjects,
+  pathTests,
+  pathTestMessages,
+  Url
+} from "@/assets/js/urls.js";
 import { setupTest } from "@/assets/js/utils.js";
 
 let socket = null;
@@ -64,14 +73,15 @@ export default {
       messages: [],
       tabActive: "",
       tabs: ["コマンド", "コメント"],
-      test: null
+      test: null,
+      users: []
     };
   },
   created() {
     this.fetchMessages();
     this.$fetchUser().then(response => {
       user = response.data;
-      this.fetchTest();
+      this.fetchTestAndUsers();
       this.setupSocketMessage();
       this.setupSocketTest();
     });
@@ -87,7 +97,7 @@ export default {
         this.messages = response.data;
       });
     },
-    fetchTest() {
+    fetchTestAndUsers() {
       const url = new Url(pathTests);
       const data = {
         id: this.$route.params.id
@@ -95,6 +105,13 @@ export default {
       ajax.get(url.base, data).then(response => {
         this.test = response.data[0];
         setupTest(this.test);
+        const url = new Url(pathProjects);
+        const data = {
+          id: this.test.projectId
+        };
+        ajax.get(url.base, data).then(response => {
+          this.users = response.data[0].users;
+        });
       });
     },
     sendMessage(message, parent) {

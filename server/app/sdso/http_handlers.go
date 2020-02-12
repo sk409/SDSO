@@ -291,7 +291,7 @@ func (d *dastVulnerabilityMessagesHandler) store(w http.ResponseWriter, r *http.
 		respond(w, http.StatusBadRequest)
 		return
 	}
-	v, err := vulnerabilityRepository.first(map[string]interface{}{"id": vulnerabilityID}, vulnerabilityRelationProject, vulnerabilityRelationProjectUsers)
+	v, err := vulnerabilityRepository.first(map[string]interface{}{"id": vulnerabilityID}, vulnerabilityRelationScan, vulnerabilityRelationProjectUsers)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
 		return
@@ -328,6 +328,14 @@ func (d *dastVulnerabilityMessagesHandler) store(w http.ResponseWriter, r *http.
 		respondError(w, http.StatusInternalServerError, err)
 		return
 	}
+	go func() {
+		u, err := authenticatedUser(r)
+		if err != nil {
+			return
+		}
+		place := "脆弱性(コミットのSHA1=" + v.Scan.CommitSHA1 + ")"
+		sendMailMessage(u.Name, place, dastVulnerabilityMessage.Text, v.Project.Users)
+	}()
 }
 
 type filesHandler struct {
@@ -794,6 +802,14 @@ func (m *meetingMessagesHandler) store(w http.ResponseWriter, r *http.Request) {
 		respondError(w, http.StatusInternalServerError, err)
 		return
 	}
+	go func() {
+		u, err := authenticatedUser(r)
+		if err != nil {
+			return
+		}
+		place := "ミーティング「" + meeting.Name + "」"
+		sendMailMessage(u.Name, place, meetingMessage.Text, meeting.Users)
+	}()
 }
 
 type meetingUsersHandler struct {
@@ -1088,7 +1104,9 @@ func (h *registerHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 func (h *registerHandler) register(w http.ResponseWriter, r *http.Request) {
 	username := r.PostFormValue("username")
 	password := r.PostFormValue("password")
-	if emptyAny(username, password) {
+	handlename := r.PostFormValue("handlename")
+	email := r.PostFormValue("email")
+	if emptyAny(username, password, handlename, email) {
 		respond(w, http.StatusNotFound)
 		return
 	}
@@ -1097,7 +1115,7 @@ func (h *registerHandler) register(w http.ResponseWriter, r *http.Request) {
 		respondError(w, http.StatusInternalServerError, err)
 		return
 	}
-	u, err := userRepository.saveWith(username, string(hashedPassword), pathNoImage)
+	u, err := userRepository.saveWith(username, string(hashedPassword), handlename, email, pathNoImage)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
 		return
@@ -1704,6 +1722,14 @@ func (t *testMessagesHandler) store(w http.ResponseWriter, r *http.Request) {
 		respondError(w, http.StatusInternalServerError, err)
 		return
 	}
+	go func() {
+		u, err := authenticatedUser(r)
+		if err != nil {
+			return
+		}
+		place := "テスト(コミットのSHA1=" + test.CommitSHA1 + ")"
+		sendMailMessage(u.Name, place, testMessage.Text, test.Project.Users)
+	}()
 }
 
 type testResultsHandler struct {

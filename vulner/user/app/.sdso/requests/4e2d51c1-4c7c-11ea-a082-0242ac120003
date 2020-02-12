@@ -1,1 +1,0 @@
-{"method":"GET","url":"http://192.168.10.103:4800/xss/get.php?name=\u0026password=\u0026","path":"/xss/get.php","header":{"Accept-Encoding":["gzip"],"Content-Type":["application/x-www-form-urlencoded"],"User-Agent":["Go-http-client/1.1"]},"body":""}

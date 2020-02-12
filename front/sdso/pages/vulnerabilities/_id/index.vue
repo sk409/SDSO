@@ -4,7 +4,9 @@
     <v-divider class="mb-7"></v-divider>
     <v-card class="pb-5">
       <v-tabs v-model="tabActive" class="mb-3">
-        <v-tab v-for="tab in tabs" :key="tab" :href="`#${tab}`">{{ tab }}</v-tab>
+        <v-tab v-for="tab in tabs" :key="tab" :href="`#${tab}`">{{
+          tab
+        }}</v-tab>
       </v-tabs>
       <v-tabs-items v-model="tabActive" class="mx-5">
         <v-tab-item value="詳細情報">
@@ -17,15 +19,25 @@
           </div>
           <div class="mb-2">
             <div class="mb-1">リクエスト</div>
-            <pre class="pa-3 blue-grey darken-4 white--text w-100 overflow-x-auto">{{ vulnerability.request }}</pre>
+            <pre
+              class="pa-3 blue-grey darken-4 white--text w-100 overflow-x-auto"
+              >{{ vulnerability.request }}</pre
+            >
           </div>
           <div>
             <div class="mb-1">レスポンス</div>
-            <pre class="pa-3 blue-grey darken-4 white--text w-100 overflow-x-auto">{{ vulnerability.response }}</pre>
+            <pre
+              class="pa-3 blue-grey darken-4 white--text w-100 overflow-x-auto"
+              >{{ vulnerability.response }}</pre
+            >
           </div>
         </v-tab-item>
         <v-tab-item value="コメント">
-          <MessagesView :messages="messages" @send="sendMessage"></MessagesView>
+          <MessagesView
+            :messages="messages"
+            :users="users"
+            @send="sendMessage"
+          ></MessagesView>
         </v-tab-item>
       </v-tabs-items>
     </v-card>
@@ -37,6 +49,7 @@ import ajax from "@/assets/js/ajax.js";
 import MessagesView from "@/components/MessagesView.vue";
 import {
   pathDastVulnerabilityMessages,
+  pathProjects,
   pathVulnerabilities,
   Url
 } from "@/assets/js/urls.js";
@@ -65,6 +78,7 @@ export default {
       ],
       tabActive: "",
       tabs: ["詳細情報", "コメント"],
+      users: [],
       vulnerability: null
     };
   },
@@ -73,10 +87,10 @@ export default {
       user = response.data;
       this.setupSocket();
     });
-    this.fetchVulnerabilityAndMessages();
+    this.fetchVulnerabilityAndMessagesAndUsers();
   },
   methods: {
-    fetchVulnerabilityAndMessages() {
+    fetchVulnerabilityAndMessagesAndUsers() {
       const url = new Url(pathVulnerabilities);
       const data = {
         id: this.$route.params.id
@@ -93,6 +107,14 @@ export default {
         })
         .then(response => {
           this.messages = response.data;
+          const url = new Url(pathProjects);
+          const data = {
+            id: this.vulnerability.scan.projectId
+          };
+          return ajax.get(url.base, data);
+        })
+        .then(response => {
+          this.users = response.data[0].users;
         });
     },
     sendMessage(message, parent) {

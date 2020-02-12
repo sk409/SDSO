@@ -12,7 +12,6 @@ const _00f9fb85 = () => interopDefault(import('../pages/dashboard/dast.vue' /* w
 const _244fbcff = () => interopDefault(import('../pages/dashboard/meetings.vue' /* webpackChunkName: "pages/dashboard/meetings" */))
 const _3eecd882 = () => interopDefault(import('../pages/dashboard/members.vue' /* webpackChunkName: "pages/dashboard/members" */))
 const _05bcb9ca = () => interopDefault(import('../pages/dashboard/tests.vue' /* webpackChunkName: "pages/dashboard/tests" */))
-const _6afea7c1 = () => interopDefault(import('../pages/teams/create.vue' /* webpackChunkName: "pages/teams/create" */))
 const _ae363a12 = () => interopDefault(import('../pages/dashboard/commits/show.vue' /* webpackChunkName: "pages/dashboard/commits/show" */))
 const _0ef4af9a = () => interopDefault(import('../pages/tests/_id/index.vue' /* webpackChunkName: "pages/tests/_id/index" */))
 const _032c796c = () => interopDefault(import('../pages/vulnerabilities/_id/index.vue' /* webpackChunkName: "pages/vulnerabilities/_id/index" */))
@@ -74,10 +73,6 @@ export const routerOptions = {
     path: "/dashboard/tests",
     component: _05bcb9ca,
     name: "dashboard-tests"
-  }, {
-    path: "/teams/create",
-    component: _6afea7c1,
-    name: "teams-create"
   }, {
     path: "/dashboard/commits/show",
     component: _ae363a12,
