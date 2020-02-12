@@ -3,7 +3,12 @@
     <MainView>
       <template v-slot:sidemenu>
         <div class="d-flex meetings-toolbar">
-          <v-btn v-if="$store.state.projects.project" icon class="ml-auto" @click="dialog = true">
+          <v-btn
+            v-if="$store.state.projects.project"
+            icon
+            class="ml-auto"
+            @click="dialog = true"
+          >
             <v-icon>mdi-plus</v-icon>
           </v-btn>
         </div>
@@ -30,7 +35,10 @@
                 </v-btn>
               </template>
               <v-list>
-                <v-list-item v-for="user in selectedMeeting.users" :key="user.id">
+                <v-list-item
+                  v-for="user in selectedMeeting.users"
+                  :key="user.id"
+                >
                   <v-list-item-avatar>
                     <v-img :src="$serverUrl(user.profileImagePath)"></v-img>
                   </v-list-item-avatar>
@@ -40,7 +48,12 @@
             </v-menu>
           </div>
         </div>
-        <MessagesView :messages="messages" :users="users" @send="sendMessage" class="messages"></MessagesView>
+        <MessagesView
+          :messages="messages"
+          :users="users"
+          @send="sendMessage"
+          class="messages"
+        ></MessagesView>
       </template>
     </MainView>
     <v-dialog v-model="dialog" class="w-75">
@@ -214,6 +227,9 @@ export default {
 </script>
 
 <style>
+pre {
+  font-family: "Roboto", sans-serif;
+}
 .meetings-toolbar {
   height: 20px;
 }

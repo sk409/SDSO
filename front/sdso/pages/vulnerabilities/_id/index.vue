@@ -154,6 +154,9 @@ export default {
 </script>
 
 <style>
+pre {
+  font-family: "Roboto", sans-serif;
+}
 .messages-view {
   height: 450px;
 }

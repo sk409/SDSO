@@ -1,37 +1,37 @@
 <!DOCTYPE html>
 <html lang="ja">
-
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Document</title>
     <style>
-        body {
-            background: rgb(230, 230, 230);
-            font-size: 1.3rem;
-        }
+      body {
+        background: rgb(230, 230, 230);
+        font-size: 2rem;
+      }
 
-        .container {
-            padding: 1rem;
-            width: 65%;
-            margin: 0 auto;
-            background: white;
-        }
+      .container {
+        padding: 1rem;
+        width: 65%;
+        margin: 0 auto;
+        background: white;
+      }
 
-        .message {
-            font-size: 1.5rem;
-            padding-left: 1rem;
-            border-left: 3px solid #3f51b5;
-        }
+      .message {
+        font-size: 1.5rem;
+        padding-left: 1rem;
+        border-left: 3px solid #3f51b5;
+      }
     </style>
-</head>
+  </head>
 
-<body>
+  <body>
     <div class="container">
-        <h3>${receiver}さんにメッセージが届きました</h3>
-        <p>${sender}さんが${place}で${receiver}さんにメッセージを送信しました。</p>
-        <pre class="message">${message}</pre>
+      <h3>${receiver}さんにメッセージが届きました</h3>
+      <p>
+        ${sender}さんが${place}で${receiver}さんにメッセージを送信しました。
+      </p>
+      <pre class="message">${message}</pre>
     </div>
-</body>
-
+  </body>
 </html>
