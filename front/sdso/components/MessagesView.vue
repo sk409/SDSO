@@ -1,6 +1,9 @@
 <template>
   <div class="h-100 messages-view">
-    <div ref="messages" class="messages overflow-y-auto">
+    <div ref="messages" class="messages overflow-y-auto" @scroll="scroll">
+      <div v-if="more" class="text-center mt-3">
+        <v-progress-circular indeterminate></v-progress-circular>
+      </div>
       <div
         v-for="(message, index) in messages"
         :key="message.id"
@@ -25,10 +28,15 @@
           class="w-100 replay-message-input"
           @send="send"
         ></MessageInput>
-        <v-divider></v-divider>
+        <v-divider class="mt-2"></v-divider>
       </div>
     </div>
-    <MessageInput :rows.sync="rows" :users="users" class="message-input w-100" @send="send"></MessageInput>
+    <MessageInput
+      :rows.sync="rows"
+      :users="users"
+      class="message-input w-100"
+      @send="send"
+    ></MessageInput>
   </div>
 </template>
 
@@ -36,10 +44,18 @@
 import MessageInput from "@/components/MessageInput.vue";
 import MessageView from "@/components/MessageView.vue";
 import { count } from "@/assets/js/utils.js";
+let fetchLength = 10;
 export default {
   props: {
-    messages: {
-      type: Array,
+    loadMessages: {
+      type: Function
+    },
+    messageCount: {
+      type: Number,
+      required: true
+    },
+    postMessage: {
+      type: Function,
       required: true
     },
     users: {
@@ -53,23 +69,32 @@ export default {
   data() {
     return {
       inputs: [],
+      messages: [],
       rows: 1
     };
   },
+  computed: {
+    more() {
+      return (
+        fetchLength < this.messages.length &&
+        this.messages.length !== this.messageCount
+      );
+    }
+  },
   mounted() {
-    this.$nextTick(() => {
-      this.scroll();
+    this.loadMessages(0, fetchLength).then(response => {
+      this.messages = response.data;
+      this.$nextTick(() => {
+        this.scrollToBottom();
+      });
     });
   },
   watch: {
-    messages: {
-      immediate: true,
-      handler(messages) {
-        this.inputs = messages.map(message => ({ rows: 1, visible: false }));
-        this.$nextTick(() => {
-          this.scroll();
-        });
-      }
+    messages(newMessages) {
+      this.inputs = newMessages.map(message => ({
+        rows: 1,
+        visible: false
+      }));
     }
   },
   methods: {
@@ -92,8 +117,26 @@ export default {
       message.parents = this.messages.filter(message =>
         parents.find(parent => parent.id === message.id)
       );
+      if (index === this.messages.length - 1) {
+        this.scrollToBottom();
+      }
     },
     scroll() {
+      if (this.$refs.messages.scrollTop === 0) {
+        const preScrollHeight = this.$refs.messages.scrollHeight;
+        this.loadMessages(
+          this.messages.length,
+          this.messages.length + fetchLength
+        ).then(response => {
+          this.messages = response.data.concat(this.messages);
+          this.$nextTick(() => {
+            this.$refs.messages.scrollTop +=
+              this.$refs.messages.scrollHeight - preScrollHeight;
+          });
+        });
+      }
+    },
+    scrollToBottom() {
       const messages = this.$refs.messages;
       if (!messages) {
         return;
@@ -101,7 +144,13 @@ export default {
       messages.scrollTop = messages.scrollHeight;
     },
     send(message, parent) {
-      this.$emit("send", message, parent);
+      this.postMessage(message, parent).then(response => {
+        this.messages.push(response.data);
+        this.$nextTick(() => {
+          this.scrollToBottom();
+        });
+        this.$emit("update:messageCount", this.messageCount + 1);
+      });
     }
   }
 };

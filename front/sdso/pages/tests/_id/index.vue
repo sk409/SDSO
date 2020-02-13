@@ -37,7 +37,9 @@
         </v-tab-item>
         <v-tab-item value="コメント">
           <MessagesView
+            :load-messages="fetchMessages"
             :messages="messages"
+            :more="more"
             :users="users"
             @send="sendMessage"
           ></MessagesView>
@@ -58,6 +60,7 @@ import {
 } from "@/assets/js/urls.js";
 import { setupTest } from "@/assets/js/utils.js";
 
+let fetchLength = 10;
 let socket = null;
 let user = null;
 const statusLoading = "statusLoading";
@@ -70,12 +73,21 @@ export default {
   },
   data() {
     return {
+      messageCount: 0,
       messages: [],
       tabActive: "",
       tabs: ["コマンド", "コメント"],
       test: null,
       users: []
     };
+  },
+  computed: {
+    more() {
+      return (
+        fetchLength < this.messages.length &&
+        this.messages.length !== this.messageCount
+      );
+    }
   },
   created() {
     this.fetchMessages();
@@ -87,14 +99,28 @@ export default {
     });
   },
   methods: {
-    fetchMessages() {
+    fetchMessageCount() {
       const testId = this.$route.params.id;
       const url = new Url(pathTestMessages);
       const data = {
         testId
       };
-      ajax.get(url.base, data).then(response => {
-        this.messages = response.data;
+      ajax.get(url.count, data).then(response => {
+        this.messageCount = Number(response.data);
+      });
+    },
+    fetchMessages() {
+      const start = this.messages.length;
+      const end = start + fetchLength;
+      const testId = this.$route.params.id;
+      const url = new Url(pathTestMessages);
+      const data = {
+        start,
+        end,
+        testId
+      };
+      ajax.get(url.range, data).then(response => {
+        this.messages = response.data.concat(this.messages);
       });
     },
     fetchTestAndUsers() {

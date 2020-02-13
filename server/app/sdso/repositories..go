@@ -188,6 +188,7 @@ func (m *meetingRepositoryGORM) save(query map[string]interface{}) (*meeting, er
 type meetingMessageRepositoryInterface interface {
 	find(map[string]interface{}, ...string) ([]meetingMessage, error)
 	findByID(uint, ...string) (*meetingMessage, error)
+	findOrderLimit(query map[string]interface{}, order string, limit interface{}, preloads ...string) ([]meetingMessage, error)
 	save(map[string]interface{}) (*meetingMessage, error)
 }
 
@@ -210,6 +211,15 @@ func (m *meetingMessageRepositoryGORM) findByID(id uint, preloads ...string) (*m
 		return nil, err
 	}
 	return &meetingMessage, nil
+}
+
+func (m *meetingMessageRepositoryGORM) findOrderLimit(query map[string]interface{}, order string, limit interface{}, preloads ...string) ([]meetingMessage, error) {
+	meetingMessages := []meetingMessage{}
+	err := findOrderLimitGORM(query, order, limit, &meetingMessages, meetingMessageAllRelation, preloads...)
+	if err != nil {
+		return nil, err
+	}
+	return meetingMessages, nil
 }
 
 func (m *meetingMessageRepositoryGORM) save(query map[string]interface{}) (*meetingMessage, error) {
@@ -738,6 +748,7 @@ func (t *testRepositoryGORM) save(query map[string]interface{}) (*test, error) {
 type testMessageRepositoryInterface interface {
 	find(map[string]interface{}, ...string) ([]testMessage, error)
 	findByID(uint, ...string) (*testMessage, error)
+	findOrderLimit(query map[string]interface{}, order string, limit interface{}, preloads ...string) ([]testMessage, error)
 	save(map[string]interface{}) (*testMessage, error)
 }
 
@@ -760,6 +771,15 @@ func (t *testMessageRepositoryGORM) findByID(id uint, preloads ...string) (*test
 		return nil, err
 	}
 	return &testMessage, nil
+}
+
+func (t *testMessageRepositoryGORM) findOrderLimit(query map[string]interface{}, order string, limit interface{}, preloads ...string) ([]testMessage, error) {
+	testMessages := []testMessage{}
+	err := findOrderLimitGORM(query, order, limit, &testMessages, testMessageAllRelation, preloads...)
+	if err != nil {
+		return nil, err
+	}
+	return testMessages, nil
 }
 
 func (t *testMessageRepositoryGORM) save(query map[string]interface{}) (*testMessage, error) {

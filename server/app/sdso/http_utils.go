@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"reflect"
 	"strconv"
 	"strings"
 
@@ -65,7 +66,8 @@ func login(w http.ResponseWriter, username, password string) (*user, error) {
 	return u, nil
 }
 
-func makeQuery(r *http.Request, snake bool) map[string]interface{} {
+func makeQuery(r *http.Request, model interface{}, snake bool) map[string]interface{} {
+	rt := reflect.TypeOf(model)
 	m := make(map[string]interface{})
 	values := url.Values{}
 	if r.Method == http.MethodGet {
@@ -75,6 +77,10 @@ func makeQuery(r *http.Request, snake bool) map[string]interface{} {
 		values = r.PostForm
 	}
 	for key, value := range values {
+		u := string(gocase.UpperCamelCase([]byte(key), true))
+		if _, ok := rt.FieldByName(u); !ok {
+			continue
+		}
 		k := key
 		if snake {
 			k = string(gocase.SnakeCase([]byte(key)))

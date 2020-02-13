@@ -49,9 +49,10 @@
           </div>
         </div>
         <MessagesView
-          :messages="messages"
+          :load-messages="fetchMessages"
+          :message-count.sync="messageCount"
+          :post-message="storeMessage"
           :users="users"
-          @send="sendMessage"
           class="messages"
         ></MessagesView>
       </template>
@@ -98,7 +99,7 @@ export default {
     return {
       dialog: false,
       meetings: [],
-      messages: [],
+      messageCount: 0,
       selectedMeeting: null,
       users: []
     };
@@ -154,14 +155,23 @@ export default {
           );
         });
     },
-    fetchMessages() {
+    fetchMessageCount() {
       const url = new Url(pathMeetingMessages);
       const data = {
         meetingId: this.selectedMeeting.id
       };
-      ajax.get(url.base, data).then(response => {
-        this.messages = response.data;
+      ajax.get(url.count, data).then(response => {
+        this.messageCount = Number(response.data);
       });
+    },
+    fetchMessages(start, end) {
+      const url = new Url(pathMeetingMessages);
+      const data = {
+        start,
+        end,
+        meetingId: this.selectedMeeting.id
+      };
+      return ajax.get(url.range, data);
     },
     fetchUsers() {
       const project = this.$store.state.projects.project;
@@ -187,23 +197,9 @@ export default {
           this.users = response.data;
         });
     },
-    sendMessage(message, parent) {
-      const url = new Url(pathMeetingMessages);
-      const data = {
-        text: message,
-        meetingId: this.selectedMeeting.id,
-        userId: user.id
-      };
-      if (parent) {
-        data.parentId = parent.id;
-      }
-      ajax.post(url.base, data).then(response => {
-        this.messages.push(response.data);
-      });
-    },
     selectMeeting(meeting) {
       this.selectedMeeting = meeting;
-      this.fetchMessages();
+      this.fetchMessageCount();
     },
     setupScoket() {
       const url = new Url(pathMeetingMessages);
@@ -221,6 +217,18 @@ export default {
         }
         this.messages.push(message);
       };
+    },
+    storeMessage(message, parent) {
+      const url = new Url(pathMeetingMessages);
+      const data = {
+        text: message,
+        meetingId: this.selectedMeeting.id,
+        userId: user.id
+      };
+      if (parent) {
+        data.parentId = parent.id;
+      }
+      return ajax.post(url.base, data);
     }
   }
 };

@@ -117,6 +117,19 @@ func getBranchNameAndCommitSHA1(r *http.Request) (string, string, error) {
 	return branchName, commitSHA1, nil
 }
 
+func reverse(s interface{}) (interface{}, error) {
+	if !gotype.IsSlice(s) {
+		return nil, errInvalidType
+	}
+	rv := reflect.ValueOf(s)
+	for i, j := 0, rv.Len()-1; i < j; i, j = i+1, j-1 {
+		tmp := reflect.ValueOf(rv.Index(i).Interface())
+		rv.Index(i).Set(rv.Index(j))
+		rv.Index(j).Set(tmp)
+	}
+	return s, nil
+}
+
 func stringsToUints(strings []string) []uint {
 	uints := make([]uint, len(strings))
 	for index, str := range strings {

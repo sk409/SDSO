@@ -2,12 +2,14 @@ package main
 
 import (
 	"bytes"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"os"
 	"path"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 
 	"golang.org/x/crypto/bcrypt"
@@ -108,7 +110,7 @@ func (b *branchProtectionRulesHandler) ServeHTTP(w http.ResponseWriter, r *http.
 }
 
 func (b *branchProtectionRulesHandler) fetch(w http.ResponseWriter, r *http.Request) {
-	branchProtectionRules, err := branchProtectionRuleRepository.find(makeQuery(r, true), loadAllRelation)
+	branchProtectionRules, err := branchProtectionRuleRepository.find(makeQuery(r, branchProtectionRule{}, true), loadAllRelation)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
 		return
@@ -136,7 +138,7 @@ func (b *branchProtectionRulesHandler) store(w http.ResponseWriter, r *http.Requ
 		respond(w, http.StatusForbidden)
 		return
 	}
-	branchProtectionRule, err := branchProtectionRuleRepository.save(makeQuery(r, false))
+	branchProtectionRule, err := branchProtectionRuleRepository.save(makeQuery(r, branchProtectionRule{}, false))
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
 		return
@@ -268,7 +270,7 @@ func (d *dastVulnerabilityMessagesHandler) ServeHTTP(w http.ResponseWriter, r *h
 }
 
 func (d *dastVulnerabilityMessagesHandler) fetch(w http.ResponseWriter, r *http.Request) {
-	dastVulnerabilityMessages, err := dastVulnerabilityMessageRepository.find(makeQuery(r, true), loadAllRelation)
+	dastVulnerabilityMessages, err := dastVulnerabilityMessageRepository.find(makeQuery(r, dastVulnerabilityMessage{}, true), loadAllRelation)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
 		return
@@ -305,7 +307,7 @@ func (d *dastVulnerabilityMessagesHandler) store(w http.ResponseWriter, r *http.
 		respond(w, http.StatusForbidden)
 		return
 	}
-	dastVulnerabilityMessage, err := dastVulnerabilityMessageRepository.save(makeQuery(r, false))
+	dastVulnerabilityMessage, err := dastVulnerabilityMessageRepository.save(makeQuery(r, dastVulnerabilityMessage{}, false))
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
 		return
@@ -647,7 +649,7 @@ func (m *meetingsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (m *meetingsHandler) fetch(w http.ResponseWriter, r *http.Request) {
-	meetings, err := meetingRepository.find(makeQuery(r, true), loadAllRelation)
+	meetings, err := meetingRepository.find(makeQuery(r, meeting{}, true), loadAllRelation)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
 		return
@@ -701,7 +703,7 @@ func (m *meetingsHandler) store(w http.ResponseWriter, r *http.Request) {
 		respond(w, http.StatusForbidden)
 		return
 	}
-	meeting, err := meetingRepository.save(makeQuery(r, false))
+	meeting, err := meetingRepository.save(makeQuery(r, meeting{}, false))
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
 		return
@@ -729,6 +731,12 @@ func (m *meetingMessagesHandler) ServeHTTP(w http.ResponseWriter, r *http.Reques
 		case base:
 			m.fetch(w, r)
 			return
+		case base + "count":
+			m.count(w, r)
+			return
+		case base + "range":
+			m.fetchRange(w, r)
+			return
 		case base + "socket":
 			m.socket(w, r)
 			return
@@ -741,7 +749,7 @@ func (m *meetingMessagesHandler) ServeHTTP(w http.ResponseWriter, r *http.Reques
 }
 
 func (m *meetingMessagesHandler) fetch(w http.ResponseWriter, r *http.Request) {
-	meetingMessages, err := meetingMessageRepository.find(makeQuery(r, true), loadAllRelation)
+	meetingMessages, err := meetingMessageRepository.find(makeQuery(r, meetingMessage{}, true), loadAllRelation)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
 		return
@@ -751,6 +759,48 @@ func (m *meetingMessagesHandler) fetch(w http.ResponseWriter, r *http.Request) {
 		respondError(w, http.StatusInternalServerError, err)
 		return
 	}
+}
+
+func (m *meetingMessagesHandler) count(w http.ResponseWriter, r *http.Request) {
+	meetingMessages, err := meetingMessageRepository.find(makeQuery(r, meetingMessage{}, true), loadAllRelation)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
+	respondMessage(w, http.StatusOK, fmt.Sprintf("%d", len(meetingMessages)))
+}
+
+func (m *meetingMessagesHandler) fetchRange(w http.ResponseWriter, r *http.Request) {
+	start := r.URL.Query().Get("start")
+	end := r.URL.Query().Get("end")
+	if emptyAny(start, end) {
+		respond(w, http.StatusBadRequest)
+		return
+	}
+	startInt, err := strconv.ParseInt(start, 10, 64)
+	if err != nil {
+		respond(w, http.StatusBadRequest)
+		return
+	}
+	endInt, err := strconv.ParseInt(end, 10, 64)
+	if err != nil {
+		respond(w, http.StatusBadRequest)
+		return
+	}
+	meetingMessages, err := meetingMessageRepository.findOrderLimit(makeQuery(r, meetingMessage{}, true), "created_at DESC", endInt, loadAllRelation)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
+	if int64(len(meetingMessages)) < endInt {
+		endInt = int64(len(meetingMessages))
+	}
+	response, err := reverse(meetingMessages[startInt:endInt])
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
+	respondJSON(w, http.StatusOK, response)
 }
 
 func (m *meetingMessagesHandler) socket(w http.ResponseWriter, r *http.Request) {
@@ -777,7 +827,7 @@ func (m *meetingMessagesHandler) store(w http.ResponseWriter, r *http.Request) {
 		respond(w, http.StatusForbidden)
 		return
 	}
-	meetingMessage, err := meetingMessageRepository.save(makeQuery(r, false))
+	meetingMessage, err := meetingMessageRepository.save(makeQuery(r, meetingMessage{}, false))
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
 		return
@@ -828,7 +878,7 @@ func (m *meetingUsersHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 }
 
 func (m *meetingUsersHandler) fetch(w http.ResponseWriter, r *http.Request) {
-	meetingUsers, err := meetingUserRepository.find(makeQuery(r, true), loadAllRelation)
+	meetingUsers, err := meetingUserRepository.find(makeQuery(r, meetingUser{}, true), loadAllRelation)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
 		return
@@ -860,7 +910,7 @@ func (m *meetingUsersHandler) store(w http.ResponseWriter, r *http.Request) {
 		respond(w, http.StatusForbidden)
 		return
 	}
-	meetingUser, err := meetingUserRepository.save(makeQuery(r, false))
+	meetingUser, err := meetingUserRepository.save(makeQuery(r, meetingUser{}, false))
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
 		return
@@ -901,7 +951,7 @@ func (p *projectsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (p *projectsHandler) fetch(w http.ResponseWriter, r *http.Request) {
-	projects, err := projectRepository.find(makeQuery(r, true), loadAllRelation)
+	projects, err := projectRepository.find(makeQuery(r, project{}, true), loadAllRelation)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
 		return
@@ -955,7 +1005,7 @@ func (p *projectsHandler) store(w http.ResponseWriter, r *http.Request) {
 		respond(w, http.StatusForbidden)
 		return
 	}
-	project, err := projectRepository.save(makeQuery(r, false))
+	project, err := projectRepository.save(makeQuery(r, project{}, false))
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
 		return
@@ -998,7 +1048,7 @@ func (p *projectUsersHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 }
 
 func (p *projectUsersHandler) fetch(w http.ResponseWriter, r *http.Request) {
-	projectUsers, err := projectUserRepository.find(makeQuery(r, true), loadAllRelation)
+	projectUsers, err := projectUserRepository.find(makeQuery(r, projectUser{}, true), loadAllRelation)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
 		return
@@ -1262,7 +1312,7 @@ func (t *teamsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (t *teamsHandler) fetch(w http.ResponseWriter, r *http.Request) {
-	teams, err := teamRepository.find(makeQuery(r, true), loadAllRelation)
+	teams, err := teamRepository.find(makeQuery(r, team{}, true), loadAllRelation)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
 		return
@@ -1297,7 +1347,7 @@ func (t *teamsHandler) ids(w http.ResponseWriter, r *http.Request) {
 }
 
 func (t *teamsHandler) store(w http.ResponseWriter, r *http.Request) {
-	team, err := teamRepository.save(makeQuery(r, false))
+	team, err := teamRepository.save(makeQuery(r, team{}, false))
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
 		return
@@ -1326,7 +1376,7 @@ func (t *teamUsersHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (t *teamUsersHandler) fetch(w http.ResponseWriter, r *http.Request) {
-	teamUsers, err := teamUserRepository.find(makeQuery(r, true), loadAllRelation)
+	teamUsers, err := teamUserRepository.find(makeQuery(r, teamUser{}, true), loadAllRelation)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
 		return
@@ -1409,7 +1459,7 @@ func (t *teamUserInvitationRequestProjectsHandler) ServeHTTP(w http.ResponseWrit
 }
 
 func (t *teamUserInvitationRequestProjectsHandler) fetch(w http.ResponseWriter, r *http.Request) {
-	teamUserInvitationRequestProjects, err := teamUserInvitationRequestProjectRepository.find(makeQuery(r, true), loadAllRelation)
+	teamUserInvitationRequestProjects, err := teamUserInvitationRequestProjectRepository.find(makeQuery(r, teamUserInvitationRequestProject{}, true), loadAllRelation)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
 		return
@@ -1441,7 +1491,7 @@ func (t *teamUserInvitationRequestProjectsHandler) store(w http.ResponseWriter, 
 		respond(w, http.StatusForbidden)
 		return
 	}
-	teamUserInvitationRequestProject, err := teamUserInvitationRequestProjectRepository.save(makeQuery(r, false))
+	teamUserInvitationRequestProject, err := teamUserInvitationRequestProjectRepository.save(makeQuery(r, teamUserInvitationRequestProject{}, false))
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
 		return
@@ -1460,7 +1510,7 @@ func (t *teamUserInvitationRequestProjectsHandler) store(w http.ResponseWriter, 
 }
 
 func (t *teamUserInvitationRequestProjectsHandler) destroy(w http.ResponseWriter, r *http.Request) {
-	err := teamUserInvitationRequestProjectRepository.delete(makeQuery(r, true))
+	err := teamUserInvitationRequestProjectRepository.delete(makeQuery(r, teamUserInvitationRequestProject{}, true))
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
 		return
@@ -1486,7 +1536,7 @@ func (t *teamUserInvitationRequestsHandler) ServeHTTP(w http.ResponseWriter, r *
 }
 
 func (t *teamUserInvitationRequestsHandler) fetch(w http.ResponseWriter, r *http.Request) {
-	teamUserInvitationRequests, err := teamUserInvitationRequestRepository.find(makeQuery(r, true), loadAllRelation)
+	teamUserInvitationRequests, err := teamUserInvitationRequestRepository.find(makeQuery(r, teamUserInvitationRequest{}, true), loadAllRelation)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
 		return
@@ -1546,7 +1596,7 @@ func (t *teamUserInvitationRequestsHandler) store(w http.ResponseWriter, r *http
 }
 
 func (t *teamUserInvitationRequestsHandler) destroy(w http.ResponseWriter, r *http.Request) {
-	err := teamUserInvitationRequestRepository.delete(makeQuery(r, true))
+	err := teamUserInvitationRequestRepository.delete(makeQuery(r, teamUserInvitationRequest{}, true))
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
 		return
@@ -1576,7 +1626,7 @@ func (t *testsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (t *testsHandler) fetch(w http.ResponseWriter, r *http.Request) {
-	tests, err := testRepository.find(makeQuery(r, true), loadAllRelation)
+	tests, err := testRepository.find(makeQuery(r, test{}, true), loadAllRelation)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
 		return
@@ -1656,6 +1706,12 @@ func (t *testMessagesHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 		case base:
 			t.fetch(w, r)
 			return
+		case base + "count":
+			t.count(w, r)
+			return
+		case base + "range":
+			t.fetchRange(w, r)
+			return
 		case base + "socket":
 			t.socket(w, r)
 			return
@@ -1668,7 +1724,7 @@ func (t *testMessagesHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 }
 
 func (t *testMessagesHandler) fetch(w http.ResponseWriter, r *http.Request) {
-	testMessages, err := testMessageRepository.find(makeQuery(r, true), loadAllRelation)
+	testMessages, err := testMessageRepository.find(makeQuery(r, testMessage{}, true), loadAllRelation)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
 		return
@@ -1678,6 +1734,48 @@ func (t *testMessagesHandler) fetch(w http.ResponseWriter, r *http.Request) {
 		respondError(w, http.StatusInternalServerError, err)
 		return
 	}
+}
+
+func (t *testMessagesHandler) count(w http.ResponseWriter, r *http.Request) {
+	testMessages, err := testMessageRepository.find(makeQuery(r, testMessage{}, true), loadAllRelation)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
+	respondMessage(w, http.StatusOK, fmt.Sprintf("%d", len(testMessages)))
+}
+
+func (t *testMessagesHandler) fetchRange(w http.ResponseWriter, r *http.Request) {
+	start := r.URL.Query().Get("start")
+	end := r.URL.Query().Get("end")
+	if emptyAny(start, end) {
+		respond(w, http.StatusBadRequest)
+		return
+	}
+	startInt, err := strconv.ParseInt(start, 10, 64)
+	if err != nil {
+		respond(w, http.StatusBadRequest)
+		return
+	}
+	endInt, err := strconv.ParseInt(end, 10, 64)
+	if err != nil {
+		respond(w, http.StatusBadRequest)
+		return
+	}
+	testMessages, err := testMessageRepository.findOrderLimit(makeQuery(r, testMessage{}, true), "created_at DESC", endInt, loadAllRelation)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
+	if int64(len(testMessages)) < endInt {
+		endInt = int64(len(testMessages))
+	}
+	response, err := reverse(testMessages[startInt:endInt])
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
+	respondJSON(w, http.StatusOK, response)
 }
 
 func (t *testMessagesHandler) socket(w http.ResponseWriter, r *http.Request) {
@@ -1704,7 +1802,7 @@ func (t *testMessagesHandler) store(w http.ResponseWriter, r *http.Request) {
 		respond(w, http.StatusForbidden)
 		return
 	}
-	testMessage, err := testMessageRepository.save(makeQuery(r, false))
+	testMessage, err := testMessageRepository.save(makeQuery(r, testMessage{}, false))
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
 		return
@@ -1745,7 +1843,7 @@ func (t *testResultsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (t *testResultsHandler) fetch(w http.ResponseWriter, r *http.Request) {
-	testResults, err := testResultRepository.find(makeQuery(r, true), loadAllRelation)
+	testResults, err := testResultRepository.find(makeQuery(r, testResult{}, true), loadAllRelation)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
 		return
@@ -1770,7 +1868,7 @@ func (t *testStatusesHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 }
 
 func (t *testStatusesHandler) fetch(w http.ResponseWriter, r *http.Request) {
-	testStatuses, err := testStatusRepository.find(makeQuery(r, true))
+	testStatuses, err := testStatusRepository.find(makeQuery(r, testStatus{}, true))
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
 		return
@@ -1838,7 +1936,7 @@ func (u *usersHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (u *usersHandler) fetch(w http.ResponseWriter, r *http.Request) {
-	users, err := userRepository.find(makeQuery(r, true))
+	users, err := userRepository.find(makeQuery(r, user{}, true))
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
 		return
@@ -1888,7 +1986,7 @@ func (v *vulnerabilitiesHandler) ServeHTTP(w http.ResponseWriter, r *http.Reques
 }
 
 func (v *vulnerabilitiesHandler) fetch(w http.ResponseWriter, r *http.Request) {
-	vulnerabilities, err := vulnerabilityRepository.find(makeQuery(r, true), loadAllRelation)
+	vulnerabilities, err := vulnerabilityRepository.find(makeQuery(r, vulnerability{}, true), loadAllRelation)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
 		return

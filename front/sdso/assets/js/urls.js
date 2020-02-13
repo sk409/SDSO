@@ -42,15 +42,21 @@ export class Url {
     };
     switch (path) {
       case pathDastVulnerabilityMessages:
+        this.count = this.base + "count";
+        this.range = this.base + "range";
         this.socket = userId => socket(path) + `?userId=${userId}`;
         break;
       case pathFiles:
         this.text = this.base + "text";
         break;
       case pathMeetingMessages:
+        this.count = this.base + "count";
+        this.range = this.base + "range";
         this.socket = userId => socket(path) + `?userId=${userId}`;
         break;
       case pathTestMessages:
+        this.count = this.base + "count";
+        this.range = this.base + "range";
         this.socket = userId => socket(path) + `?userId=${userId}`;
         break;
       case pathTests:

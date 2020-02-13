@@ -111,6 +111,16 @@ func findOrderGORM(query interface{}, order string, model interface{}, allRelati
 	return nil
 }
 
+func findOrderLimitGORM(query interface{}, order string, limit interface{}, model interface{}, allRelation []string, preloads ...string) error {
+	db := gormDB.Where(query)
+	db = eagerLoadingGORM(db, allRelation, preloads...)
+	err := db.Order(order).Limit(limit).Find(model).Error
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func firstGORM(query interface{}, model interface{}, allRelation []string, preloads ...string) error {
 	db := gormDB.Where(query)
 	db = eagerLoadingGORM(db, allRelation, preloads...)
