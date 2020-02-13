@@ -51,6 +51,7 @@
         <MessagesView
           :load-messages="fetchMessages"
           :message-count.sync="messageCount"
+          :messages="messages"
           :post-message="storeMessage"
           :users="users"
           class="messages"
@@ -100,6 +101,7 @@ export default {
       dialog: false,
       meetings: [],
       messageCount: 0,
+      messages: [],
       selectedMeeting: null,
       users: []
     };
@@ -164,14 +166,17 @@ export default {
         this.messageCount = Number(response.data);
       });
     },
-    fetchMessages(start, end) {
+    fetchMessages(start, end, completion) {
       const url = new Url(pathMeetingMessages);
       const data = {
         start,
         end,
         meetingId: this.selectedMeeting.id
       };
-      return ajax.get(url.range, data);
+      ajax.get(url.range, data).then(response => {
+        this.messages = response.data.concat(this.messages);
+        completion();
+      });
     },
     fetchUsers() {
       const project = this.$store.state.projects.project;
@@ -218,7 +223,7 @@ export default {
         this.messages.push(message);
       };
     },
-    storeMessage(message, parent) {
+    storeMessage(message, parent, completion) {
       const url = new Url(pathMeetingMessages);
       const data = {
         text: message,
@@ -228,7 +233,10 @@ export default {
       if (parent) {
         data.parentId = parent.id;
       }
-      return ajax.post(url.base, data);
+      ajax.post(url.base, data).then(response => {
+        this.messages.push(response.data);
+        completion();
+      });
     }
   }
 };

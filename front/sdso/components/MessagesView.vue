@@ -54,6 +54,10 @@ export default {
       type: Number,
       required: true
     },
+    messages: {
+      type: Array,
+      default: []
+    },
     postMessage: {
       type: Function,
       required: true
@@ -69,21 +73,19 @@ export default {
   data() {
     return {
       inputs: [],
-      messages: [],
       rows: 1
     };
   },
   computed: {
     more() {
       return (
-        fetchLength < this.messages.length &&
+        fetchLength < this.messageCount &&
         this.messages.length !== this.messageCount
       );
     }
   },
   mounted() {
-    this.loadMessages(0, fetchLength).then(response => {
-      this.messages = response.data;
+    this.loadMessages(0, fetchLength, () => {
       this.$nextTick(() => {
         this.scrollToBottom();
       });
@@ -126,14 +128,14 @@ export default {
         const preScrollHeight = this.$refs.messages.scrollHeight;
         this.loadMessages(
           this.messages.length,
-          this.messages.length + fetchLength
-        ).then(response => {
-          this.messages = response.data.concat(this.messages);
-          this.$nextTick(() => {
-            this.$refs.messages.scrollTop +=
-              this.$refs.messages.scrollHeight - preScrollHeight;
-          });
-        });
+          this.messages.length + fetchLength,
+          () => {
+            this.$nextTick(() => {
+              this.$refs.messages.scrollTop +=
+                this.$refs.messages.scrollHeight - preScrollHeight;
+            });
+          }
+        );
       }
     },
     scrollToBottom() {
@@ -144,8 +146,7 @@ export default {
       messages.scrollTop = messages.scrollHeight;
     },
     send(message, parent) {
-      this.postMessage(message, parent).then(response => {
-        this.messages.push(response.data);
+      this.postMessage(message, parent, () => {
         this.$nextTick(() => {
           this.scrollToBottom();
         });

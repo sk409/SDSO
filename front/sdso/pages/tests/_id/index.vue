@@ -38,10 +38,10 @@
         <v-tab-item value="コメント">
           <MessagesView
             :load-messages="fetchMessages"
+            :message-count.sync="messageCount"
             :messages="messages"
-            :more="more"
+            :post-message="storeMessage"
             :users="users"
-            @send="sendMessage"
           ></MessagesView>
         </v-tab-item>
       </v-tabs-items>
@@ -60,7 +60,6 @@ import {
 } from "@/assets/js/urls.js";
 import { setupTest } from "@/assets/js/utils.js";
 
-let fetchLength = 10;
 let socket = null;
 let user = null;
 const statusLoading = "statusLoading";
@@ -81,18 +80,10 @@ export default {
       users: []
     };
   },
-  computed: {
-    more() {
-      return (
-        fetchLength < this.messages.length &&
-        this.messages.length !== this.messageCount
-      );
-    }
-  },
   created() {
-    this.fetchMessages();
     this.$fetchUser().then(response => {
       user = response.data;
+      this.fetchMessageCount();
       this.fetchTestAndUsers();
       this.setupSocketMessage();
       this.setupSocketTest();
@@ -109,9 +100,7 @@ export default {
         this.messageCount = Number(response.data);
       });
     },
-    fetchMessages() {
-      const start = this.messages.length;
-      const end = start + fetchLength;
+    fetchMessages(start, end, completion) {
       const testId = this.$route.params.id;
       const url = new Url(pathTestMessages);
       const data = {
@@ -121,6 +110,7 @@ export default {
       };
       ajax.get(url.range, data).then(response => {
         this.messages = response.data.concat(this.messages);
+        completion();
       });
     },
     fetchTestAndUsers() {
@@ -138,21 +128,6 @@ export default {
         ajax.get(url.base, data).then(response => {
           this.users = response.data[0].users;
         });
-      });
-    },
-    sendMessage(message, parent) {
-      const testId = this.$route.params.id;
-      const url = new Url(pathTestMessages);
-      const data = {
-        text: message,
-        testId,
-        userId: user.id
-      };
-      if (parent) {
-        data.parentId = parent.id;
-      }
-      ajax.post(url.base, data).then(response => {
-        this.messages.push(response.data);
       });
     },
     setupSocketMessage() {
@@ -185,6 +160,22 @@ export default {
         setupTest(test);
         that.test = test;
       };
+    },
+    storeMessage(message, parent, completion) {
+      const testId = this.$route.params.id;
+      const url = new Url(pathTestMessages);
+      const data = {
+        text: message,
+        testId,
+        userId: user.id
+      };
+      if (parent) {
+        data.parentId = parent.id;
+      }
+      ajax.post(url.base, data).then(response => {
+        this.messages.push(response.data);
+        completion();
+      });
     }
   }
 };
