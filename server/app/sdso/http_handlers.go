@@ -257,6 +257,12 @@ func (d *dastVulnerabilityMessagesHandler) ServeHTTP(w http.ResponseWriter, r *h
 		case base:
 			d.fetch(w, r)
 			return
+		case base + "count":
+			d.count(w, r)
+			return
+		case base + "range":
+			d.fetchRange(w, r)
+			return
 		case base + "socket":
 			d.socket(w, r)
 			return
@@ -280,6 +286,48 @@ func (d *dastVulnerabilityMessagesHandler) fetch(w http.ResponseWriter, r *http.
 		respondError(w, http.StatusInternalServerError, err)
 		return
 	}
+}
+
+func (d *dastVulnerabilityMessagesHandler) count(w http.ResponseWriter, r *http.Request) {
+	dastVulnerabilityMessage, err := dastVulnerabilityMessageRepository.find(makeQuery(r, dastVulnerabilityMessage{}, true), loadAllRelation)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
+	respondMessage(w, http.StatusOK, fmt.Sprintf("%d", len(dastVulnerabilityMessage)))
+}
+
+func (d *dastVulnerabilityMessagesHandler) fetchRange(w http.ResponseWriter, r *http.Request) {
+	start := r.URL.Query().Get("start")
+	end := r.URL.Query().Get("end")
+	if emptyAny(start, end) {
+		respond(w, http.StatusBadRequest)
+		return
+	}
+	startInt, err := strconv.ParseInt(start, 10, 64)
+	if err != nil {
+		respond(w, http.StatusBadRequest)
+		return
+	}
+	endInt, err := strconv.ParseInt(end, 10, 64)
+	if err != nil {
+		respond(w, http.StatusBadRequest)
+		return
+	}
+	dastVulnerabilityMessage, err := dastVulnerabilityMessageRepository.findOrderLimit(makeQuery(r, dastVulnerabilityMessage{}, true), "created_at DESC", endInt, loadAllRelation)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
+	if int64(len(dastVulnerabilityMessage)) < endInt {
+		endInt = int64(len(dastVulnerabilityMessage))
+	}
+	response, err := reverse(dastVulnerabilityMessage[startInt:endInt])
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
+	respondJSON(w, http.StatusOK, response)
 }
 
 func (d *dastVulnerabilityMessagesHandler) socket(w http.ResponseWriter, r *http.Request) {

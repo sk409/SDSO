@@ -34,9 +34,11 @@
         </v-tab-item>
         <v-tab-item value="コメント">
           <MessagesView
+            :load-messages="fetchMessages"
+            :message-count.sync="messageCount"
             :messages="messages"
+            :post-message="storeMessage"
             :users="users"
-            @send="sendMessage"
           ></MessagesView>
         </v-tab-item>
       </v-tabs-items>
@@ -61,6 +63,7 @@ export default {
   },
   data() {
     return {
+      messageCount: 0,
       messages: [],
       metadata: [
         {
@@ -87,10 +90,22 @@ export default {
       user = response.data;
       this.setupSocket();
     });
-    this.fetchVulnerabilityAndMessagesAndUsers();
+    this.fetchVulnerabilityAndMessageCountAndUsers();
   },
   methods: {
-    fetchVulnerabilityAndMessagesAndUsers() {
+    fetchMessages(start, end, completion) {
+      const url = new Url(pathDastVulnerabilityMessages);
+      const data = {
+        start,
+        end,
+        vulnerabilityId: this.vulnerability.id
+      };
+      ajax.get(url.range, data).then(response => {
+        this.messages = response.data.concat(this.messages);
+        completion();
+      });
+    },
+    fetchVulnerabilityAndMessageCountAndUsers() {
       const url = new Url(pathVulnerabilities);
       const data = {
         id: this.$route.params.id
@@ -103,10 +118,10 @@ export default {
           const data = {
             vulnerabilityId: this.vulnerability.id
           };
-          return ajax.get(url.base, data);
+          return ajax.get(url.count, data);
         })
         .then(response => {
-          this.messages = response.data;
+          this.messageCount = response.data;
           const url = new Url(pathProjects);
           const data = {
             id: this.vulnerability.scan.projectId
@@ -116,20 +131,6 @@ export default {
         .then(response => {
           this.users = response.data[0].users;
         });
-    },
-    sendMessage(message, parent) {
-      const url = new Url(pathDastVulnerabilityMessages);
-      const data = {
-        text: message,
-        vulnerabilityId: this.vulnerability.id,
-        userId: user.id
-      };
-      if (parent) {
-        data.parentId = parent.id;
-      }
-      ajax.post(url.base, data).then(response => {
-        this.messages.push(response.data);
-      });
     },
     setupSocket() {
       const url = new Url(pathDastVulnerabilityMessages);
@@ -148,6 +149,21 @@ export default {
         }
         this.messages.push(message);
       };
+    },
+    storeMessage(message, parent, completion) {
+      const url = new Url(pathDastVulnerabilityMessages);
+      const data = {
+        text: message,
+        vulnerabilityId: this.vulnerability.id,
+        userId: user.id
+      };
+      if (parent) {
+        data.parentId = parent.id;
+      }
+      ajax.post(url.base, data).then(response => {
+        this.messages.push(response.data);
+        completion();
+      });
     }
   }
 };

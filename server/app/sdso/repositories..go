@@ -96,6 +96,7 @@ func (b *branchProtectionRuleRepositoryGORM) saveWith(branchname string, project
 type dastVulnerabilityMessageRepositoryInterface interface {
 	find(map[string]interface{}, ...string) ([]dastVulnerabilityMessage, error)
 	findByID(uint, ...string) (*dastVulnerabilityMessage, error)
+	findOrderLimit(query map[string]interface{}, order string, limit interface{}, preloads ...string) ([]dastVulnerabilityMessage, error)
 	save(map[string]interface{}) (*dastVulnerabilityMessage, error)
 }
 
@@ -118,6 +119,15 @@ func (d *dastVulnerabilityMessageRepositoryGORM) findByID(id uint, preloads ...s
 		return nil, err
 	}
 	return &dastVulnerabilityMessage, nil
+}
+
+func (d *dastVulnerabilityMessageRepositoryGORM) findOrderLimit(query map[string]interface{}, order string, limit interface{}, preloads ...string) ([]dastVulnerabilityMessage, error) {
+	dastVulnerabilityMessages := []dastVulnerabilityMessage{}
+	err := findOrderLimitGORM(query, order, limit, &dastVulnerabilityMessages, dastVulnerabilityMessageAllRelation, preloads...)
+	if err != nil {
+		return nil, err
+	}
+	return dastVulnerabilityMessages, nil
 }
 
 func (d *dastVulnerabilityMessageRepositoryGORM) save(query map[string]interface{}) (*dastVulnerabilityMessage, error) {
