@@ -15,7 +15,7 @@
           >
             <v-list-item-title class="d-flex">
               <span>{{ meeting.name }}</span>
-              <span class="ml-auto">{{meeting.newMessages.length | numberLimit(99)}}</span>
+              <span class="ml-auto">{{meeting.newMessageCount | numberLimit(99)}}</span>
             </v-list-item-title>
           </v-list-item>
         </v-list>
@@ -152,7 +152,10 @@ export default {
         })
         .then(response => {
           const meetings = response.data;
-          meetings.forEach(meeting => (meeting.newMessages = []));
+          meetings.forEach(meeting => {
+            meeting.newMessages = [];
+            meeting.newMessageCount = 0;
+          });
           this.meetings = meetings.filter(
             meeting => meeting.projectId === project.id
           );
@@ -164,6 +167,7 @@ export default {
             };
             ajax.get(url.new, data).then(response => {
               meeting.newMessages = response.data;
+              meeting.newMessageCount = response.data.length;
             });
           });
         });
@@ -235,6 +239,7 @@ export default {
       if (meeting.newMessages.length != 0) {
         this.baselineMessage = meeting.newMessages[0];
       }
+      meeting.newMessageCount = 0;
       this.selectedMeeting = meeting;
     },
     setupScoket() {
@@ -251,6 +256,7 @@ export default {
           );
           if (meeting) {
             meeting.newMessages.push(message);
+            meeting.newMessageCount += 1;
           }
           return;
         }
