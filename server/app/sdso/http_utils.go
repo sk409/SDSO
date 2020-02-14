@@ -104,15 +104,15 @@ func respondJSON(w http.ResponseWriter, statusCode int, model interface{}) ([]by
 	if err != nil {
 		return nil, err
 	}
+	// respond(w, statusCode)
 	w.Header().Set(goconst.HTTP_HEADER_CONTENT_TYPE, goconst.HTTP_HEADER_CONTENT_TYPE_JSON)
 	w.Write(jsonBytes)
 	return jsonBytes, nil
-	//respond(w, statusCode)
 }
 
 func respondMessage(w http.ResponseWriter, statusCode int, message string) {
-	w.Write([]byte(message))
 	respond(w, statusCode)
+	w.Write([]byte(message))
 }
 
 func routeWithID(r *http.Request) (string, bool) {

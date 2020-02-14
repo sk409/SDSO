@@ -1,42 +1,49 @@
 <template>
   <div class="h-100 messages-view">
-    <div ref="messages" class="messages overflow-y-auto" @scroll="scroll">
-      <div v-if="more" class="text-center mt-3">
+    <div ref="messagesContainer" class="messages overflow-y-auto" @scroll="scroll">
+      <div v-if="more" class="text-center">
         <v-progress-circular indeterminate></v-progress-circular>
       </div>
       <div
+        ref="messages"
         v-for="(message, index) in messages"
         :key="message.id"
-        class="py-3 mx-auto message"
+        :message-id="message.id"
+        :class="{'new-message': message.new}"
+        class="message-container"
         @click="clickMessage(message, index)"
       >
         <div
-          v-if="message.parents && message.parents.length != 0"
-          class="pa-3 my-3 w-100 parents-card"
+          v-if="message.newMessageChip"
+          :style="newMessageChipStyle"
+          class="new-message-chip d-flex align-center"
         >
-          <div v-for="parent in message.parents" :key="parent.id">
-            <MessageView :message="parent"></MessageView>
-            <v-divider></v-divider>
-          </div>
+          <span>新着メッセージ</span>
         </div>
-        <MessageView :message="message"></MessageView>
-        <MessageInput
-          v-if="inputs[index].visible"
-          :parent="message"
-          :rows.sync="inputs[index].rows"
-          :users="users"
-          class="w-100 replay-message-input"
-          @send="send"
-        ></MessageInput>
-        <v-divider class="mt-2"></v-divider>
+        <div class="pt-3 mx-auto message">
+          <div
+            v-if="message.parents && message.parents.length != 0"
+            class="pa-3 my-3 w-100 parents-card"
+          >
+            <div v-for="parent in message.parents" :key="parent.id">
+              <MessageView :message="parent"></MessageView>
+              <v-divider></v-divider>
+            </div>
+          </div>
+          <MessageView :message="message"></MessageView>
+          <MessageInput
+            v-if="inputs[index].visible"
+            :parent="message"
+            :rows.sync="inputs[index].rows"
+            :users="users"
+            class="w-100 replay-message-input"
+            @send="send"
+          ></MessageInput>
+          <v-divider class="mt-2"></v-divider>
+        </div>
       </div>
     </div>
-    <MessageInput
-      :rows.sync="rows"
-      :users="users"
-      class="message-input w-100"
-      @send="send"
-    ></MessageInput>
+    <MessageInput :rows.sync="rows" :users="users" class="message-input w-100" @send="send"></MessageInput>
   </div>
 </template>
 
@@ -47,12 +54,17 @@ import { count } from "@/assets/js/utils.js";
 let fetchLength = 10;
 export default {
   props: {
+    baselineMessage: {
+      validator: v => typeof v === "object" || v === null
+    },
+    loadMessageIds: {
+      type: Function
+    },
     loadMessages: {
       type: Function
     },
-    messageCount: {
-      type: Number,
-      required: true
+    messageIds: {
+      type: Array
     },
     messages: {
       type: Array,
@@ -73,23 +85,74 @@ export default {
   data() {
     return {
       inputs: [],
+      newMessageChipHeight: 48,
       rows: 1
     };
   },
   computed: {
     more() {
       return (
-        fetchLength < this.messageCount &&
-        this.messages.length !== this.messageCount
+        fetchLength < this.messageIds.length &&
+        this.messages.length !== this.messageIds.length
       );
+    },
+    newMessageChipStyle() {
+      return {
+        height: this.newMessageChipHeight + "px"
+      };
     }
   },
   mounted() {
-    this.loadMessages(0, fetchLength, () => {
-      this.$nextTick(() => {
-        this.scrollToBottom();
+    if (this.loadMessageIds) {
+      this.loadMessageIds(() => {
+        this.$nextTick(() => {
+          if (this.loadMessages) {
+            if (this.baselineMessage) {
+              const messageIdIndex = this.messageIds.findIndex(
+                messageId => messageId === this.baselineMessage.id
+              );
+              const upperBoundMessageIdIndex = Math.min(
+                messageIdIndex + fetchLength,
+                this.messageIds.length
+              );
+              const startMessageIdIndex =
+                messageIdIndex -
+                (fetchLength - (upperBoundMessageIdIndex - messageIdIndex));
+              const ids = this.messageIds.slice(
+                Math.max(startMessageIdIndex - 1, 0),
+                this.messageIds.length
+              );
+              this.loadMessages(ids, () => {
+                this.$nextTick(() => {
+                  const baselineMessageElement = this.$refs.messages.find(
+                    message => {
+                      const messageId = Array.from(message.attributes).find(
+                        attribute => attribute.name === "message-id"
+                      ).value;
+                      return this.baselineMessage.id == messageId;
+                    }
+                  );
+                  this.$refs.messagesContainer.scrollTop =
+                    baselineMessageElement.getBoundingClientRect().top -
+                    this.$refs.messagesContainer.getBoundingClientRect().top -
+                    this.newMessageChipHeight / 2;
+                });
+              });
+            } else {
+              const ids = this.messageIds.slice(
+                Math.max(this.messageIds.length - fetchLength, 0),
+                this.messageIds.length
+              );
+              this.loadMessages(ids, () => {
+                this.$nextTick(() => {
+                  this.scrollToBottom();
+                });
+              });
+            }
+          }
+        });
       });
-    });
+    }
   },
   watch: {
     messages(newMessages) {
@@ -124,33 +187,36 @@ export default {
       }
     },
     scroll() {
-      if (this.$refs.messages.scrollTop === 0) {
-        const preScrollHeight = this.$refs.messages.scrollHeight;
-        this.loadMessages(
-          this.messages.length,
-          this.messages.length + fetchLength,
-          () => {
-            this.$nextTick(() => {
-              this.$refs.messages.scrollTop +=
-                this.$refs.messages.scrollHeight - preScrollHeight;
-            });
-          }
+      if (this.$refs.messagesContainer.scrollTop === 0) {
+        const preScrollHeight = this.$refs.messagesContainer.scrollHeight;
+        const ids = this.messageIds.slice(
+          Math.max(
+            this.messageIds.length - this.messages.length - fetchLength,
+            0
+          ),
+          this.messageIds.length - this.messages.length
         );
+        this.loadMessages(ids, () => {
+          this.$nextTick(() => {
+            this.$refs.messagesContainer.scrollTop +=
+              this.$refs.messagesContainer.scrollHeight - preScrollHeight;
+          });
+        });
       }
     },
     scrollToBottom() {
-      const messages = this.$refs.messages;
-      if (!messages) {
+      const messagesContainer = this.$refs.messagesContainer;
+      if (!messagesContainer) {
         return;
       }
-      messages.scrollTop = messages.scrollHeight;
+      messagesContainer.scrollTop = messagesContainer.scrollHeight;
     },
     send(message, parent) {
       this.postMessage(message, parent, () => {
         this.$nextTick(() => {
           this.scrollToBottom();
         });
-        this.$emit("update:messageCount", this.messageCount + 1);
+        // this.$emit("update:messageCount", this.messageCount + 1);
       });
     }
   }
@@ -170,11 +236,26 @@ export default {
   width: 95%;
   position: relative;
 }
+.message-container {
+  position: relative;
+}
 .messages {
-  height: 90%;
+  max-height: 90%;
 }
 .messages-view {
   position: relative;
+}
+.new-message {
+  background: rgb(255, 253, 228);
+}
+.new-message-chip {
+  background: white;
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  box-shadow: 0 2px 3px 1px rgba(0, 0, 0, 0.5);
+  padding: 0 1rem;
 }
 .parents-card {
   position: absolute;

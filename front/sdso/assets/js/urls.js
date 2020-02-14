@@ -15,6 +15,7 @@ export const pathFiles = "files/";
 export const pathLogin = "login";
 export const pathMeetings = "meetings/";
 export const pathMeetingMessages = "meeting_messages/";
+export const pathMeetingMessageViewers = "meeting_message_viewers";
 export const pathMeetingUsers = "meeting_users";
 export const pathProjects = "projects/";
 export const pathProjectUsers = "project_users";
@@ -51,6 +52,10 @@ export class Url {
         break;
       case pathMeetingMessages:
         this.count = this.base + "count";
+        this.countNew = this.base + "count/new";
+        this.getIds = this.base + "get/ids";
+        this.ids = this.base + "ids";
+        this.new = this.base + "new";
         this.range = this.base + "range";
         this.socket = userId => socket(path) + `?userId=${userId}`;
         break;

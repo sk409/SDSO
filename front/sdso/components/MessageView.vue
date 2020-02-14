@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div class="message">
     <div class="d-flex align-center">
       <v-avatar size="64">
         <v-img :src="$serverUrl(message.user.profileImagePath)"></v-img>
@@ -40,3 +40,9 @@ export default {
   }
 };
 </script>
+
+<style>
+.message {
+  position: relative;
+}
+</style>

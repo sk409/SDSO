@@ -7,8 +7,9 @@ import (
 var (
 	branchProtectionRuleAllRelation             = []string{"Project"}
 	dastVulnerabilityMessageAllRelation         = []string{"Parent", "User", "Vulnerability"}
-	meetingAllRelation                          = []string{"Project", "Users"}
-	meetingMessageAllRelation                   = []string{"Meeting", "Parent", "User"}
+	meetingAllRelation                          = []string{"MeetingUsers", "Project", "Users"}
+	meetingMessageAllRelation                   = []string{"Meeting", "Parent", "User", "Viewers"}
+	meetingMessageViewerAllRelation             = []string{}
 	meetingUserAllRelation                      = []string{"Meeting", "User"}
 	projectAllRelation                          = []string{"Team", "Users"}
 	projectUserAllRelation                      = []string{"Project", "User", "Role"}
@@ -28,9 +29,13 @@ var (
 )
 
 var (
+	meetingRelationMeetingUsers                = "MeetingUsers"
 	meetingRelationProject                     = "Project"
 	meetingRelationProjectUsers                = "Project.Users"
 	meetingRelationUsers                       = "Users"
+	meetingMessageRelationMeetingMeetingUsers  = "Meeting.MeetingUsers"
+	meetingMessageRelationMeetingProjectUsers  = "Meeting.Project.Users"
+	meetingMessageRelationViewers              = "Viewers"
 	projectRelationTeam                        = "Team"
 	projectRelationTeamUsers                   = "Team.Users"
 	projectRelationUsers                       = "Users"
@@ -69,13 +74,14 @@ type dastVulnerabilityMessage struct {
 }
 
 type meeting struct {
-	ID        uint      `gorm:"primary_key" json:"id"`
-	Name      string    `gorm:"type:varchar(128);not null" json:"name"`
-	ProjectID uint      `gorm:"not null" json:"projectId"`
-	CreatedAt time.Time `json:"createdAt"`
-	UpdatedAt time.Time `json:"updatedAt"`
-	Project   project   `json:"project"`
-	Users     []user    `gorm:"many2many:meeting_users" json:"users"`
+	ID           uint          `gorm:"primary_key" json:"id"`
+	Name         string        `gorm:"type:varchar(128);not null" json:"name"`
+	ProjectID    uint          `gorm:"not null" json:"projectId"`
+	CreatedAt    time.Time     `json:"createdAt"`
+	UpdatedAt    time.Time     `json:"updatedAt"`
+	Project      project       `json:"project"`
+	Users        []user        `gorm:"many2many:meeting_users" json:"users"`
+	MeetingUsers []meetingUser `json:"meetingUsers"`
 }
 
 type meetingMessage struct {
@@ -89,6 +95,16 @@ type meetingMessage struct {
 	Meeting   meeting         `json:"meeting"`
 	Parent    *meetingMessage `json:"parent"`
 	User      user            `json:"user"`
+	Viewers   []user          `gorm:"many2many:meeting_message_viewers" json:"viewers"`
+}
+
+type meetingMessageViewer struct {
+	MeetingMessageID uint      `gorm:"not null" json:"meeting_message_id"`
+	UserID           uint      `gorm:"not null" json:"user_id"`
+	CreatedAt        time.Time `json:"createdAt"`
+	UpdatedAt        time.Time `json:"updatedAt"`
+	// MeetingMessage   meetingMessage `json:"meetingMessage"`
+	// Viewer           user           `json:"user"`
 }
 
 type meetingUser struct {

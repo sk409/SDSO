@@ -782,6 +782,18 @@ func (m *meetingMessagesHandler) ServeHTTP(w http.ResponseWriter, r *http.Reques
 		case base + "count":
 			m.count(w, r)
 			return
+		case base + "count/new":
+			m.countNew(w, r)
+			return
+		case base + "get/ids":
+			m.getIDs(w, r)
+			return
+		case base + "ids":
+			m.ids(w, r)
+			return
+		case base + "new":
+			m.fetchNew(w, r)
+			return
 		case base + "range":
 			m.fetchRange(w, r)
 			return
@@ -816,6 +828,63 @@ func (m *meetingMessagesHandler) count(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	respondMessage(w, http.StatusOK, fmt.Sprintf("%d", len(meetingMessages)))
+}
+
+func (m *meetingMessagesHandler) countNew(w http.ResponseWriter, r *http.Request) {
+	newMeetingMessages, err := m.new(r)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
+	respondMessage(w, http.StatusOK, fmt.Sprintf("%d", len(newMeetingMessages)))
+}
+
+func (m *meetingMessagesHandler) getIDs(w http.ResponseWriter, r *http.Request) {
+	meetingMessages, err := meetingMessageRepository.find(makeQuery(r, meetingMessage{}, true), loadAllRelation)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
+	ids := make([]uint, len(meetingMessages))
+	for index, meetingMessage := range meetingMessages {
+		ids[index] = meetingMessage.ID
+	}
+	_, err = respondJSON(w, http.StatusOK, ids)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
+}
+
+func (m *meetingMessagesHandler) ids(w http.ResponseWriter, r *http.Request) {
+	ids := r.URL.Query()["ids[]"]
+	if emptyAny(ids) {
+		respondJSON(w, http.StatusOK, []uint{})
+		return
+	}
+	meetingMessages, err := meetingMessageRepository.findWhere([]interface{}{"id IN (?)", ids}, loadAllRelation)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
+	_, err = respondJSON(w, http.StatusOK, meetingMessages)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
+}
+
+func (m *meetingMessagesHandler) fetchNew(w http.ResponseWriter, r *http.Request) {
+	newMeetingMessages, err := m.new(r)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
+	_, err = respondJSON(w, http.StatusOK, newMeetingMessages)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
 }
 
 func (m *meetingMessagesHandler) fetchRange(w http.ResponseWriter, r *http.Request) {
@@ -908,6 +977,107 @@ func (m *meetingMessagesHandler) store(w http.ResponseWriter, r *http.Request) {
 		place := "ミーティング「" + meeting.Name + "」"
 		sendMailMessage(u.Name, place, meetingMessage.Text, meeting.Users)
 	}()
+}
+
+func (*meetingMessagesHandler) new(r *http.Request) ([]meetingMessage, error) {
+	viewerID := r.URL.Query().Get("viewerId")
+	if emptyAny(viewerID) {
+		return nil, errBadRequest
+	}
+	viewer, err := userRepository.first(map[string]interface{}{"id": viewerID})
+	if err != nil {
+		return nil, err
+	}
+	meetingMessages, err := meetingMessageRepository.find(makeQuery(r, meetingMessage{}, true), meetingMessageRelationMeetingMeetingUsers, meetingMessageRelationViewers)
+	newMeetingMessages := []meetingMessage{}
+	for _, meetingMessage := range meetingMessages {
+		found := false
+		for _, v := range meetingMessage.Viewers {
+			if v.ID == viewer.ID {
+				found = true
+				break
+			}
+		}
+		if !found {
+			after := false
+			for _, meetingUser := range meetingMessage.Meeting.MeetingUsers {
+				if meetingUser.UserID == viewer.ID {
+					after = meetingMessage.CreatedAt.After(meetingUser.CreatedAt)
+					break
+				}
+			}
+			if after {
+				newMeetingMessages = append(newMeetingMessages, meetingMessage)
+			}
+		}
+	}
+	return newMeetingMessages, nil
+}
+
+type meetingMessageViewersHandler struct {
+}
+
+func (m *meetingMessageViewersHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	// base := "/meeting_message_viewers/"
+	switch r.Method {
+	case http.MethodGet:
+		m.fetch(w, r)
+		return
+	case http.MethodPost:
+		m.store(w, r)
+		return
+	}
+	respond(w, http.StatusNotFound)
+}
+
+func (m *meetingMessageViewersHandler) fetch(w http.ResponseWriter, r *http.Request) {
+	meetingMessageViewers, err := meetingMessageViewerRepository.find(makeQuery(r, &meetingMessageViewer{}, true), loadAllRelation)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
+	_, err = respondJSON(w, http.StatusOK, meetingMessageViewers)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
+}
+
+func (m *meetingMessageViewersHandler) store(w http.ResponseWriter, r *http.Request) {
+	meetingMessageID := r.PostFormValue("meetingMessageId")
+	if emptyAny(meetingMessageID) {
+		respond(w, http.StatusBadRequest)
+		return
+	}
+	meetingMessage, err := meetingMessageRepository.first(map[string]interface{}{"id": meetingMessageID}, meetingMessageRelationMeetingProjectUsers)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
+	ok, err := checkPermissionWithRequest(r, meetingMessage.Meeting.Project.Users)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
+	if !ok {
+		respond(w, http.StatusForbidden)
+		return
+	}
+	meetingMessageViewer, err := meetingMessageViewerRepository.save(makeQuery(r, meetingMessageViewer{}, false))
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
+	response, err := meetingMessageViewerRepository.first(map[string]interface{}{"meeting_message_id": meetingMessageViewer.MeetingMessageID, "user_id": meetingMessageViewer.UserID}, loadAllRelation)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
+	_, err = respondJSON(w, http.StatusOK, response)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
 }
 
 type meetingUsersHandler struct {

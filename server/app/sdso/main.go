@@ -86,6 +86,12 @@ func main() {
 	meetingMessagesRouter.handler = &meetingMessagesHandler{}
 	http.Handle("/meeting_messages/", &meetingMessagesRouter)
 
+	meetingMessageViewersRouter := router{}
+	meetingMessageViewersRouter.cors()
+	meetingMessageViewersRouter.allowCredentials()
+	meetingMessageViewersRouter.handler = &meetingMessageViewersHandler{}
+	http.Handle("/meeting_message_viewers", &meetingMessageViewersRouter)
+
 	meetingUsersRouter := router{}
 	meetingUsersRouter.cors()
 	meetingUsersRouter.allowCredentials()

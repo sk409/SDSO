@@ -44,6 +44,7 @@ func initGORM() {
 	gormDB.Model(&testMessage{}).AddForeignKey("parent_id", "test_messages(id)", "SET NULL", "CASCADE")
 	gormDB.AutoMigrate(&dastVulnerabilityMessage{}).AddForeignKey("vulnerability_id", "vulnerabilities(id)", "CASCADE", "CASCADE").AddForeignKey("user_id", "users(id)", "CASCADE", "CASCADE")
 	gormDB.Model(&dastVulnerabilityMessage{}).AddForeignKey("parent_id", "dast_vulnerability_messages(id)", "SET NULL", "CASCADE")
+	gormDB.AutoMigrate(&meetingMessageViewer{}).AddForeignKey("meeting_message_id", "meeting_messages(id)", "CASCADE", "CASCADE").AddForeignKey("user_id", "users(id)", "CASCADE", "CASCADE").AddUniqueIndex("unique_meeting_message_id_user_id", "meeting_message_id", "user_id")
 
 	insertIfNotExist := func(model interface{}) {
 		gormDB.Where(model).First(model)
@@ -115,6 +116,21 @@ func findOrderLimitGORM(query interface{}, order string, limit interface{}, mode
 	db := gormDB.Where(query)
 	db = eagerLoadingGORM(db, allRelation, preloads...)
 	err := db.Order(order).Limit(limit).Find(model).Error
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func findWhereGORM(where []interface{}, model interface{}, allRelation []string, preloads ...string) error {
+	db := gormDB
+	if len(where) == 1 {
+		db = db.Where(where[0])
+	} else {
+		db = db.Where(where[0], where[1:]...)
+	}
+	db = eagerLoadingGORM(db, allRelation, preloads...)
+	err := db.Find(model).Error
 	if err != nil {
 		return err
 	}

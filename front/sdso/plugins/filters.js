@@ -12,6 +12,16 @@ Vue.filter("dateDefault", function (str) {
   return dateFormatter.default(str);
 });
 
+Vue.filter("numberLimit", function (str, limit) {
+  if (Number(str) === 0) {
+    return "";
+  }
+  if (limit < Number(str)) {
+    return limit + "+";
+  }
+  return str;
+});
+
 Vue.filter("truncate", function (str, length) {
   return truncate(str, length);
 });
