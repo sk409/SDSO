@@ -125,7 +125,7 @@ func (t *tester) makeTestDirectory() (string, string, error) {
 	if err != nil {
 		return "", "", err
 	}
-	tmpPath := filepath.Join(cwd, "..", "tmp", uuid.String())
+	tmpPath := filepath.Join(cwd, "tmp", uuid.String())
 	testPath := filepath.Join(tmpPath, "app")
 	err = os.MkdirAll(testPath, 0755)
 	if err != nil {

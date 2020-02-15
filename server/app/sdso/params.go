@@ -69,7 +69,7 @@ func init() {
 	pathMailTemplateMessage = filepath.Join(cwd, "mail_templates", "message.html")
 	pathNoImage = filepath.Join(pathPubilcImages, "noimage.png")
 	pathRepositories = filepath.Join(cwd, "repositories")
-	gitTmpRepositories = gogit.NewGit(filepath.Join(cwd, "..", "tmp_repositories"), gitBinPath)
+	gitTmpRepositories = gogit.NewGit(filepath.Join(cwd, "tmp_repositories"), gitBinPath)
 	gitRepositories = gogit.NewGit(pathRepositories, gitBinPath)
 	gitServer = gogit.NewHTTPServer(pathRepositories, gitBinPath)
 	testStatusColors[testStatusFailedText] = testStatusFailedColor
