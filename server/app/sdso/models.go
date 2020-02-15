@@ -22,6 +22,7 @@ var (
 	teamUserRoleAllRelation                     = []string{}
 	testAllRelation                             = []string{"Project", "Results", "Results.Status"}
 	testMessageAllRelation                      = []string{"Test", "User", "Parent"}
+	testMessageViewerAllRelation                = []string{}
 	testResultAllRelation                       = []string{"Test", "Status"}
 	testStatusAllRelation                       = []string{}
 	userAllRelation                             = []string{}
@@ -45,7 +46,9 @@ var (
 	teamUserInvitationRequestRelationTeam      = "Team"
 	teamUserInvitationRequestRelationTeamUsers = "Team.Users"
 	testRelationProjectUsers                   = "Project.Users"
+	testMessageRelationTestProjectProjectUsers = "Test.Project.ProjectUsers"
 	testMessageRelationTestProjectUsers        = "Test.Project.Users"
+	testMessageRelationViewers                 = "Viewers"
 	vulnerabilityRelationProject               = "Project"
 	vulnerabilityRelationProjectUsers          = "Project.Users"
 	vulnerabilityRelationScan                  = "Scan"
@@ -117,13 +120,14 @@ type meetingUser struct {
 }
 
 type project struct {
-	ID        uint      `gorm:"primary_key" json:"id"`
-	Name      string    `gorm:"type:varchar(128);not null" json:"name"`
-	TeamID    uint      `gorm:"not null" json:"teamId"`
-	CreatedAt time.Time `json:"createdAt"`
-	UpdatedAt time.Time `json:"updatedAt"`
-	Team      team      `json:"team"`
-	Users     []user    `gorm:"many2many:project_users" json:"users"`
+	ID           uint          `gorm:"primary_key" json:"id"`
+	Name         string        `gorm:"type:varchar(128);not null" json:"name"`
+	TeamID       uint          `gorm:"not null" json:"teamId"`
+	CreatedAt    time.Time     `json:"createdAt"`
+	UpdatedAt    time.Time     `json:"updatedAt"`
+	ProjectUsers []projectUser `json:"projectUsers"`
+	Team         team          `json:"team"`
+	Users        []user        `gorm:"many2many:project_users" json:"users"`
 }
 
 type projectUser struct {
@@ -237,6 +241,14 @@ type testMessage struct {
 	Test      test         `json:"test"`
 	User      user         `json:"user"`
 	Parent    *testMessage `json:"parent"`
+	Viewers   []user       `gorm:"many2many:test_message_viewers" json:"viewers"`
+}
+
+type testMessageViewer struct {
+	TestMessageID uint      `gorm:"not null"`
+	UserID        uint      `gorm:"not null"`
+	CreatedAt     time.Time `json:"createdAt"`
+	UpdatedAt     time.Time `json:"updatedAt"`
 }
 
 type testStatus struct {

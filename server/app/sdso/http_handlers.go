@@ -260,6 +260,12 @@ func (d *dastVulnerabilityMessagesHandler) ServeHTTP(w http.ResponseWriter, r *h
 		case base + "count":
 			d.count(w, r)
 			return
+		case base + "get/ids":
+			d.getIDs(w, r)
+			return
+		case base + "ids":
+			d.ids(w, r)
+			return
 		case base + "range":
 			d.fetchRange(w, r)
 			return
@@ -295,6 +301,41 @@ func (d *dastVulnerabilityMessagesHandler) count(w http.ResponseWriter, r *http.
 		return
 	}
 	respondMessage(w, http.StatusOK, fmt.Sprintf("%d", len(dastVulnerabilityMessage)))
+}
+
+func (d *dastVulnerabilityMessagesHandler) getIDs(w http.ResponseWriter, r *http.Request) {
+	dastVulnerabilityMessages, err := dastVulnerabilityMessageRepository.find(makeQuery(r, dastVulnerabilityMessage{}, true), loadAllRelation)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
+	ids := make([]uint, len(dastVulnerabilityMessages))
+	for index, dastVulnerabilityMessage := range dastVulnerabilityMessages {
+		ids[index] = dastVulnerabilityMessage.ID
+	}
+	_, err = respondJSON(w, http.StatusOK, ids)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
+}
+
+func (d *dastVulnerabilityMessagesHandler) ids(w http.ResponseWriter, r *http.Request) {
+	ids := r.URL.Query()["ids[]"]
+	if emptyAny(ids) {
+		respondJSON(w, http.StatusOK, []uint{})
+		return
+	}
+	dastVulnerabilityMessages, err := dastVulnerabilityMessageRepository.findWhere([]interface{}{"id in (?)", ids}, loadAllRelation)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
+	_, err = respondJSON(w, http.StatusOK, dastVulnerabilityMessages)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
 }
 
 func (d *dastVulnerabilityMessagesHandler) fetchRange(w http.ResponseWriter, r *http.Request) {
@@ -1927,6 +1968,15 @@ func (t *testMessagesHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 		case base + "count":
 			t.count(w, r)
 			return
+		case base + "get/ids":
+			t.getIDs(w, r)
+			return
+		case base + "ids":
+			t.ids(w, r)
+			return
+		case base + "new":
+			t.fetchNew(w, r)
+			return
 		case base + "range":
 			t.fetchRange(w, r)
 			return
@@ -1961,6 +2011,82 @@ func (t *testMessagesHandler) count(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	respondMessage(w, http.StatusOK, fmt.Sprintf("%d", len(testMessages)))
+}
+
+func (t *testMessagesHandler) getIDs(w http.ResponseWriter, r *http.Request) {
+	testMessages, err := testMessageRepository.find(makeQuery(r, testMessage{}, true), loadAllRelation)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
+	ids := make([]uint, len(testMessages))
+	for index, testMessage := range testMessages {
+		ids[index] = testMessage.ID
+	}
+	_, err = respondJSON(w, http.StatusOK, ids)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
+}
+
+func (t *testMessagesHandler) ids(w http.ResponseWriter, r *http.Request) {
+	ids := r.URL.Query()["ids[]"]
+	if emptyAny(ids) {
+		respondJSON(w, http.StatusOK, []uint{})
+		return
+	}
+	testMessages, err := testMessageRepository.findWhere([]interface{}{"id in (?)", ids}, loadAllRelation)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
+	_, err = respondJSON(w, http.StatusOK, testMessages)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
+}
+
+func (t *testMessagesHandler) fetchNew(w http.ResponseWriter, r *http.Request) {
+	viewerID := r.URL.Query().Get("viewerId")
+	if emptyAny(viewerID) {
+		respond(w, http.StatusBadRequest)
+		return
+	}
+	viewer, err := userRepository.first(map[string]interface{}{"id": viewerID})
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
+	testMessages, err := testMessageRepository.find(makeQuery(r, testMessage{}, true), testMessageRelationTestProjectProjectUsers, testMessageRelationViewers)
+	newTestMessages := []testMessage{}
+	for _, testMessage := range testMessages {
+		found := false
+		for _, v := range testMessage.Viewers {
+			if v.ID == viewer.ID {
+				found = true
+				break
+			}
+		}
+		if !found {
+			after := false
+			for _, projectUser := range testMessage.Test.Project.ProjectUsers {
+				if projectUser.UserID == viewer.ID {
+					after = testMessage.CreatedAt.After(projectUser.CreatedAt)
+					break
+				}
+			}
+			if after {
+				newTestMessages = append(newTestMessages, testMessage)
+			}
+		}
+	}
+	_, err = respondJSON(w, http.StatusOK, newTestMessages)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
 }
 
 func (t *testMessagesHandler) fetchRange(w http.ResponseWriter, r *http.Request) {
@@ -2046,6 +2172,70 @@ func (t *testMessagesHandler) store(w http.ResponseWriter, r *http.Request) {
 		place := "テスト(コミットのSHA1=" + test.CommitSHA1 + ")"
 		sendMailMessage(u.Name, place, testMessage.Text, test.Project.Users)
 	}()
+}
+
+type testMessageViewersHandler struct {
+}
+
+func (t *testMessageViewersHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodGet:
+		t.fetch(w, r)
+		return
+	case http.MethodPost:
+		t.store(w, r)
+		return
+	}
+	respond(w, http.StatusNotFound)
+}
+
+func (t *testMessageViewersHandler) fetch(w http.ResponseWriter, r *http.Request) {
+	testMessageViewers, err := testMessageViewerRepository.find(makeQuery(r, testMessageViewer{}, true), loadAllRelation)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
+	_, err = respondJSON(w, http.StatusOK, testMessageViewers)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
+}
+
+func (t *testMessageViewersHandler) store(w http.ResponseWriter, r *http.Request) {
+	testMessageID := r.PostFormValue("testMessageId")
+	if emptyAny(testMessageID) {
+		respond(w, http.StatusBadRequest)
+		return
+	}
+	testMessage, err := testMessageRepository.first(map[string]interface{}{"id": testMessageID}, testMessageRelationTestProjectUsers)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
+	ok, err := checkPermissionWithRequest(r, testMessage.Test.Project.Users)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
+	if !ok {
+		respond(w, http.StatusForbidden)
+		return
+	}
+	testMessageViewer, err := testMessageViewerRepository.save(makeQuery(r, testMessageViewer{}, false))
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
+	response, err := testMessageViewerRepository.first(map[string]interface{}{"test_message_id": testMessageViewer.TestMessageID, "user_id": testMessageViewer.UserID}, loadAllRelation)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
+	_, err = respondJSON(w, http.StatusOK, response)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+	}
 }
 
 type testResultsHandler struct {

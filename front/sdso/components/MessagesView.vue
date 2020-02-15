@@ -9,7 +9,7 @@
         v-for="(message, index) in messages"
         :key="message.id"
         :message-id="message.id"
-        :class="{'new-message': message.new}"
+        :class="{ 'new-message': message.new }"
         class="message-container"
         @click="clickMessage(message, index)"
       >
@@ -32,7 +32,7 @@
           </div>
           <MessageView :message="message"></MessageView>
           <MessageInput
-            v-if="inputs[index].visible"
+            v-if="inputs[index] && inputs[index].visible"
             :parent="message"
             :rows.sync="inputs[index].rows"
             :users="users"
@@ -93,7 +93,9 @@ export default {
     more() {
       return (
         fetchLength < this.messageIds.length &&
-        this.messages.length !== this.messageIds.length
+        this.messageIds.some(
+          messageId => !this.messages.find(message => message.id === messageId)
+        )
       );
     },
     newMessageChipStyle() {
@@ -103,56 +105,7 @@ export default {
     }
   },
   mounted() {
-    if (this.loadMessageIds) {
-      this.loadMessageIds(() => {
-        this.$nextTick(() => {
-          if (this.loadMessages) {
-            if (this.baselineMessage) {
-              const messageIdIndex = this.messageIds.findIndex(
-                messageId => messageId === this.baselineMessage.id
-              );
-              const upperBoundMessageIdIndex = Math.min(
-                messageIdIndex + fetchLength,
-                this.messageIds.length
-              );
-              const startMessageIdIndex =
-                messageIdIndex -
-                (fetchLength - (upperBoundMessageIdIndex - messageIdIndex));
-              const ids = this.messageIds.slice(
-                Math.max(startMessageIdIndex - 1, 0),
-                this.messageIds.length
-              );
-              this.loadMessages(ids, () => {
-                this.$nextTick(() => {
-                  const baselineMessageElement = this.$refs.messages.find(
-                    message => {
-                      const messageId = Array.from(message.attributes).find(
-                        attribute => attribute.name === "message-id"
-                      ).value;
-                      return this.baselineMessage.id == messageId;
-                    }
-                  );
-                  this.$refs.messagesContainer.scrollTop =
-                    baselineMessageElement.getBoundingClientRect().top -
-                    this.$refs.messagesContainer.getBoundingClientRect().top -
-                    this.newMessageChipHeight / 2;
-                });
-              });
-            } else {
-              const ids = this.messageIds.slice(
-                Math.max(this.messageIds.length - fetchLength, 0),
-                this.messageIds.length
-              );
-              this.loadMessages(ids, () => {
-                this.$nextTick(() => {
-                  this.scrollToBottom();
-                });
-              });
-            }
-          }
-        });
-      });
-    }
+    this.initialize();
   },
   watch: {
     messages(newMessages) {
@@ -160,6 +113,9 @@ export default {
         rows: 1,
         visible: false
       }));
+      if (newMessages.length === 0) {
+        this.initialize();
+      }
     }
   },
   methods: {
@@ -186,16 +142,82 @@ export default {
         this.scrollToBottom();
       }
     },
+    initialize() {
+      if (this.loadMessageIds) {
+        this.loadMessageIds(() => {
+          this.$nextTick(() => {
+            if (this.loadMessages) {
+              if (this.baselineMessage) {
+                const messageIdIndex = this.messageIds.findIndex(
+                  messageId => messageId === this.baselineMessage.id
+                );
+                const upperBoundMessageIdIndex = Math.min(
+                  messageIdIndex + fetchLength,
+                  this.messageIds.length
+                );
+                const startMessageIdIndex =
+                  messageIdIndex -
+                  (fetchLength - (upperBoundMessageIdIndex - messageIdIndex));
+                const ids = this.messageIds.slice(
+                  Math.max(startMessageIdIndex - 1, 0),
+                  this.messageIds.length
+                );
+                this.loadMessages(ids, () => {
+                  this.$nextTick(() => {
+                    const baselineMessageElement = this.$refs.messages.find(
+                      message => {
+                        const messageId = Array.from(message.attributes).find(
+                          attribute => attribute.name === "message-id"
+                        ).value;
+                        return this.baselineMessage.id == messageId;
+                      }
+                    );
+                    this.$refs.messagesContainer.scrollTop =
+                      baselineMessageElement.getBoundingClientRect().top -
+                      this.$refs.messagesContainer.getBoundingClientRect().top -
+                      this.newMessageChipHeight / 2;
+                  });
+                });
+              } else {
+                const ids = this.messageIds.slice(
+                  Math.max(this.messageIds.length - fetchLength, 0),
+                  this.messageIds.length
+                );
+                this.loadMessages(ids, () => {
+                  this.$nextTick(() => {
+                    this.scrollToBottom();
+                  });
+                });
+              }
+            }
+          });
+        });
+      }
+    },
     scroll() {
       if (this.$refs.messagesContainer.scrollTop === 0) {
         const preScrollHeight = this.$refs.messagesContainer.scrollHeight;
-        const ids = this.messageIds.slice(
-          Math.max(
-            this.messageIds.length - this.messages.length - fetchLength,
-            0
-          ),
-          this.messageIds.length - this.messages.length
-        );
+        // const ids = this.messageIds.slice(
+        //   Math.max(
+        //     this.messageIds.length - this.messages.length - fetchLength,
+        //     0
+        //   ),
+        //   this.messageIds.length - this.messages.length
+        // );
+        const ids = [];
+        for (let index = this.messageIds.length; 0 <= index; --index) {
+          if (
+            !this.messages.find(
+              message => message.id === this.messageIds[index]
+            )
+          ) {
+            ids.push(this.messageIds[index]);
+            if (ids.length === fetchLength) {
+              break;
+            }
+          }
+        }
+        // console.log(ids);
         this.loadMessages(ids, () => {
           this.$nextTick(() => {
             this.$refs.messagesContainer.scrollTop +=
@@ -240,7 +262,7 @@ export default {
   position: relative;
 }
 .messages {
-  max-height: 90%;
+  height: 90%;
 }
 .messages-view {
   position: relative;

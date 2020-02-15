@@ -61,6 +61,15 @@ func (d *dastVulnerabilityMessageRepositoryGORM) findOrderLimit(query map[string
 	return dastVulnerabilityMessages, nil
 }
 
+func (d *dastVulnerabilityMessageRepositoryGORM) findWhere(where []interface{}, preloads ...string) ([]dastVulnerabilityMessage, error) {
+	dastVulnerabilityMessages := []dastVulnerabilityMessage{}
+	err := findWhereGORM(where, &dastVulnerabilityMessages, dastVulnerabilityMessageAllRelation, preloads...)
+	if err != nil {
+		return nil, err
+	}
+	return dastVulnerabilityMessages, nil
+}
+
 func (d *dastVulnerabilityMessageRepositoryGORM) save(query map[string]interface{}) (*dastVulnerabilityMessage, error) {
 	dastVulnerabilityMessage := dastVulnerabilityMessage{}
 	err := saveGORM(query, &dastVulnerabilityMessage)
@@ -670,6 +679,24 @@ func (t *testMessageRepositoryGORM) findOrderLimit(query map[string]interface{},
 	return testMessages, nil
 }
 
+func (t *testMessageRepositoryGORM) findWhere(where []interface{}, preloads ...string) ([]testMessage, error) {
+	testMessages := []testMessage{}
+	err := findWhereGORM(where, &testMessages, testMessageAllRelation, preloads...)
+	if err != nil {
+		return nil, err
+	}
+	return testMessages, nil
+}
+
+func (t *testMessageRepositoryGORM) first(query map[string]interface{}, preloads ...string) (*testMessage, error) {
+	testMessage := testMessage{}
+	err := firstGORM(query, &testMessage, testMessageAllRelation, preloads...)
+	if err != nil {
+		return nil, err
+	}
+	return &testMessage, nil
+}
+
 func (t *testMessageRepositoryGORM) save(query map[string]interface{}) (*testMessage, error) {
 	testMessage := testMessage{}
 	err := saveGORM(query, &testMessage)
@@ -677,6 +704,36 @@ func (t *testMessageRepositoryGORM) save(query map[string]interface{}) (*testMes
 		return nil, err
 	}
 	return &testMessage, nil
+}
+
+type testMessageViewerRepositoryGORM struct {
+}
+
+func (t *testMessageViewerRepositoryGORM) find(query map[string]interface{}, preloads ...string) ([]testMessageViewer, error) {
+	testMessageViewers := []testMessageViewer{}
+	err := findGORM(query, &testMessageViewers, testMessageAllRelation, preloads...)
+	if err != nil {
+		return nil, err
+	}
+	return testMessageViewers, nil
+}
+
+func (t *testMessageViewerRepositoryGORM) first(query map[string]interface{}, preloads ...string) (*testMessageViewer, error) {
+	testMessageViewer := testMessageViewer{}
+	err := firstGORM(query, &testMessageViewer, testMessageViewerAllRelation, preloads...)
+	if err != nil {
+		return nil, err
+	}
+	return &testMessageViewer, nil
+}
+
+func (t *testMessageViewerRepositoryGORM) save(query map[string]interface{}) (*testMessageViewer, error) {
+	testMessageViewer := testMessageViewer{}
+	err := saveGORM(query, &testMessageViewer)
+	if err != nil {
+		return nil, err
+	}
+	return &testMessageViewer, nil
 }
 
 type testResultRepositoryGORM struct {

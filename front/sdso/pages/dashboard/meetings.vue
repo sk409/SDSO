@@ -3,7 +3,12 @@
     <MainView>
       <template v-slot:sidemenu>
         <div class="d-flex meetings-toolbar">
-          <v-btn v-if="$store.state.projects.project" icon class="ml-auto" @click="dialog = true">
+          <v-btn
+            v-if="$store.state.projects.project"
+            icon
+            class="ml-auto"
+            @click="dialog = true"
+          >
             <v-icon>mdi-plus</v-icon>
           </v-btn>
         </div>
@@ -15,7 +20,9 @@
           >
             <v-list-item-title class="d-flex">
               <span>{{ meeting.name }}</span>
-              <span class="ml-auto">{{meeting.newMessageCount | numberLimit(99)}}</span>
+              <span class="ml-auto">{{
+                meeting.newMessageCount | numberLimit(99)
+              }}</span>
             </v-list-item-title>
           </v-list-item>
         </v-list>
@@ -33,7 +40,10 @@
                 </v-btn>
               </template>
               <v-list>
-                <v-list-item v-for="user in selectedMeeting.users" :key="user.id">
+                <v-list-item
+                  v-for="user in selectedMeeting.users"
+                  :key="user.id"
+                >
                   <v-list-item-avatar>
                     <v-img :src="$serverUrl(user.profileImagePath)"></v-img>
                   </v-list-item-avatar>
@@ -159,17 +169,17 @@ export default {
           this.meetings = meetings.filter(
             meeting => meeting.projectId === project.id
           );
-          this.meetings.forEach(meeting => {
-            const url = new Url(pathMeetingMessages);
-            const data = {
-              meetingId: meeting.id,
-              viewerId: user.id
-            };
-            ajax.get(url.new, data).then(response => {
-              meeting.newMessages = response.data;
-              meeting.newMessageCount = response.data.length;
-            });
-          });
+          // this.meetings.forEach(meeting => {
+          //   const url = new Url(pathMeetingMessages);
+          //   const data = {
+          //     meetingId: meeting.id,
+          //     viewerId: user.id
+          //   };
+          //   ajax.get(url.new, data).then(response => {
+          //     meeting.newMessages = response.data;
+          //     meeting.newMessageCount = response.data.length;
+          //   });
+          // });
         });
     },
     fetchMessageIds(completion) {
@@ -188,17 +198,19 @@ export default {
         ids
       };
       ajax.get(url.ids, data).then(response => {
-        const messages = response.data;
-        messages.forEach(message => {
-          if (this.selectedMeeting.newMessages.length != 0) {
-            message.new =
-              this.selectedMeeting.newMessages.find(
-                newMessage => newMessage.id === message.id
-              ) !== undefined;
-            message.newMessageChip =
-              this.selectedMeeting.newMessages[0].id === message.id;
-          }
-        });
+        const messages = response.data
+          .filter(message => message.meetingId === this.selectedMeeting.id)
+          .filter(message => !this.messages.find(m => message.id === m.id));
+        // messages.forEach(message => {
+        //   if (this.selectedMeeting.newMessages.length != 0) {
+        //     message.new =
+        //       this.selectedMeeting.newMessages.find(
+        //         newMessage => newMessage.id === message.id
+        //       ) !== undefined;
+        //     message.newMessageChip =
+        //       this.selectedMeeting.newMessages[0].id === message.id;
+        //   }
+        // });
         this.messages = messages.concat(this.messages);
         completion();
       });
@@ -228,19 +240,21 @@ export default {
         });
     },
     selectMeeting(meeting) {
-      meeting.newMessages.forEach(newMessage => {
-        const url = new Url(pathMeetingMessageViewers);
-        const data = {
-          meetingMessageId: newMessage.id,
-          userId: user.id
-        };
-        ajax.post(url.base, data);
-      });
-      if (meeting.newMessages.length != 0) {
-        this.baselineMessage = meeting.newMessages[0];
-      }
-      meeting.newMessageCount = 0;
+      // meeting.newMessages.forEach(newMessage => {
+      //   const url = new Url(pathMeetingMessageViewers);
+      //   const data = {
+      //     meetingMessageId: newMessage.id,
+      //     userId: user.id
+      //   };
+      //   ajax.post(url.base, data);
+      // });
+      // if (meeting.newMessages.length != 0) {
+      //   this.baselineMessage = meeting.newMessages[0];
+      // }
+      // meeting.newMessageCount = 0;
       this.selectedMeeting = meeting;
+      this.messages = [];
+      this.messageIds = [];
     },
     setupScoket() {
       const url = new Url(pathMeetingMessages);
@@ -251,13 +265,13 @@ export default {
           !this.selectedMeeting ||
           message.meetingId !== this.selectedMeeting.id
         ) {
-          const meeting = this.meetings.find(
-            meeting => meeting.id === message.meetingId
-          );
-          if (meeting) {
-            meeting.newMessages.push(message);
-            meeting.newMessageCount += 1;
-          }
+          // const meeting = this.meetings.find(
+          //   meeting => meeting.id === message.meetingId
+          // );
+          // if (meeting) {
+          //   meeting.newMessages.push(message);
+          //   meeting.newMessageCount += 1;
+          // }
           return;
         }
         if (message.user.id === user.id) {

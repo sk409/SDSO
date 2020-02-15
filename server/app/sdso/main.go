@@ -168,6 +168,12 @@ func main() {
 	testMessagesRouter.handler = &testMessagesHandler{}
 	http.Handle("/test_messages/", &testMessagesRouter)
 
+	testMessageViewersRouter := router{}
+	testMessageViewersRouter.cors()
+	testMessageViewersRouter.allowCredentials()
+	testMessageViewersRouter.handler = &testMessageViewersHandler{}
+	http.Handle("/test_message_viewers", &testMessageViewersRouter)
+
 	testResultsRouter := router{}
 	testResultsRouter.cors()
 	testResultsRouter.allowCredentials()

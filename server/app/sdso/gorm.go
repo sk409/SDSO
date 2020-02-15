@@ -44,7 +44,8 @@ func initGORM() {
 	gormDB.Model(&testMessage{}).AddForeignKey("parent_id", "test_messages(id)", "SET NULL", "CASCADE")
 	gormDB.AutoMigrate(&dastVulnerabilityMessage{}).AddForeignKey("vulnerability_id", "vulnerabilities(id)", "CASCADE", "CASCADE").AddForeignKey("user_id", "users(id)", "CASCADE", "CASCADE")
 	gormDB.Model(&dastVulnerabilityMessage{}).AddForeignKey("parent_id", "dast_vulnerability_messages(id)", "SET NULL", "CASCADE")
-	gormDB.AutoMigrate(&meetingMessageViewer{}).AddForeignKey("meeting_message_id", "meeting_messages(id)", "CASCADE", "CASCADE").AddForeignKey("user_id", "users(id)", "CASCADE", "CASCADE").AddUniqueIndex("unique_meeting_message_id_user_id", "meeting_message_id", "user_id")
+	gormDB.AutoMigrate(&meetingMessageViewer{}).AddForeignKey("meeting_message_id", "meeting_messages(id)", "CASCADE", "CASCADE").AddForeignKey("user_id", "users(id)", "CASCADE", "CASCADE")
+	gormDB.AutoMigrate(&testMessageViewer{})
 
 	insertIfNotExist := func(model interface{}) {
 		gormDB.Where(model).First(model)

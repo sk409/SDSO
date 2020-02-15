@@ -34,8 +34,9 @@
         </v-tab-item>
         <v-tab-item value="コメント">
           <MessagesView
+            :load-message-ids="fetchMessageIds"
             :load-messages="fetchMessages"
-            :message-count.sync="messageCount"
+            :message-ids="messageIds"
             :messages="messages"
             :post-message="storeMessage"
             :users="users"
@@ -63,7 +64,7 @@ export default {
   },
   data() {
     return {
-      messageCount: 0,
+      messageIds: [],
       messages: [],
       metadata: [
         {
@@ -93,14 +94,25 @@ export default {
     this.fetchVulnerabilityAndMessageCountAndUsers();
   },
   methods: {
-    fetchMessages(start, end, completion) {
+    fetchMessageIds(completion) {
+      const vulnerabilityId = this.$route.params.id;
       const url = new Url(pathDastVulnerabilityMessages);
       const data = {
-        start,
-        end,
-        vulnerabilityId: this.vulnerability.id
+        vulnerabilityId
       };
-      ajax.get(url.range, data).then(response => {
+      ajax.get(url.getIds, data).then(response => {
+        this.messageIds = response.data.filter(
+          id => !this.messages.find(message => id === message.id)
+        );
+        completion();
+      });
+    },
+    fetchMessages(ids, completion) {
+      const url = new Url(pathDastVulnerabilityMessages);
+      const data = {
+        ids
+      };
+      ajax.get(url.ids, data).then(response => {
         this.messages = response.data.concat(this.messages);
         completion();
       });

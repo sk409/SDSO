@@ -18,6 +18,7 @@ var (
 	teamUserRoleRepository                     teamUserRoleRepositoryInterface
 	testRepository                             testRepositoryInterface
 	testMessageRepository                      testMessageRepositoryInterface
+	testMessageViewerRepository                testMessageViewerRepositoryInterface
 	testResultRepository                       testResultRepositoryInterface
 	testStatusRepository                       testStatusRepositoryInterface
 	userRepository                             userRepositoryInterface
@@ -50,6 +51,7 @@ func init() {
 		teamUserRoleRepository = &teamUserRoleRepositoryGORM{}
 		testRepository = &testRepositoryGORM{}
 		testMessageRepository = &testMessageRepositoryGORM{}
+		testMessageViewerRepository = &testMessageViewerRepositoryGORM{}
 		testResultRepository = &testResultRepositoryGORM{}
 		testStatusRepository = &testStatusRepositoryGORM{}
 		userRepository = &userRepositoryGORM{}
@@ -68,6 +70,7 @@ type dastVulnerabilityMessageRepositoryInterface interface {
 	find(map[string]interface{}, ...string) ([]dastVulnerabilityMessage, error)
 	findByID(uint, ...string) (*dastVulnerabilityMessage, error)
 	findOrderLimit(query map[string]interface{}, order string, limit interface{}, preloads ...string) ([]dastVulnerabilityMessage, error)
+	findWhere([]interface{}, ...string) ([]dastVulnerabilityMessage, error)
 	save(map[string]interface{}) (*dastVulnerabilityMessage, error)
 }
 
@@ -177,7 +180,15 @@ type testMessageRepositoryInterface interface {
 	find(map[string]interface{}, ...string) ([]testMessage, error)
 	findByID(uint, ...string) (*testMessage, error)
 	findOrderLimit(query map[string]interface{}, order string, limit interface{}, preloads ...string) ([]testMessage, error)
+	findWhere([]interface{}, ...string) ([]testMessage, error)
+	first(map[string]interface{}, ...string) (*testMessage, error)
 	save(map[string]interface{}) (*testMessage, error)
+}
+
+type testMessageViewerRepositoryInterface interface {
+	find(map[string]interface{}, ...string) ([]testMessageViewer, error)
+	first(map[string]interface{}, ...string) (*testMessageViewer, error)
+	save(map[string]interface{}) (*testMessageViewer, error)
 }
 
 type testResultRepositoryInterface interface {

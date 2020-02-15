@@ -28,6 +28,7 @@ export const pathTeamUserInvitationRequestProjects =
   "team_user_invitation_request_projects";
 export const pathTests = "tests/";
 export const pathTestMessages = "test_messages/";
+export const pathTestMessageViewers = "test_message_viewers";
 export const pathTestResults = "test_results";
 export const pathUser = "user";
 export const pathUsers = "users/";
@@ -44,6 +45,8 @@ export class Url {
     switch (path) {
       case pathDastVulnerabilityMessages:
         this.count = this.base + "count";
+        this.getIds = this.base + "get/ids";
+        this.ids = this.base + "ids";
         this.range = this.base + "range";
         this.socket = userId => socket(path) + `?userId=${userId}`;
         break;
@@ -61,6 +64,9 @@ export class Url {
         break;
       case pathTestMessages:
         this.count = this.base + "count";
+        this.getIds = this.base + "get/ids";
+        this.ids = this.base + "ids";
+        this.new = this.base + "new";
         this.range = this.base + "range";
         this.socket = userId => socket(path) + `?userId=${userId}`;
         break;
