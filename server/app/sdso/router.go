@@ -1,6 +1,7 @@
 package main
 
 import (
+	"log"
 	"net/http"
 	"path"
 	"strings"
@@ -54,6 +55,7 @@ func (router *router) auth() {
 	router.middlewares = append(router.middlewares, func(w http.ResponseWriter, r *http.Request) bool {
 		_, err := authenticatedUser(r)
 		if err != nil {
+			log.Println("!!AUTH")
 			respond(w, http.StatusBadRequest)
 			return false
 		}

@@ -535,7 +535,6 @@ func (f *filesHandler) text(w http.ResponseWriter, r *http.Request) {
 		respond(w, http.StatusInternalServerError)
 		return
 	}
-	log.Println(string(text))
 	respondMessage(w, http.StatusOK, string(text))
 }
 
