@@ -15,7 +15,7 @@ type router struct {
 }
 
 func (router *router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	var next bool
+	next := true
 	for _, middleware := range router.middlewares {
 		next = middleware(w, r)
 		if !next {
@@ -46,6 +46,17 @@ func (router *router) allowMethods(methods ...string) {
 	router.middlewares = append(router.middlewares, func(w http.ResponseWriter, r *http.Request) bool {
 		v := strings.Join(methods, ",")
 		w.Header().Set(goconst.HTTP_HEADER_ACCESS_CONTROL_ALLOW_METHODS, v)
+		return true
+	})
+}
+
+func (router *router) auth() {
+	router.middlewares = append(router.middlewares, func(w http.ResponseWriter, r *http.Request) bool {
+		_, err := authenticatedUser(r)
+		if err != nil {
+			respond(w, http.StatusBadRequest)
+			return false
+		}
 		return true
 	})
 }

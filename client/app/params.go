@@ -18,10 +18,9 @@ var (
 
 const (
 	directoryProject    = ".sdso"
-	pathProjects        = "/projects"
-	pathScans           = "/scans"
-	pathUsers           = "/users"
-	pathVulnerabilities = "/vulnerabilities"
+	pathScans           = "/api/scans"
+	pathUsers           = "/api/users"
+	pathVulnerabilities = "/api/vulnerabilities"
 	serverOrigin        = "http://server:8080"
 )
 

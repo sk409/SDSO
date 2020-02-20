@@ -40,7 +40,9 @@
                         @click="clickFileItem(fileItem)"
                       >
                         <td>
-                          <v-icon v-if="fileItem.isDirectory">mdi-folder-outline</v-icon>
+                          <v-icon v-if="fileItem.isDirectory"
+                            >mdi-folder-outline</v-icon
+                          >
                           <v-icon v-else>mdi-file-document-box-outline</v-icon>
                           <span class="ml-3">{{ fileItem.name }}</span>
                         </td>
@@ -78,7 +80,8 @@ const aceMode = path => {
   const modes = {
     go: "golang",
     js: "javascript",
-    php: "php"
+    php: "php",
+    json: "json"
   };
   const base = "ace/mode/";
   if (!modes[ext]) {
@@ -184,7 +187,11 @@ export default {
         path
       };
       ajax.get(url.text, data).then(response => {
-        this.fileText = response.data;
+        const text =
+          typeof response.data === "object"
+            ? JSON.stringify(response.data)
+            : response.data;
+        this.fileText = text;
         this.aceMode = aceMode(path);
         this.completion = true;
       });

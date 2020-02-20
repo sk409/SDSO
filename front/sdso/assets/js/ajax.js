@@ -1,6 +1,24 @@
 import axios from "axios";
 
 class Ajax {
+  makeUrlWithQuery(url, query) {
+    url += "?";
+    for (let key in query) {
+      const value = query[key];
+      if (Array.isArray(value)) {
+        if (!key.endsWith("[]")) {
+          key += "[]";
+        }
+        for (const item of value) {
+          url += `${key}=${item}&`;
+        }
+      } else {
+        url += `${key}=${value}&`;
+      }
+    }
+    return url;
+  }
+
   makeBody(data, config) {
     let params = new URLSearchParams();
     if (
@@ -17,33 +35,28 @@ class Ajax {
   }
 
   get(url, data, config) {
-    url += "?";
-    for (let key in data) {
-      const value = data[key];
-      if (Array.isArray(value)) {
-        if (!key.endsWith("[]")) {
-          key += "[]";
-        }
-        for (const item of value) {
-          url += `${key}=${item}&`;
-        }
-      } else {
-        url += `${key}=${value}&`;
-      }
+    if (!config) {
+      config = {};
     }
-    return axios.get(url, config);
+    config.withCredentials = true;
+    // console.log(config);
+    return axios.get(this.makeUrlWithQuery(url, data), config);
   }
 
   post(url, data, config) {
     if (!config) {
-      config = {}
+      config = {};
     }
     config.withCredentials = true;
     return axios.post(url, this.makeBody(data, config), config);
   }
 
   delete(url, data, config) {
-    return axios.delete(url, this.makeBody(data, config), config);
+    if (!config) {
+      config = {};
+    }
+    config.withCredentials = true;
+    return axios.delete(this.makeUrlWithQuery(url, data), config);
   }
 }
 

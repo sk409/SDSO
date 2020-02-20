@@ -113,7 +113,10 @@ export default {
         ids
       };
       ajax.get(url.ids, data).then(response => {
-        this.messages = response.data.concat(this.messages);
+        const messages = response.data.filter(
+          message => !this.messages.find(m => m.id === message.id)
+        );
+        this.messages = messages.concat(this.messages);
         completion();
       });
     },

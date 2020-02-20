@@ -39,14 +39,6 @@ func authenticatedUser(r *http.Request) (*user, error) {
 	return u, nil
 }
 
-func checkPermissionWithRequest(r *http.Request, users []user) (bool, error) {
-	u, err := authenticatedUser(r)
-	if err != nil {
-		return false, err
-	}
-	return checkPermission(u, users), nil
-}
-
 func login(w http.ResponseWriter, username, password string) (*user, error) {
 	u, err := userRepository.findByName(username)
 	if err != nil {
@@ -111,7 +103,8 @@ func respondJSON(w http.ResponseWriter, statusCode int, model interface{}) ([]by
 }
 
 func respondMessage(w http.ResponseWriter, statusCode int, message string) {
-	respond(w, statusCode)
+	// respond(w, statusCode)
+	w.Header().Set(goconst.HTTP_HEADER_CONTENT_TYPE, goconst.HTTP_HEADER_CONTENT_TYPE_PLAIN_TEXT)
 	w.Write([]byte(message))
 }
 

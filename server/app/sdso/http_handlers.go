@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"os"
 	"path"
@@ -22,9 +23,15 @@ type authHandler struct {
 }
 
 func (a *authHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	base := "/auth"
 	switch r.Method {
 	case http.MethodGet:
-		a.auth(w, r)
+		switch r.URL.Path {
+		case base:
+			a.auth(w, r)
+			return
+		}
+		respond(w, http.StatusNotFound)
 		return
 	}
 	respond(w, http.StatusMethodNotAllowed)
@@ -63,9 +70,15 @@ type branchesHandler struct {
 }
 
 func (b *branchesHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	base := "/branches"
 	switch r.Method {
 	case http.MethodGet:
-		b.fetch(w, r)
+		switch r.URL.Path {
+		case base:
+			b.fetch(w, r)
+			return
+		}
+		respond(w, http.StatusNotFound)
 		return
 	}
 	respond(w, http.StatusMethodNotAllowed)
@@ -98,15 +111,26 @@ type branchProtectionRulesHandler struct {
 }
 
 func (b *branchProtectionRulesHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	base := "/branch_protection_rules"
 	switch r.Method {
 	case http.MethodGet:
-		b.fetch(w, r)
+		switch r.URL.Path {
+		case base:
+			b.fetch(w, r)
+			return
+		}
+		respond(w, http.StatusNotFound)
 		return
 	case http.MethodPost:
-		b.store(w, r)
+		switch r.URL.Path {
+		case base:
+			b.store(w, r)
+			return
+		}
+		respond(w, http.StatusNotFound)
 		return
 	}
-	respond(w, http.StatusNotFound)
+	respond(w, http.StatusMethodNotAllowed)
 }
 
 func (b *branchProtectionRulesHandler) fetch(w http.ResponseWriter, r *http.Request) {
@@ -126,16 +150,6 @@ func (b *branchProtectionRulesHandler) store(w http.ResponseWriter, r *http.Requ
 	projectID := r.PostFormValue("projectId")
 	if emptyAny(projectID) {
 		respond(w, http.StatusBadRequest)
-		return
-	}
-	p, err := projectRepository.first(map[string]interface{}{"id": projectID}, projectRelationUsers)
-	ok, err := checkPermissionWithRequest(r, p.Users)
-	if err != nil {
-		respondError(w, http.StatusInternalServerError, err)
-		return
-	}
-	if !ok {
-		respond(w, http.StatusForbidden)
 		return
 	}
 	branchProtectionRule, err := branchProtectionRuleRepository.save(makeQuery(r, branchProtectionRule{}, false))
@@ -274,11 +288,17 @@ func (d *dastVulnerabilityMessagesHandler) ServeHTTP(w http.ResponseWriter, r *h
 			return
 		}
 		respond(w, http.StatusNotFound)
+		return
 	case http.MethodPost:
-		d.store(w, r)
+		switch r.URL.Path {
+		case base:
+			d.store(w, r)
+			return
+		}
+		respond(w, http.StatusNotFound)
 		return
 	}
-	respond(w, http.StatusNotFound)
+	respond(w, http.StatusMethodNotAllowed)
 }
 
 func (d *dastVulnerabilityMessagesHandler) fetch(w http.ResponseWriter, r *http.Request) {
@@ -376,24 +396,14 @@ func (d *dastVulnerabilityMessagesHandler) socket(w http.ResponseWriter, r *http
 }
 
 func (d *dastVulnerabilityMessagesHandler) store(w http.ResponseWriter, r *http.Request) {
-	userID := r.PostFormValue("userId")
 	vulnerabilityID := r.PostFormValue("vulnerabilityId")
-	if emptyAny(userID, vulnerabilityID) {
+	if emptyAny(vulnerabilityID) {
 		respond(w, http.StatusBadRequest)
 		return
 	}
 	v, err := vulnerabilityRepository.first(map[string]interface{}{"id": vulnerabilityID}, vulnerabilityRelationScan, vulnerabilityRelationProjectUsers)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
-		return
-	}
-	ok, err := checkPermissionWithRequest(r, v.Project.Users)
-	if err != nil {
-		respondError(w, http.StatusInternalServerError, err)
-		return
-	}
-	if !ok {
-		respond(w, http.StatusForbidden)
 		return
 	}
 	dastVulnerabilityMessage, err := dastVulnerabilityMessageRepository.save(makeQuery(r, dastVulnerabilityMessage{}, false))
@@ -444,8 +454,10 @@ func (f *filesHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			f.text(w, r)
 			return
 		}
+		respond(w, http.StatusNotFound)
+		return
 	}
-	respond(w, http.StatusNotFound)
+	respond(w, http.StatusMethodNotAllowed)
 }
 
 func (f *filesHandler) fetch(w http.ResponseWriter, r *http.Request) {
@@ -497,6 +509,7 @@ func (f *filesHandler) fetch(w http.ResponseWriter, r *http.Request) {
 }
 
 func (f *filesHandler) text(w http.ResponseWriter, r *http.Request) {
+	log.Println("FILES/TEXT")
 	teamname := r.URL.Query().Get("teamname")
 	projectname := r.URL.Query().Get("projectname")
 	revision := r.URL.Query().Get("revision")
@@ -522,6 +535,7 @@ func (f *filesHandler) text(w http.ResponseWriter, r *http.Request) {
 		respond(w, http.StatusInternalServerError)
 		return
 	}
+	log.Println(string(text))
 	respondMessage(w, http.StatusOK, string(text))
 }
 
@@ -542,6 +556,8 @@ func (g *gitHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			g.refs(w, r)
 			return
 		}
+		respond(w, http.StatusNotFound)
+		return
 	case http.MethodPost:
 		switch r.URL.Path {
 		case "/" + path.Join(teamname, projectName, "git-receive-pack"):
@@ -551,8 +567,10 @@ func (g *gitHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			g.uploadPack(w, r)
 			return
 		}
+		respond(w, http.StatusNotFound)
+		return
 	}
-	respond(w, http.StatusNotFound)
+	respond(w, http.StatusMethodNotAllowed)
 }
 
 func (g *gitHandler) refs(w http.ResponseWriter, r *http.Request) {
@@ -657,12 +675,18 @@ type loginHandler struct {
 }
 
 func (l *loginHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	base := "/login"
 	switch r.Method {
 	case http.MethodPost:
-		l.login(w, r)
+		switch r.URL.Path {
+		case base:
+			l.login(w, r)
+			return
+		}
+		respond(w, http.StatusNotFound)
 		return
 	}
-	respond(w, http.StatusNotFound)
+	respond(w, http.StatusMethodNotAllowed)
 }
 
 func (l *loginHandler) login(w http.ResponseWriter, r *http.Request) {
@@ -688,12 +712,18 @@ type logoutHandler struct {
 }
 
 func (l *logoutHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	base := "/logout"
 	switch r.Method {
 	case http.MethodPost:
-		l.logout(w, r)
+		switch r.URL.Path {
+		case base:
+			l.logout(w, r)
+			return
+		}
+		respond(w, http.StatusNotFound)
 		return
 	}
-	respond(w, http.StatusNotFound)
+	respond(w, http.StatusMethodNotAllowed)
 }
 
 func (l *logoutHandler) logout(w http.ResponseWriter, r *http.Request) {
@@ -730,11 +760,18 @@ func (m *meetingsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			m.ids(w, r)
 			return
 		}
+		respond(w, http.StatusNotFound)
+		return
 	case http.MethodPost:
-		m.store(w, r)
+		switch r.URL.Path {
+		case base:
+			m.store(w, r)
+			return
+		}
+		respond(w, http.StatusNotFound)
 		return
 	}
-	respond(w, http.StatusNotFound)
+	respond(w, http.StatusMethodNotAllowed)
 }
 
 func (m *meetingsHandler) fetch(w http.ResponseWriter, r *http.Request) {
@@ -776,20 +813,6 @@ func (m *meetingsHandler) store(w http.ResponseWriter, r *http.Request) {
 	projectID := r.PostFormValue("projectId")
 	if emptyAny(projectID) {
 		respond(w, http.StatusBadRequest)
-		return
-	}
-	p, err := projectRepository.first(map[string]interface{}{"id": projectID}, projectRelationUsers)
-	if err != nil {
-		respondError(w, http.StatusInternalServerError, err)
-		return
-	}
-	ok, err := checkPermissionWithRequest(r, p.Users)
-	if err != nil {
-		respondError(w, http.StatusInternalServerError, err)
-		return
-	}
-	if !ok {
-		respond(w, http.StatusForbidden)
 		return
 	}
 	meeting, err := meetingRepository.save(makeQuery(r, meeting{}, false))
@@ -842,11 +865,18 @@ func (m *meetingMessagesHandler) ServeHTTP(w http.ResponseWriter, r *http.Reques
 			m.socket(w, r)
 			return
 		}
+		respond(w, http.StatusNotFound)
+		return
 	case http.MethodPost:
-		m.store(w, r)
+		switch r.URL.Path {
+		case base:
+			m.store(w, r)
+			return
+		}
+		respond(w, http.StatusNotFound)
 		return
 	}
-	respond(w, http.StatusNotFound)
+	respond(w, http.StatusMethodNotAllowed)
 }
 
 func (m *meetingMessagesHandler) fetch(w http.ResponseWriter, r *http.Request) {
@@ -976,15 +1006,6 @@ func (m *meetingMessagesHandler) store(w http.ResponseWriter, r *http.Request) {
 		respondError(w, http.StatusInternalServerError, err)
 		return
 	}
-	ok, err := checkPermissionWithRequest(r, meeting.Project.Users)
-	if err != nil {
-		respondError(w, http.StatusInternalServerError, err)
-		return
-	}
-	if !ok {
-		respond(w, http.StatusForbidden)
-		return
-	}
 	meetingMessage, err := meetingMessageRepository.save(makeQuery(r, meetingMessage{}, false))
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
@@ -1060,15 +1081,26 @@ type meetingMessageViewersHandler struct {
 
 func (m *meetingMessageViewersHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// base := "/meeting_message_viewers/"
+	base := "/meeting_message_viewers"
 	switch r.Method {
 	case http.MethodGet:
-		m.fetch(w, r)
+		switch r.URL.Path {
+		case base:
+			m.fetch(w, r)
+			return
+		}
+		respond(w, http.StatusNotFound)
 		return
 	case http.MethodPost:
-		m.store(w, r)
+		switch r.URL.Path {
+		case base:
+			m.store(w, r)
+			return
+		}
+		respond(w, http.StatusNotFound)
 		return
 	}
-	respond(w, http.StatusNotFound)
+	respond(w, http.StatusMethodNotAllowed)
 }
 
 func (m *meetingMessageViewersHandler) fetch(w http.ResponseWriter, r *http.Request) {
@@ -1088,20 +1120,6 @@ func (m *meetingMessageViewersHandler) store(w http.ResponseWriter, r *http.Requ
 	meetingMessageID := r.PostFormValue("meetingMessageId")
 	if emptyAny(meetingMessageID) {
 		respond(w, http.StatusBadRequest)
-		return
-	}
-	meetingMessage, err := meetingMessageRepository.first(map[string]interface{}{"id": meetingMessageID}, meetingMessageRelationMeetingProjectUsers)
-	if err != nil {
-		respondError(w, http.StatusInternalServerError, err)
-		return
-	}
-	ok, err := checkPermissionWithRequest(r, meetingMessage.Meeting.Project.Users)
-	if err != nil {
-		respondError(w, http.StatusInternalServerError, err)
-		return
-	}
-	if !ok {
-		respond(w, http.StatusForbidden)
 		return
 	}
 	meetingMessageViewer, err := meetingMessageViewerRepository.save(makeQuery(r, meetingMessageViewer{}, false))
@@ -1125,15 +1143,26 @@ type meetingUsersHandler struct {
 }
 
 func (m *meetingUsersHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	base := "/meeting_users"
 	switch r.Method {
 	case http.MethodGet:
-		m.fetch(w, r)
+		switch r.URL.Path {
+		case base:
+			m.fetch(w, r)
+			return
+		}
+		respond(w, http.StatusNotFound)
 		return
 	case http.MethodPost:
-		m.store(w, r)
+		switch r.URL.Path {
+		case base:
+			m.store(w, r)
+			return
+		}
+		respond(w, http.StatusNotFound)
 		return
 	}
-	respond(w, http.StatusNotFound)
+	respond(w, http.StatusMethodNotAllowed)
 }
 
 func (m *meetingUsersHandler) fetch(w http.ResponseWriter, r *http.Request) {
@@ -1153,20 +1182,6 @@ func (m *meetingUsersHandler) store(w http.ResponseWriter, r *http.Request) {
 	meetingID := r.PostFormValue("meetingId")
 	if emptyAny(meetingID) {
 		respond(w, http.StatusBadRequest)
-		return
-	}
-	meeting, err := meetingRepository.first(map[string]interface{}{"id": meetingID}, meetingRelationProjectUsers)
-	if err != nil {
-		respondError(w, http.StatusInternalServerError, err)
-		return
-	}
-	ok, err := checkPermissionWithRequest(r, meeting.Project.Users)
-	if err != nil {
-		respondError(w, http.StatusInternalServerError, err)
-		return
-	}
-	if !ok {
-		respond(w, http.StatusForbidden)
 		return
 	}
 	meetingUser, err := meetingUserRepository.save(makeQuery(r, meetingUser{}, false))
@@ -1202,11 +1217,18 @@ func (p *projectsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			p.ids(w, r)
 			return
 		}
+		respond(w, http.StatusNotFound)
+		return
 	case http.MethodPost:
-		p.store(w, r)
+		switch r.URL.Path {
+		case base:
+			p.store(w, r)
+			return
+		}
+		respond(w, http.StatusNotFound)
 		return
 	}
-	respond(w, http.StatusNotFound)
+	respond(w, http.StatusMethodNotAllowed)
 }
 
 func (p *projectsHandler) fetch(w http.ResponseWriter, r *http.Request) {
@@ -1255,15 +1277,6 @@ func (p *projectsHandler) store(w http.ResponseWriter, r *http.Request) {
 		respondError(w, http.StatusInternalServerError, err)
 		return
 	}
-	ok, err := checkPermissionWithRequest(r, t.Users)
-	if err != nil {
-		respondError(w, http.StatusInternalServerError, err)
-		return
-	}
-	if !ok {
-		respond(w, http.StatusForbidden)
-		return
-	}
 	project, err := projectRepository.save(makeQuery(r, project{}, false))
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
@@ -1295,15 +1308,26 @@ type projectUsersHandler struct {
 }
 
 func (p *projectUsersHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	base := "/project_users"
 	switch r.Method {
 	case http.MethodGet:
-		p.fetch(w, r)
+		switch r.URL.Path {
+		case base:
+			p.fetch(w, r)
+			return
+		}
+		respond(w, http.StatusNotFound)
 		return
 	case http.MethodPost:
-		p.store(w, r)
+		switch r.URL.Path {
+		case base:
+			p.store(w, r)
+			return
+		}
+		respond(w, http.StatusNotFound)
 		return
 	}
-	respond(w, http.StatusNotFound)
+	respond(w, http.StatusMethodNotAllowed)
 }
 
 func (p *projectUsersHandler) fetch(w http.ResponseWriter, r *http.Request) {
@@ -1325,20 +1349,6 @@ func (p *projectUsersHandler) store(w http.ResponseWriter, r *http.Request) {
 	userID := r.PostFormValue("userId")
 	if emptyAny(projectID, role, userID) {
 		respond(w, http.StatusBadRequest)
-		return
-	}
-	project, err := projectRepository.first(map[string]interface{}{"id": projectID}, projectRelationTeamUsers)
-	if err != nil {
-		respondError(w, http.StatusInternalServerError, err)
-		return
-	}
-	ok, err := checkPermissionWithRequest(r, project.Team.Users)
-	if err != nil {
-		respondError(w, http.StatusInternalServerError, err)
-		return
-	}
-	if !ok {
-		respond(w, http.StatusForbidden)
 		return
 	}
 	projectUserRole, err := projectUserRoleRepository.findByRole(role)
@@ -1364,12 +1374,18 @@ type repositoriesHandler struct {
 }
 
 func (h *repositoriesHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	base := "/repositories"
 	switch r.Method {
 	case http.MethodPost:
-		h.store(w, r)
+		switch r.URL.Path {
+		case base:
+			h.store(w, r)
+			return
+		}
+		respond(w, http.StatusNotFound)
 		return
 	}
-	respond(w, http.StatusNotFound)
+	respond(w, http.StatusMethodNotAllowed)
 }
 
 func (h *repositoriesHandler) store(w http.ResponseWriter, r *http.Request) {
@@ -1402,12 +1418,18 @@ type registerHandler struct {
 }
 
 func (h *registerHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	base := "/register"
 	switch r.Method {
 	case http.MethodPost:
-		h.register(w, r)
+		switch r.URL.Path {
+		case base:
+			h.register(w, r)
+			return
+		}
+		respond(w, http.StatusNotFound)
 		return
 	}
-	respond(w, http.StatusNotFound)
+	respond(w, http.StatusMethodNotAllowed)
 }
 
 func (h *registerHandler) register(w http.ResponseWriter, r *http.Request) {
@@ -1445,15 +1467,18 @@ type scansHandler struct {
 }
 
 func (s *scansHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	base := "/scans"
 	switch r.Method {
 	case http.MethodGet:
-		s.fetch(w, r)
-		return
-	case http.MethodPost:
-		s.store(w, r)
+		switch r.URL.Path {
+		case base:
+			s.fetch(w, r)
+			return
+		}
+		respond(w, http.StatusNotFound)
 		return
 	}
-	respond(w, http.StatusNotFound)
+	respond(w, http.StatusMethodNotAllowed)
 }
 
 func (s *scansHandler) fetch(w http.ResponseWriter, r *http.Request) {
@@ -1501,53 +1526,6 @@ func (s *scansHandler) fetch(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (s *scansHandler) store(w http.ResponseWriter, r *http.Request) {
-	commitSHA1 := r.PostFormValue("commitSHA1")
-	username := r.PostFormValue("username")
-	hashedPassword := r.PostFormValue("password")
-	teamname := r.PostFormValue("teamname")
-	projectname := r.PostFormValue("projectname")
-	if emptyAny(commitSHA1, username, hashedPassword, teamname, projectname) {
-		respond(w, http.StatusBadRequest)
-		return
-	}
-	u, err := userRepository.findByName(username)
-	if err != nil {
-		respondError(w, http.StatusInternalServerError, err)
-		return
-	}
-	if u.Password != hashedPassword {
-		respond(w, http.StatusBadRequest)
-		return
-	}
-	t, err := teamRepository.findByName(teamname, teamRelationUsers)
-	if err != nil {
-		respondError(w, http.StatusInternalServerError, err)
-		return
-	}
-	ok := checkPermission(u, t.Users)
-	if !ok {
-		respond(w, http.StatusForbidden)
-		return
-	}
-	p, err := projectRepository.first(map[string]interface{}{"name": projectname, "team_id": t.ID})
-	if err != nil {
-		respondError(w, http.StatusInternalServerError, err)
-		return
-	}
-	scan, err := scanRepository.saveWith(commitSHA1, p.ID, u.ID)
-	if err != nil {
-		respondError(w, http.StatusInternalServerError, err)
-		return
-	}
-	response, err := scanRepository.findByID(scan.ID, loadAllRelation)
-	_, err = respondJSON(w, http.StatusOK, response)
-	if err != nil {
-		respondError(w, http.StatusInternalServerError, err)
-		return
-	}
-}
-
 type teamsHandler struct {
 }
 
@@ -1563,11 +1541,18 @@ func (t *teamsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			t.ids(w, r)
 			return
 		}
+		respond(w, http.StatusNotFound)
+		return
 	case http.MethodPost:
-		t.store(w, r)
+		switch r.URL.Path {
+		case base:
+			t.store(w, r)
+			return
+		}
+		respond(w, http.StatusNotFound)
 		return
 	}
-	respond(w, http.StatusNotFound)
+	respond(w, http.StatusMethodNotAllowed)
 }
 
 func (t *teamsHandler) fetch(w http.ResponseWriter, r *http.Request) {
@@ -1623,15 +1608,26 @@ type teamUsersHandler struct {
 }
 
 func (t *teamUsersHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	base := "/team_users"
 	switch r.Method {
 	case http.MethodGet:
-		t.fetch(w, r)
+		switch r.URL.Path {
+		case base:
+			t.fetch(w, r)
+			return
+		}
+		respond(w, http.StatusNotFound)
 		return
 	case http.MethodPost:
-		t.store(w, r)
+		switch r.URL.Path {
+		case base:
+			t.store(w, r)
+			return
+		}
+		respond(w, http.StatusNotFound)
 		return
 	}
-	respond(w, http.StatusNotFound)
+	respond(w, http.StatusMethodNotAllowed)
 }
 
 func (t *teamUsersHandler) fetch(w http.ResponseWriter, r *http.Request) {
@@ -1666,15 +1662,6 @@ func (t *teamUsersHandler) store(w http.ResponseWriter, r *http.Request) {
 		for index, invitationRequest := range team.InvitationRequests {
 			users[index] = invitationRequest.InviteeUser
 		}
-		ok, err := checkPermissionWithRequest(r, users)
-		if err != nil {
-			respondError(w, http.StatusInternalServerError, err)
-			return
-		}
-		if !ok {
-			respond(w, http.StatusForbidden)
-			return
-		}
 	}
 	teamUserRole, err := teamUserRoleRepository.findByRole(role)
 	if err != nil {
@@ -1703,18 +1690,34 @@ type teamUserInvitationRequestProjectsHandler struct {
 }
 
 func (t *teamUserInvitationRequestProjectsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	base := "/team_user_invitation_request_projects"
 	switch r.Method {
 	case http.MethodGet:
-		t.fetch(w, r)
+		switch r.URL.Path {
+		case base:
+			t.fetch(w, r)
+			return
+		}
+		respond(w, http.StatusNotFound)
 		return
 	case http.MethodPost:
-		t.store(w, r)
+		switch r.URL.Path {
+		case base:
+			t.store(w, r)
+			return
+		}
+		respond(w, http.StatusNotFound)
 		return
 	case http.MethodDelete:
-		t.destroy(w, r)
+		switch r.URL.Path {
+		case base:
+			t.destroy(w, r)
+			return
+		}
+		respond(w, http.StatusNotFound)
 		return
 	}
-	respond(w, http.StatusNotFound)
+	respond(w, http.StatusMethodNotAllowed)
 }
 
 func (t *teamUserInvitationRequestProjectsHandler) fetch(w http.ResponseWriter, r *http.Request) {
@@ -1734,20 +1737,6 @@ func (t *teamUserInvitationRequestProjectsHandler) store(w http.ResponseWriter, 
 	teamUserInvitationRequestID := r.PostFormValue("teamUserInvitationRequestId")
 	if emptyAny(teamUserInvitationRequestID) {
 		respond(w, http.StatusBadRequest)
-		return
-	}
-	teamUserInvitationRequest, err := teamUserInvitationRequestRepository.first(map[string]interface{}{"id": teamUserInvitationRequestID}, teamUserInvitationRequestRelationTeamUsers)
-	if err != nil {
-		respondError(w, http.StatusInternalServerError, err)
-		return
-	}
-	ok, err := checkPermissionWithRequest(r, teamUserInvitationRequest.Team.Users)
-	if err != nil {
-		respondError(w, http.StatusInternalServerError, err)
-		return
-	}
-	if !ok {
-		respond(w, http.StatusForbidden)
 		return
 	}
 	teamUserInvitationRequestProject, err := teamUserInvitationRequestProjectRepository.save(makeQuery(r, teamUserInvitationRequestProject{}, false))
@@ -1780,15 +1769,31 @@ type teamUserInvitationRequestsHandler struct {
 }
 
 func (t *teamUserInvitationRequestsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	base := "/team_user_invitation_requests"
 	switch r.Method {
 	case http.MethodGet:
-		t.fetch(w, r)
+		switch r.URL.Path {
+		case base:
+			t.fetch(w, r)
+			return
+		}
+		respond(w, http.StatusNotFound)
 		return
 	case http.MethodPost:
-		t.store(w, r)
+		switch r.URL.Path {
+		case base:
+			t.store(w, r)
+			return
+		}
+		respond(w, http.StatusNotFound)
 		return
 	case http.MethodDelete:
-		t.destroy(w, r)
+		switch r.URL.Path {
+		case base:
+			t.destroy(w, r)
+			return
+		}
+		respond(w, http.StatusNotFound)
 		return
 	}
 	respond(w, http.StatusNotFound)
@@ -1815,20 +1820,6 @@ func (t *teamUserInvitationRequestsHandler) store(w http.ResponseWriter, r *http
 	teamID := r.PostFormValue("teamId")
 	if emptyAny(inviterUserID, inviteeUserID, roleText, teamID) {
 		respond(w, http.StatusBadRequest)
-		return
-	}
-	team, err := teamRepository.first(map[string]interface{}{"id": teamID}, teamRelationUsers)
-	if err != nil {
-		respondError(w, http.StatusInternalServerError, err)
-		return
-	}
-	ok, err := checkPermissionWithRequest(r, team.Users)
-	if err != nil {
-		respondError(w, http.StatusInternalServerError, err)
-		return
-	}
-	if !ok {
-		respond(w, http.StatusForbidden)
 		return
 	}
 	role, err := teamUserRoleRepository.findByRole(roleText)
@@ -1880,8 +1871,10 @@ func (t *testsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			t.revision(w, r)
 			return
 		}
+		respond(w, http.StatusNotFound)
+		return
 	}
-	respond(w, http.StatusNotFound)
+	respond(w, http.StatusMethodNotAllowed)
 }
 
 func (t *testsHandler) fetch(w http.ResponseWriter, r *http.Request) {
@@ -1984,11 +1977,18 @@ func (t *testMessagesHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 			t.socket(w, r)
 			return
 		}
+		respond(w, http.StatusNotFound)
+		return
 	case http.MethodPost:
-		t.store(w, r)
+		switch r.URL.Path {
+		case base:
+			t.store(w, r)
+			return
+		}
+		respond(w, http.StatusNotFound)
 		return
 	}
-	respond(w, http.StatusNotFound)
+	respond(w, http.StatusMethodNotAllowed)
 }
 
 func (t *testMessagesHandler) fetch(w http.ResponseWriter, r *http.Request) {
@@ -2137,15 +2137,6 @@ func (t *testMessagesHandler) store(w http.ResponseWriter, r *http.Request) {
 		respondError(w, http.StatusInternalServerError, err)
 		return
 	}
-	ok, err := checkPermissionWithRequest(r, test.Project.Users)
-	if err != nil {
-		respondError(w, http.StatusInternalServerError, err)
-		return
-	}
-	if !ok {
-		respond(w, http.StatusForbidden)
-		return
-	}
 	testMessage, err := testMessageRepository.save(makeQuery(r, testMessage{}, false))
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
@@ -2178,15 +2169,26 @@ type testMessageViewersHandler struct {
 }
 
 func (t *testMessageViewersHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	base := "/test_message_viewers"
 	switch r.Method {
 	case http.MethodGet:
-		t.fetch(w, r)
+		switch r.URL.Path {
+		case base:
+			t.fetch(w, r)
+			return
+		}
+		respond(w, http.StatusNotFound)
 		return
 	case http.MethodPost:
-		t.store(w, r)
+		switch r.URL.Path {
+		case base:
+			t.store(w, r)
+			return
+		}
+		respond(w, http.StatusNotFound)
 		return
 	}
-	respond(w, http.StatusNotFound)
+	respond(w, http.StatusMethodNotAllowed)
 }
 
 func (t *testMessageViewersHandler) fetch(w http.ResponseWriter, r *http.Request) {
@@ -2206,20 +2208,6 @@ func (t *testMessageViewersHandler) store(w http.ResponseWriter, r *http.Request
 	testMessageID := r.PostFormValue("testMessageId")
 	if emptyAny(testMessageID) {
 		respond(w, http.StatusBadRequest)
-		return
-	}
-	testMessage, err := testMessageRepository.first(map[string]interface{}{"id": testMessageID}, testMessageRelationTestProjectUsers)
-	if err != nil {
-		respondError(w, http.StatusInternalServerError, err)
-		return
-	}
-	ok, err := checkPermissionWithRequest(r, testMessage.Test.Project.Users)
-	if err != nil {
-		respondError(w, http.StatusInternalServerError, err)
-		return
-	}
-	if !ok {
-		respond(w, http.StatusForbidden)
 		return
 	}
 	testMessageViewer, err := testMessageViewerRepository.save(makeQuery(r, testMessageViewer{}, false))
@@ -2242,12 +2230,18 @@ type testResultsHandler struct {
 }
 
 func (t *testResultsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	base := "/test_results"
 	switch r.Method {
 	case http.MethodGet:
-		t.fetch(w, r)
+		switch r.URL.Path {
+		case base:
+			t.fetch(w, r)
+			return
+		}
+		respond(w, http.StatusNotFound)
 		return
 	}
-	respond(w, http.StatusNotFound)
+	respond(w, http.StatusMethodNotAllowed)
 }
 
 func (t *testResultsHandler) fetch(w http.ResponseWriter, r *http.Request) {
@@ -2267,12 +2261,18 @@ type testStatusesHandler struct {
 }
 
 func (t *testStatusesHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	base := "/test_statuses"
 	switch r.Method {
 	case http.MethodGet:
-		t.fetch(w, r)
+		switch r.URL.Path {
+		case base:
+			t.fetch(w, r)
+			return
+		}
+		respond(w, http.StatusNotFound)
 		return
 	}
-	respond(w, http.StatusNotFound)
+	respond(w, http.StatusMethodNotAllowed)
 }
 
 func (t *testStatusesHandler) fetch(w http.ResponseWriter, r *http.Request) {
@@ -2292,12 +2292,18 @@ type userHandler struct {
 }
 
 func (u *userHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	base := "/user"
 	switch r.Method {
 	case http.MethodGet:
-		u.fetch(w, r)
+		switch r.URL.Path {
+		case base:
+			u.fetch(w, r)
+			return
+		}
+		respond(w, http.StatusNotFound)
 		return
 	}
-	respond(w, http.StatusNotFound)
+	respond(w, http.StatusMethodNotAllowed)
 }
 
 func (u *userHandler) fetch(w http.ResponseWriter, r *http.Request) {
@@ -2339,8 +2345,10 @@ func (u *usersHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			u.ids(w, r)
 			return
 		}
+		respond(w, http.StatusNotFound)
+		return
 	}
-	respond(w, http.StatusNotFound)
+	respond(w, http.StatusMethodNotAllowed)
 }
 
 func (u *usersHandler) fetch(w http.ResponseWriter, r *http.Request) {
@@ -2382,15 +2390,18 @@ type vulnerabilitiesHandler struct {
 }
 
 func (v *vulnerabilitiesHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	base := "/vulnerabilities"
 	switch r.Method {
 	case http.MethodGet:
-		v.fetch(w, r)
-		return
-	case http.MethodPost:
-		v.store(w, r)
+		switch r.URL.Path {
+		case base:
+			v.fetch(w, r)
+			return
+		}
+		respond(w, http.StatusNotFound)
 		return
 	}
-	respond(w, http.StatusNotFound)
+	respond(w, http.StatusMethodNotAllowed)
 }
 
 func (v *vulnerabilitiesHandler) fetch(w http.ResponseWriter, r *http.Request) {
@@ -2406,7 +2417,121 @@ func (v *vulnerabilitiesHandler) fetch(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (v *vulnerabilitiesHandler) store(w http.ResponseWriter, r *http.Request) {
+type apiScansHandler struct {
+}
+
+func (a *apiScansHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	base := "/api/scans"
+	switch r.Method {
+	case http.MethodPost:
+		switch r.URL.Path {
+		case base:
+			a.store(w, r)
+			return
+		}
+		respond(w, http.StatusNotFound)
+		return
+	}
+	respond(w, http.StatusMethodNotAllowed)
+}
+
+func (a *apiScansHandler) store(w http.ResponseWriter, r *http.Request) {
+	commitSHA1 := r.PostFormValue("commitSHA1")
+	username := r.PostFormValue("username")
+	hashedPassword := r.PostFormValue("password")
+	teamname := r.PostFormValue("teamname")
+	projectname := r.PostFormValue("projectname")
+	if emptyAny(commitSHA1, username, hashedPassword, teamname, projectname) {
+		respond(w, http.StatusBadRequest)
+		return
+	}
+	u, err := userRepository.findByName(username)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
+	if u.Password != hashedPassword {
+		respond(w, http.StatusBadRequest)
+		return
+	}
+	t, err := teamRepository.findByName(teamname, teamRelationUsers)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
+	p, err := projectRepository.first(map[string]interface{}{"name": projectname, "team_id": t.ID}, projectRelationUsers)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
+	ok := checkPermission(u, p.Users)
+	if !ok {
+		respond(w, http.StatusBadRequest)
+		return
+	}
+	scan, err := scanRepository.saveWith(commitSHA1, p.ID, u.ID)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
+	response, err := scanRepository.findByID(scan.ID, loadAllRelation)
+	_, err = respondJSON(w, http.StatusOK, response)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
+}
+
+type apiUsersHandler struct {
+}
+
+func (a *apiUsersHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	base := "/api/users"
+	switch r.Method {
+	case http.MethodGet:
+		switch r.URL.Path {
+		case base:
+			a.fetch(w, r)
+			return
+		}
+		respond(w, http.StatusNotFound)
+		return
+	}
+	respond(w, http.StatusMethodNotAllowed)
+}
+
+func (a *apiUsersHandler) fetch(w http.ResponseWriter, r *http.Request) {
+	users, err := userRepository.find(makeQuery(r, user{}, true))
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
+	_, err = respondJSON(w, http.StatusOK, users)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
+}
+
+type apiVulnerabilitiesHandler struct {
+}
+
+func (a *apiVulnerabilitiesHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	base := "/api/vulnerabilities"
+	switch r.Method {
+	case http.MethodPost:
+		switch r.URL.Path {
+		case base:
+			a.store(w, r)
+			return
+		}
+		respond(w, http.StatusNotFound)
+		return
+	}
+	respond(w, http.StatusMethodNotAllowed)
+}
+
+func (a *apiVulnerabilitiesHandler) store(w http.ResponseWriter, r *http.Request) {
 	name := r.PostFormValue("name")
 	description := r.PostFormValue("description")
 	path := r.PostFormValue("path")
@@ -2436,14 +2561,14 @@ func (v *vulnerabilitiesHandler) store(w http.ResponseWriter, r *http.Request) {
 		respondError(w, http.StatusInternalServerError, err)
 		return
 	}
-	ok := checkPermission(u, t.Users)
-	if !ok {
-		respond(w, http.StatusForbidden)
-		return
-	}
-	p, err := projectRepository.first(map[string]interface{}{"name": projectname, "team_id": t.ID})
+	p, err := projectRepository.first(map[string]interface{}{"name": projectname, "team_id": t.ID}, projectRelationUsers)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
+	ok := checkPermission(u, p.Users)
+	if !ok {
+		respond(w, http.StatusBadRequest)
 		return
 	}
 	query := map[string]interface{}{"Name": name, "Description": description, "Path": path, "Method": method, "Request": request, "Response": response, "ProjectID": p.ID, "ScanID": scanID}

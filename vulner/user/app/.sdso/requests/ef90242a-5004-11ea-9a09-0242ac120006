@@ -1,1 +1,0 @@
-{"method":"GET","url":"http://192.168.10.102:4800/os_command_injection/get.php?password=\u0026name=\u0026","path":"/os_command_injection/get.php","header":{"Accept-Encoding":["gzip"],"Content-Type":["application/x-www-form-urlencoded"],"User-Agent":["Go-http-client/1.1"]},"body":""}
