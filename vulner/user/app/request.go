@@ -70,7 +70,7 @@ func main() {
 			Proxy:           http.ProxyURL(proxyURL),
 		},
 	}
-	targetOrigin := "http://192.168.10.102:4800"
+	targetOrigin := "http://192.168.3.2:4800"
 	if err != nil {
 		panic(err)
 	}
