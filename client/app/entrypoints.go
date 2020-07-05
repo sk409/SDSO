@@ -60,6 +60,11 @@ func entrypointLogin() {
 	}
 }
 
+func entrypointPush() {
+	// fs := flag.NewFlagSet(os.Args[0], flag.ExitOnError)
+	command("git", "push", os.Args[2], os.Args[3])
+}
+
 func entrypointRecord() {
 	fs := flag.NewFlagSet(os.Args[0], flag.ExitOnError)
 	host := fs.String("host", "", "")

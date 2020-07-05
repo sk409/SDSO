@@ -14,6 +14,8 @@ func main() {
 		entrypointInit()
 	case "login":
 		entrypointLogin()
+	case "push":
+		entrypointPush()
 	case "record":
 		entrypointRecord()
 	case "setup":
